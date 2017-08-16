@@ -1,23 +1,16 @@
 package com.iqiyi.liquanfei_sx.vpnt;
 
-import android.app.Service;
 import android.content.Intent;
 import android.net.VpnService;
+import android.os.Binder;
 import android.os.IBinder;
 import android.os.ParcelFileDescriptor;
-import android.support.annotation.IntDef;
 import android.util.Log;
 
 import java.io.FileInputStream;
+import java.io.FileOutputStream;
 import java.io.IOException;
-import java.io.InputStream;
-import java.io.OutputStream;
-import java.net.DatagramPacket;
-import java.net.DatagramSocket;
 import java.net.InetSocketAddress;
-import java.net.Socket;
-import java.net.SocketException;
-import java.net.UnknownHostException;
 import java.nio.ByteBuffer;
 import java.nio.channels.DatagramChannel;
 
@@ -25,7 +18,7 @@ import java.nio.channels.DatagramChannel;
  * Created by liquanfei_sx on 2017/8/7.
  */
 
-public class ClientServive extends VpnService {
+public class ClientService extends VpnService{
     static final String TAG="xx";
 
     private String addr="127.0.0.1";
@@ -34,10 +27,17 @@ public class ClientServive extends VpnService {
 
     private ParcelFileDescriptor mInterface;
     DatagramChannel mTunnel=null;
+    static {
+        System.loadLibrary("native-lib");
+    }
+
+    @Override
+    public void onCreate() {
+        super.onCreate();
+    }
 
     @Override
     public int onStartCommand(Intent intent, int flags, int startId) {
-
         new Thread()
         {
             @Override
@@ -59,6 +59,7 @@ public class ClientServive extends VpnService {
                     e.printStackTrace();
                 }
                 build();
+
                 /*
                 new Thread() {
 
@@ -104,6 +105,7 @@ public class ClientServive extends VpnService {
                         // Packets to be sent are queued in this input stream.
                         FileInputStream in = new FileInputStream(
                                 mInterface.getFileDescriptor());
+                        FileOutputStream out=new FileOutputStream(mInterface.getFileDescriptor());
                         // Allocate the buffer for a single packet.
                         ByteBuffer packet = ByteBuffer.allocate(32767);
                         int length;
@@ -115,15 +117,16 @@ public class ClientServive extends VpnService {
                                     // Write the outgoing packet to the tunnel.
                                     //Log.e("xx","tun read-write"+new String(packet.array()));
                                     packet.limit(length);
-                                    debugPacket(packet); // Packet size, Protocol,
+                                    //debugPacket(packet); // Packet size, Protocol,
+                                    new IPPacket(packet.array());
                                     // source, destination
-                                    //mTunnel.write(packet);
                                     packet.clear();
-
+                                    //mTunnel.write(packet);
+                                    //out.write(packet.array(),0,length);
                                 }
                             }
                         } catch (IOException e) {
-                            e.printStackTrace();
+                            Log.e("xx",e.toString());
                         }
 
                     }
@@ -162,7 +165,7 @@ public class ClientServive extends VpnService {
         int buffer = packet.get();
         int version;
         int headerlength;
-        version = buffer >> 4;
+        version = buffer >> 4;          //4 or 6
         headerlength = buffer & 0x0F;
         headerlength *= 4;
         Log.e(TAG, "IP Version:" + version);
@@ -179,7 +182,7 @@ public class ClientServive extends VpnService {
         buffer = packet.getChar(); // Identification
         buffer = packet.getChar(); // Flags + Fragment Offset
         buffer = packet.get(); // Time to Live
-        buffer = packet.get(); // Protocol
+        buffer = packet.get(); // Protocol  1表示为ICMP协议， 2表示为IGMP协议， 6表示为TCP协议， 1 7表示为UDP协议。
 
         Log.e(TAG, "Protocol:" + buffer);
 
@@ -188,19 +191,19 @@ public class ClientServive extends VpnService {
         buffer = packet.getChar(); // Header checksum
 
         String sourceIP = "";
-        buffer = packet.get(); // Source IP 1st Octet
+        buffer = packet.get()&0xff; // Source IP 1st Octet
         sourceIP += buffer;
         sourceIP += ".";
 
-        buffer = packet.get(); // Source IP 2nd Octet
+        buffer = packet.get()&0xff; // Source IP 2nd Octet
         sourceIP += buffer;
         sourceIP += ".";
 
-        buffer = packet.get(); // Source IP 3rd Octet
+        buffer = packet.get()&0xff; // Source IP 3rd Octet
         sourceIP += buffer;
         sourceIP += ".";
 
-        buffer = packet.get(); // Source IP 4th Octet
+        buffer = packet.get()&0xff; // Source IP 4th Octet
         sourceIP += buffer;
 
         Log.e(TAG, "Source IP:" + sourceIP);
@@ -208,24 +211,33 @@ public class ClientServive extends VpnService {
         status += "   Source IP:" + sourceIP;
 
         String destIP = "";
-        buffer = packet.get(); // Destination IP 1st Octet
+        buffer = packet.get()&0xff; // Destination IP 1st Octet
         destIP += buffer;
         destIP += ".";
 
-        buffer = packet.get(); // Destination IP 2nd Octet
+        buffer = packet.get()&0xff; // Destination IP 2nd Octet
         destIP += buffer;
         destIP += ".";
 
-        buffer = packet.get(); // Destination IP 3rd Octet
+        buffer = packet.get()&0xff; // Destination IP 3rd Octet
         destIP += buffer;
         destIP += ".";
 
-        buffer = packet.get(); // Destination IP 4th Octet
+        buffer = packet.get()&0xff; // Destination IP 4th Octet
         destIP += buffer;
 
         Log.e(TAG, "Destination IP:" + destIP);
 
         status += "   Destination IP:" + destIP;
 
+    }
+
+
+    class MB extends Binder
+    {
+        ClientService get()
+        {
+            return ClientService.this;
+        }
     }
 }
