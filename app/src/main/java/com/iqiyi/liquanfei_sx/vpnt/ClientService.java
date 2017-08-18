@@ -60,46 +60,6 @@ public class ClientService extends VpnService{
                 }
                 build();
 
-                /*
-                new Thread() {
-
-                    @Override
-                    public void run() {
-                        // TODO Auto-generated method stub
-                        try {
-                            DatagramSocket socket = new DatagramSocket(port);
-                            DatagramPacket packet = new DatagramPacket(new byte[255],
-                                    255);
-                            protect(socket);
-                            //Socket ss=new Socket("127.0.0.1",port);
-                            //InputStream is=ss.getInputStream();
-                            //OutputStream os=ss.getOutputStream();
-                            //byte[] b;
-                            while (true) {
-                                try {
-                                    //b=new byte[255];
-                                    //socket.connect(new InetSocketAddress(port));
-                                    socket.receive(packet);
-                                    //is.read(b);
-                                    Log.e("xx","socket read "+packet.getSocketAddress());
-                                    //os.write(b);
-                                    //socket.connect(new InetSocketAddress(packet.getAddress().getHostAddress(),packet.getPort()));
-                                    socket.send(packet);
-                                    packet.setLength(255);
-
-                                } catch (IOException e) {
-                                    Log.e("xx",""+e.toString());
-                                }
-
-                            }
-                        } catch (SocketException e) {
-                            Log.e("xx",""+e.toString());
-                        }
-                    }
-
-                }.start();
-*/
-
                 new Thread() {
                     public void run() {
                         // Packets to be sent are queued in this input stream.
@@ -136,6 +96,16 @@ public class ClientService extends VpnService{
 
 
         return super.onStartCommand(intent, flags, startId);
+    }
+
+    public void write(IPPacket packet)
+    {
+        ByteBuffer b=ByteBuffer.wrap(packet.getRawData());
+        try {
+            mTunnel.write(b);
+        } catch (IOException e) {
+            Log.e("xx","when write to tunnel:"+e.toString());
+        }
     }
 
     @Override

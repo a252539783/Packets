@@ -8,20 +8,28 @@ import android.os.IBinder;
 import android.support.v7.app.AppCompatActivity;
 import android.os.Bundle;
 import android.util.Log;
+import android.view.View;
+import android.view.ViewGroup;
 
 public class MainActivity extends AppCompatActivity {
 
-    private ILocalServer mServer=null;
+    private ClientService mServer=null;
 
     @Override
     protected void onCreate(Bundle savedInstanceState) {
         super.onCreate(savedInstanceState);
         setContentView(R.layout.activity_main);
 
+        ViewGroup root= (ViewGroup) findViewById(android.R.id.content);
+        root=(ViewGroup) root.getChildAt(0);
+        for (int i=0;i<root.getChildCount();i++)
+        {
+            Log.e("xx","child "+i+":"+root.getChildAt(i).getClass().getName());
+        }
         // Example of a call to a native method
         //TextView tv = (TextView) findViewById(R.id.sample_text);
         //tv.setText(stringFromJNI());
-        final Intent i= VpnService.prepare(this);
+        /*final Intent i= VpnService.prepare(this);
 
         if (i==null)
         {
@@ -30,7 +38,7 @@ public class MainActivity extends AppCompatActivity {
         }else
         {
             startActivityForResult(i,1);
-        }
+        }*/
     }
 
     /**

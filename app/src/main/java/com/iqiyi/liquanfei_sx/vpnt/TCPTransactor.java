@@ -1,5 +1,7 @@
 package com.iqiyi.liquanfei_sx.vpnt;
 
+import android.view.ViewGroup;
+
 import java.net.ServerSocket;
 import java.net.Socket;
 import java.util.HashMap;
@@ -15,15 +17,5 @@ public class TCPTransactor {
     public TCPTransactor()
     {
         mSockets=new HashMap<>();
-    }
-
-    static class TCPStatus
-    {
-
-        Socket mSocket=null;
-
-        public TCPStatus()
-        {
-        }
     }
 }

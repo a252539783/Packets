@@ -1,5 +1,6 @@
 package com.iqiyi.liquanfei_sx.vpnt;
 
+import android.net.VpnService;
 import android.util.Log;
 
 /**
@@ -31,7 +32,7 @@ public class IPPacket extends Packet{
         mTTL=data[8];
         mProtocol=data[9];// Protocol  1表示为ICMP协议， 2表示为IGMP协议， 6表示为TCP协议， 1 7表示为UDP协议
 
-        Log.e("xx", "Protocol:" + mProtocol);
+        Log.e("xx", "ttl:" + mTTL);
 
         mSourceIp=new byte[4];
         mDestIp=new byte[4];
@@ -57,6 +58,15 @@ public class IPPacket extends Packet{
         {
             mData=new TCPPacket(data,mHeaderLength,this);
         }
+
+        int checksum=0;
+        for (int i=0;i<10;i++)
+        {
+            checksum+=(((data[i*2]&0xff)<<8|(data[i*2+1]&0xff)));
+        }
+        checksum=(checksum>>16)+checksum&0xffff;
+        checksum=(~checksum)&0xffff;
+        Log.e("xx","check sum:"+checksum+"  ident:"+(((data[4]&0xff)<<8)|((data[5]&0xff))));
     }
 
     public byte[] getSourceIp()
