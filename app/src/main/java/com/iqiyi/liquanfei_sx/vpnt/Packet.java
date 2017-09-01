@@ -6,7 +6,7 @@ package com.iqiyi.liquanfei_sx.vpnt;
 
 public class Packet {
 
-    byte[] mData=null;
+    private byte[] mData=null;
     int mOffset=0;
 
     public Packet(byte[] data,int offset)

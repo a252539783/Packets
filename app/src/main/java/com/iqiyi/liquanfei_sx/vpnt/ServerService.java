@@ -1,16 +1,20 @@
 package com.iqiyi.liquanfei_sx.vpnt;
 
 import android.app.Service;
+import android.content.ComponentName;
 import android.content.Intent;
+import android.content.ServiceConnection;
 import android.os.Binder;
 import android.os.IBinder;
 import android.support.annotation.Nullable;
-import android.support.v4.util.ArrayMap;
+import android.util.Log;
 import android.util.SparseArray;
 
 import java.io.IOException;
 import java.io.InputStream;
 import java.io.OutputStream;
+import java.io.UnsupportedEncodingException;
+import java.net.InetSocketAddress;
 import java.net.Socket;
 import java.nio.ByteBuffer;
 import java.util.ArrayList;
@@ -30,21 +34,48 @@ public class ServerService extends Service {
     private ArrayList<PacketList> mPackets=new ArrayList<>();
 
     @Override
-    public int onStartCommand(Intent intent, int flags, int startId) {
-        mTransmitThread=new TransmitThread();
+    public void onCreate() {
+        super.onCreate();
 
+    }
+
+    @Override
+    public int onStartCommand(Intent intent, int flags, int startId) {
+        Log.e("xx","server started");
+        mTransmitThread=new TransmitThread();
         return super.onStartCommand(intent, flags, startId);
     }
 
     @Nullable
     @Override
     public IBinder onBind(Intent intent) {
+        bindService(new Intent(ServerService.this, ClientService.class), new ServiceConnection() {
+            @Override
+            public void onServiceConnected(ComponentName name, IBinder service) {
+                mLocal=((ClientService.MB)service).get();
+                Log.e("xx","bind to client");
+            }
+
+            @Override
+            public void onServiceDisconnected(ComponentName name) {
+
+            }
+        },BIND_AUTO_CREATE);
         return mB;
     }
 
     public void startDaemon()
     {
-        mTransmitThread.start();
+        new Thread()
+        {
+            @Override
+            public void run() {
+                super.run();
+                while (mLocal==null);
+                mTransmitThread.start();
+            }
+        }.start();
+
     }
 
     public void stopDaemon()
@@ -54,8 +85,8 @@ public class ServerService extends Service {
 
     public boolean transmit(Packet packet)
     {
+        //Log.e("xx","add");
         mTransmitThread.mPackets.add(packet);
-
         if (!mTransmitThread.mPause)
             return false;
 
@@ -94,36 +125,64 @@ public class ServerService extends Service {
         public void run() {
             super.run();
             mPause=false;
-
+            Log.e("xx","daemon started");
             while (!mPause||!mPackets.isEmpty())
             {
                 Packet packet=mPackets.poll();
                 doTransmit(packet);
             }
+            Log.e("xx","daemon ended");
         }
 
         private void doTransmit(Packet packet)
         {
-            if (packet instanceof TCPPacket)
+            if (packet instanceof IPPacket)
             {
-                TCPPacket tcp=(TCPPacket) packet;
-                if (tcp.SYN)
-                {
-                    mThreadPool.execute(new ConnectRunnable(tcp));
-                }else if (tcp.FIN)
-                {
-                    try {
-                        TCPStatus status=mSockets.get(tcp.getSourcePort());
-                        if (status!=null)
-                        {
-                            status.mSocket.close();
-                            mSockets.remove(tcp.getSourcePort());
-                        }
+                IPPacket ip=(IPPacket)packet;
 
-                    } catch (IOException e) {
-                        mSockets.remove(tcp.getSourcePort());
+                if (ip.getData() instanceof TCPPacket)
+                {
+                    Log.e("xx","transmit tcp packet:");
+                    TCPPacket tcp=(TCPPacket) ip.getData();
+                    if (tcp.syn)
+                    {
+                        Log.e("xx","transmit tcp sync:");
+                        mThreadPool.execute(new ConnectRunnable(tcp));
+                    }else if (tcp.ack)
+                    {
+                        if (tcp.fin)
+                        {
+                            Log.e("xx","transmit tcp fin:");
+                            try {
+                                TCPStatus status=mSockets.get(tcp.getSourcePort());
+                                if (status!=null)
+                                {
+                                    status.mSocket.close();
+                                    mSockets.remove(tcp.getSourcePort());
+                                }
+
+                            } catch (IOException e) {
+                                mSockets.remove(tcp.getSourcePort());
+                            }
+                        }else
+                        {
+                            TCPStatus status=mSockets.get(tcp.getSourcePort());
+                            if (status==null)
+                            {
+                                Log.e("xx","find no connected:ServerService.TransmitThread.doTransmit()");
+                            }else
+                            {
+                                mThreadPool.execute(new ACKRunnable(tcp,status));
+                            }
+                        }
+                    }
+                    else
+                    {
+                        Log.e("xx","transmit tcp unknown:");
                     }
                 }
+
+
             }
         }
 
@@ -161,8 +220,24 @@ public class ServerService extends Service {
             public void run() {
                 if (connect(packet))   //connect successfully and send sync-ack
                 {
-
+                    //Log.e("xx","connected successfully");
                 }
+            }
+        }
+
+        class ACKRunnable implements Runnable
+        {
+            private TCPPacket packet;
+            private TCPStatus status;
+
+            ACKRunnable(TCPPacket packet,TCPStatus status) {
+                this.packet = packet;
+                this.status = status;
+            }
+
+            @Override
+            public void run() {
+                status.ack(packet);
             }
         }
 
@@ -193,25 +268,61 @@ public class ServerService extends Service {
         OutputStream os;
         ReadThread mReadThread;
         PacketList mPacketList;
-        int mId=0;
-        int sn=0;
-        int mPort=0;
         private TCPPacket.Builder mBuilder;
 
         public TCPStatus(TCPPacket packet) throws IOException {
-            mSocket=new Socket(packet.getDestIp(),packet.getPort());
+            Log.e("xx","socket connecting "+packet.getDestIp()+":"+packet.getPort()+"from:"+packet.getSourcePort());
+            mSocket=new Socket();
+            mSocket.bind(null);
             mLocal.protect(mSocket);
+            //mSocket.connect(new InetSocketAddress("121.199.31.116",8908));
+            mSocket.connect(new InetSocketAddress(packet.getDestIp(),packet.getPort()));
+            Log.e("xx","socket connected");
             mReadThread=new ReadThread();
             os=mSocket.getOutputStream();
             is=mSocket.getInputStream();
             mPacketList=new PacketList();
+            mPacketList.add(packet);
             mPackets.add(mPacketList);
 
-            mBuilder=new TCPPacket.Builder(this)
+            mBuilder=new TCPPacket.Builder(this,packet)
             .setDest(packet.getIpInfo().getSourceIp())
-            .setSource(packet.getIpInfo().getDestIp())
-            .setDestPort(packet.getSourcePort())
-            .setSourcePort(packet.getPort());
+            .setSource(packet.getIpInfo().getDestIp());
+
+            mLocal.write(mBuilder.build(packet));
+            mReadThread.start();
+        }
+
+        public void ack(TCPPacket packet)
+        {
+            mBuilder.freshId();
+            if (packet.getDataLength()==0)
+            {
+                return ;
+            }
+
+            try {
+                if (packet.getPort()==6666)
+                    Log.e("6666","send"+new String(packet.getRawData(),packet.mOffset,packet.getDataLength(),"utf-8"));
+                os.write(packet.getRawData(),packet.mOffset+packet.mHeaderLength,packet.getDataLength());
+                mLocal.write(mBuilder.build(packet));
+            } catch (IOException e) {
+                Log.e("xx","write to dest fail:ServerService.TCPStatus.ack(TCPPacket)");
+            }
+        }
+
+        public void ack(ByteBuffer data)
+        {
+            mBuilder.freshId();
+            TCPPacket packet=(TCPPacket) mPacketList.getLast();
+            if (packet.getPort()==6666)
+                try {
+                    Log.e("6666","recv"+new String(packet.getRawData(),packet.mOffset,packet.getDataLength(),"utf-8"));
+                } catch (UnsupportedEncodingException e) {
+                    e.printStackTrace();
+                }
+
+            mLocal.write(mBuilder.build((TCPPacket) mPacketList.getLast(),data));
         }
 
         class ReadThread extends Thread
@@ -222,11 +333,15 @@ public class ServerService extends Service {
             public void run() {
                 super.run();
                 try{
+                    int len;
                     while (true)
                     {
-                        int len=0;
+                        len=0;
                         while ((len=is.available())==0);
                         read(is,buffer.array(),len);
+                        buffer.limit(len);
+
+                        ack(buffer);
                     }
                 }catch (IOException e)
                 {
@@ -259,6 +374,14 @@ public class ServerService extends Service {
         void add(Packet p)
         {
             packets.add(p);
+        }
+
+        Packet get(int i){
+            return packets.get(i);
+        }
+
+        Packet getLast() {
+            return packets.get(packets.size()-1);
         }
     }
 }
