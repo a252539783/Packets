@@ -266,7 +266,7 @@ public class TCPPacket extends Packet {
                 b[i]=packet.getRawData()[i];
             }
 
-            b[16]=b[17]=0;
+            b[36]=b[37]=0;
             checksum=0;
             for (int i=10;i<(tcpHeadLen+ipHeadLen)/2;i++)
             {
@@ -289,8 +289,8 @@ public class TCPPacket extends Packet {
             while (checksum>>16!=0)
                 checksum=(checksum>>16)+checksum&0xffff;
             checksum=(~checksum)&0xffff;
-            b[16]=(byte)(checksum<<16>>24);
-            b[17]=(byte)(checksum<<24>>24);     //checksum
+            b[36]=(byte)(checksum<<16>>24);
+            b[37]=(byte)(checksum<<24>>24);     //checksum
 
             checksum=0;
             for (int i=10;i<(tcpHeadLen+ipHeadLen)/2;i++)
