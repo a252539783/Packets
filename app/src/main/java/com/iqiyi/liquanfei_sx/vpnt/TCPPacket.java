@@ -79,6 +79,14 @@ public class TCPPacket extends Packet {
             Log.e("xx","window:"+mWindowSize);
             Log.e("xx","sn:"+sn+" cksn:"+cksn);
             Log.e("xx","port:"+mDestPort+" source:"+mSourcePort);
+
+            String s="";
+            for (int i=offset+20;i<offset+mHeaderLength;i++)
+            {
+                s+=data[i]+" ";
+            }
+
+            Log.e("xx","option "+s);
         }
 
     }
@@ -130,8 +138,8 @@ public class TCPPacket extends Packet {
             b[22]=(byte)(port<<16>>24);
             b[23]=(byte)(port<<24>>24);         //source port and dest port
 
-            b[0]=4<<4|5;
-            b[1]=0x08;
+            b[0]=0x45;
+            b[1]=0x00;
             b[7]=0;
             b[8]=64;
             b[9]=6;
@@ -139,8 +147,6 @@ public class TCPPacket extends Packet {
 
             for (int i=24;i<32;i++)
                 b[i]=0;
-
-            b[32]=5<<4;
 
             b[34]=(byte)(65535>>8);
             b[35]=(byte)(65535<<24>>24);
@@ -196,7 +202,22 @@ public class TCPPacket extends Packet {
             byte[] b=buffer.array();
             freshId();
 
-            int len=40+dataBuffer.limit();
+            int ipHeadLen;
+            int len;
+            int tcpHeadLen;
+            if (packet!=null)
+            {
+                len=packet.mHeaderLength+packet.mOffset+dataBuffer.limit();
+                ipHeadLen=packet.mOffset;
+                tcpHeadLen=packet.mHeaderLength;
+            }else
+            {
+                len=40+dataBuffer.limit();
+                ipHeadLen=20;
+                tcpHeadLen=20;
+            }
+            b[32]=(byte)((packet.mHeaderLength/4)<<4);
+
             b[2]=(byte)(len>>8);
             b[3]=(byte)(len<<24>>24);       //total length
 
@@ -239,9 +260,15 @@ public class TCPPacket extends Packet {
                 }
             }
 
+            if (packet!=null)
+            for (int i=40;i<packet.mHeaderLength+packet.mOffset;i++)
+            {
+                b[i]=packet.getRawData()[i];
+            }
+
             b[16]=b[17]=0;
             checksum=0;
-            for (int i=10;i<20;i++)
+            for (int i=10;i<(tcpHeadLen+ipHeadLen)/2;i++)
             {
                 checksum+=(((b[i*2]&0xff)<<8|(b[i*2+1]&0xff)));
             }
@@ -258,7 +285,7 @@ public class TCPPacket extends Packet {
                 checksum+=((data[dataBuffer.limit()-1]&0xff)<<8);
             }
 
-            checksum+=0x06+20;
+            checksum+=0x06+tcpHeadLen+dataBuffer.limit();
             while (checksum>>16!=0)
                 checksum=(checksum>>16)+checksum&0xffff;
             checksum=(~checksum)&0xffff;
@@ -266,7 +293,7 @@ public class TCPPacket extends Packet {
             b[17]=(byte)(checksum<<24>>24);     //checksum
 
             checksum=0;
-            for (int i=10;i<20;i++)
+            for (int i=10;i<(tcpHeadLen+ipHeadLen)/2;i++)
             {
                 checksum+=(((b[i*2]&0xff)<<8|(b[i*2+1]&0xff)));
             }
@@ -274,15 +301,15 @@ public class TCPPacket extends Packet {
             {
                 checksum+=(((b[ i*2]&0xff)<<8|(b[ i*2+1]&0xff)));
             }
-            checksum+=0x06+20*2;
+            checksum+=0x06+tcpHeadLen+dataBuffer.limit();
             while (checksum>>16!=0)
                 checksum=(checksum>>16)+checksum&0xffff;
             checksum=(~checksum)&0xffff;
             Log.e("xx","build cal checksum:"+checksum);
 
             byte[] src=new byte[len];
-            System.arraycopy(b,0,src,0,40);
-            System.arraycopy(data,0,src,40,data.length);
+            System.arraycopy(b,0,src,0,len);
+            System.arraycopy(data,0,src,len,data.length);
 
             return new IPPacket(src);
         }

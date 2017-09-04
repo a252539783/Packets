@@ -61,7 +61,7 @@ public class IPPacket extends Packet{
             Log.e("xx", "Header Length:" + mHeaderLength);
             Log.e("xx", "Total Length:" + length);
             Log.e("xx", "ttl:" + mTTL);
-            Log.e("xx", "  ident:" + (((data[4] & 0xff) << 8) | ((data[5] & 0xff))));
+            Log.e("xx", "check:"+checksum+"  ident:" + (((data[4] & 0xff) << 8) | ((data[5] & 0xff))));
         }
     }
 
