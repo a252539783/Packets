@@ -207,12 +207,12 @@ public class TCPPacket extends Packet {
             int tcpHeadLen;
             if (packet!=null)
             {
-                len=packet.mHeaderLength+packet.mOffset+dataBuffer.limit();
+                len=packet.mHeaderLength+packet.mOffset+data.length;
                 ipHeadLen=packet.mOffset;
                 tcpHeadLen=packet.mHeaderLength;
             }else
             {
-                len=40+dataBuffer.limit();
+                len=40+data.length;
                 ipHeadLen=20;
                 tcpHeadLen=20;
             }
@@ -248,12 +248,15 @@ public class TCPPacket extends Packet {
                 b[25] = (byte) (sn << 8 >> 24);
                 b[26] = (byte) (sn << 16 >> 24);
                 b[27] = (byte) (sn << 24 >> 24);               //sn
-                sn += dataBuffer.limit();
+                sn += data.length;
 
             b[33]=ACK;
             if (packet!=null)
             {
-                if (packet.syn) b[33]|=SYN;
+                if (packet.syn) {
+                    b[33] |= SYN;
+                    sn++;
+                }
                 if (packet.fin) {
                     b[33] |= FIN;             //identifier
                     sn++;
@@ -276,16 +279,16 @@ public class TCPPacket extends Packet {
             {
                 checksum+=(((b[ i*2]&0xff)<<8|(b[ i*2+1]&0xff)));
             }
-            for (int i=0;i<dataBuffer.limit()/2;i++)
+            for (int i=0;i<data.length/2;i++)
             {
                 checksum+=(((data[ i*2]&0xff)<<8|(data[ i*2+1]&0xff)));
             }
-            if (dataBuffer.limit()%2!=0)
+            if (data.length%2!=0)
             {
-                checksum+=((data[dataBuffer.limit()-1]&0xff)<<8);
+                checksum+=((data[data.length-1]&0xff)<<8);
             }
 
-            checksum+=0x06+tcpHeadLen+dataBuffer.limit();
+            checksum+=0x06+tcpHeadLen+data.length;
             while (checksum>>16!=0)
                 checksum=(checksum>>16)+checksum&0xffff;
             checksum=(~checksum)&0xffff;
@@ -301,15 +304,16 @@ public class TCPPacket extends Packet {
             {
                 checksum+=(((b[ i*2]&0xff)<<8|(b[ i*2+1]&0xff)));
             }
-            checksum+=0x06+tcpHeadLen+dataBuffer.limit();
+            checksum+=0x06+tcpHeadLen+data.length;
             while (checksum>>16!=0)
                 checksum=(checksum>>16)+checksum&0xffff;
             checksum=(~checksum)&0xffff;
             Log.e("xx","build cal checksum:"+checksum);
 
-            byte[] src=new byte[len];
-            System.arraycopy(b,0,src,0,len);
-            System.arraycopy(data,0,src,len,data.length);
+            byte[] src=new byte[ipHeadLen+tcpHeadLen];
+            System.arraycopy(b,0,src,0,ipHeadLen+tcpHeadLen);
+            if (data.length!=0)
+                System.arraycopy(data,0,src,ipHeadLen+tcpHeadLen,data.length);
 
             return new IPPacket(src);
         }
