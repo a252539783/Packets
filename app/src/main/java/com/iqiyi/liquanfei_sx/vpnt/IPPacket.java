@@ -55,29 +55,40 @@ public class IPPacket extends Packet{
         checksum=(checksum>>16)+checksum&0xffff;
         checksum=(~checksum)&0xffff;
 
-//        Log.e("xx", "IP Version:" + mVersion);
-//        Log.e("xx", "Header Length:" + mHeaderLength);
-//        Log.e("xx", "Total Length:" + length);
-//        Log.e("xx", "ttl:" + mTTL);
-//        Log.e("xx","source:"+mSourceIp[0]+"."+
-//                mSourceIp[1]+"."+
-//                mSourceIp[2]+"."+
-//                mSourceIp[3]+ " dest:"+
-//                mDestIp[0]+"."+
-//                mDestIp[1]+"."+
-//                mDestIp[2]+"."+
-//                mDestIp[3]);
-//        Log.e("xx","check sum:"+checksum+"  ident:"+(((data[4]&0xff)<<8)|((data[5]&0xff))));
+
+        if (getDestIp().equals("123.207.152.184")||getSourceIp().equals("123.207.152.184")) {
+//            Log.e("xx", "IP Version:" + mVersion);
+            Log.e("xx", "Header Length:" + mHeaderLength);
+            Log.e("xx", "Total Length:" + length);
+            Log.e("xx", "ttl:" + mTTL);
+            Log.e("xx", "  ident:" + (((data[4] & 0xff) << 8) | ((data[5] & 0xff))));
+        }
     }
 
-    public byte[] getSourceIp()
+    public byte[] getSourceIpB()
     {
         return mSourceIp;
     }
 
-    public byte[] getDestIp()
+    public byte[] getDestIpB()
     {
         return mDestIp;
+    }
+
+    public String getDestIp()
+    {
+        return new StringBuilder(15).append(mDestIp[0]&0xff).append('.')
+                .append(mDestIp[1]&0xff).append('.')
+                .append(mDestIp[2]&0xff).append('.')
+                .append(mDestIp[3]&0xff).toString();
+    }
+
+    public String getSourceIp()
+    {
+        return new StringBuilder(15).append(mSourceIp[0]&0xff).append('.')
+                .append(mSourceIp[1]&0xff).append('.')
+                .append(mSourceIp[2]&0xff).append('.')
+                .append(mSourceIp[3]&0xff).toString();
     }
 
     public Packet getData()

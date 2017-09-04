@@ -286,8 +286,8 @@ public class ServerService extends Service {
             mPackets.add(mPacketList);
 
             mBuilder=new TCPPacket.Builder(this,packet)
-            .setDest(packet.getIpInfo().getSourceIp())
-            .setSource(packet.getIpInfo().getDestIp());
+            .setDest(packet.getIpInfo().getSourceIpB())
+            .setSource(packet.getIpInfo().getDestIpB());
 
             mLocal.write(mBuilder.build(packet));
             mReadThread.start();

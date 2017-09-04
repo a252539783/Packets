@@ -146,7 +146,7 @@ public class ClientService extends VpnService{
         if (mInterface==null) {
             Builder builder = new Builder();
             builder.setMtu(1500);
-            builder.addAddress("10.0.2.0", 32);
+            builder.addAddress("10.0.10.0", 32);
             //builder.addAddress("127.0.0.1", port);
             builder.addRoute("0.0.0.0", 0);
             mInterface = builder.establish();
