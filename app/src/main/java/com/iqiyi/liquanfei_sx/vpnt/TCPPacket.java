@@ -87,6 +87,7 @@ public class TCPPacket extends Packet {
             }
 
             Log.e("xx","option "+s);
+            Log.e("xx","data:"+new String(getRawData(),offset+mHeaderLength,dataLen));
         }
 
     }
@@ -123,7 +124,10 @@ public class TCPPacket extends Packet {
 
     static class Builder
     {
-        ByteBuffer buffer=ByteBuffer.allocate(32767);
+        static byte[] ident=new byte[2];
+        static boolean idInit=true;
+
+        ByteBuffer buffer=ByteBuffer.allocate(65535);
         private ServerService.TCPStatus mStatus;
         private int sn=0;
 
@@ -151,8 +155,11 @@ public class TCPPacket extends Packet {
             b[34]=(byte)(65535>>8);
             b[35]=(byte)(65535<<24>>24);
 
-            b[4]=initPacket.getRawData()[4];
-            b[5]=initPacket.getRawData()[5];        //identifier
+            if (!idInit) {
+                ident[0] = initPacket.getRawData()[4];
+                ident[1] = initPacket.getRawData()[5];        //identifier
+                idInit=true;
+            }
         }
 
         Builder setSource(byte []ip)
@@ -207,12 +214,12 @@ public class TCPPacket extends Packet {
             int tcpHeadLen;
             if (packet!=null)
             {
-                len=packet.mHeaderLength+packet.mOffset+data.length;
+                len=packet.mHeaderLength+packet.mOffset+dataBuffer.limit();
                 ipHeadLen=packet.mOffset;
                 tcpHeadLen=packet.mHeaderLength;
             }else
             {
-                len=40+data.length;
+                len=40+dataBuffer.limit();
                 ipHeadLen=20;
                 tcpHeadLen=20;
             }
@@ -248,7 +255,7 @@ public class TCPPacket extends Packet {
                 b[25] = (byte) (sn << 8 >> 24);
                 b[26] = (byte) (sn << 16 >> 24);
                 b[27] = (byte) (sn << 24 >> 24);               //sn
-                sn += data.length;
+                sn += dataBuffer.limit();
 
             b[33]=ACK;
             if (packet!=null)
@@ -279,16 +286,16 @@ public class TCPPacket extends Packet {
             {
                 checksum+=(((b[ i*2]&0xff)<<8|(b[ i*2+1]&0xff)));
             }
-            for (int i=0;i<data.length/2;i++)
+            for (int i=0;i<dataBuffer.limit()/2;i++)
             {
                 checksum+=(((data[ i*2]&0xff)<<8|(data[ i*2+1]&0xff)));
             }
-            if (data.length%2!=0)
+            if (dataBuffer.limit()%2!=0)
             {
-                checksum+=((data[data.length-1]&0xff)<<8);
+                checksum+=((data[dataBuffer.limit()-1]&0xff)<<8);
             }
 
-            checksum+=0x06+tcpHeadLen+data.length;
+            checksum+=0x06+tcpHeadLen+dataBuffer.limit();
             while (checksum>>16!=0)
                 checksum=(checksum>>16)+checksum&0xffff;
             checksum=(~checksum)&0xffff;
@@ -304,28 +311,37 @@ public class TCPPacket extends Packet {
             {
                 checksum+=(((b[ i*2]&0xff)<<8|(b[ i*2+1]&0xff)));
             }
-            checksum+=0x06+tcpHeadLen+data.length;
+            checksum+=0x06+tcpHeadLen+dataBuffer.limit();
             while (checksum>>16!=0)
                 checksum=(checksum>>16)+checksum&0xffff;
             checksum=(~checksum)&0xffff;
             Log.e("xx","build cal checksum:"+checksum);
 
-            byte[] src=new byte[ipHeadLen+tcpHeadLen];
-            System.arraycopy(b,0,src,0,ipHeadLen+tcpHeadLen);
-            if (data.length!=0)
-                System.arraycopy(data,0,src,ipHeadLen+tcpHeadLen,data.length);
+            byte[] src=new byte[len];
+            try{
+                System.arraycopy(b,0,src,0,ipHeadLen+tcpHeadLen);
+                if (dataBuffer.limit()!=0)
+                    System.arraycopy(data,0,src,ipHeadLen+tcpHeadLen,dataBuffer.limit());
+            }catch (IndexOutOfBoundsException e)
+            {
+                Log.e("IndexOOB","ttLen:"+len+"headlen:"+(ipHeadLen+tcpHeadLen)+" dataLen:"+dataBuffer.limit());
+            }
+
 
             return new IPPacket(src);
         }
 
-        void freshId()
+        synchronized void freshId()
         {
             byte []b=buffer.array();
-            if ((b[5]&0xff)==0xff)
+            if ((ident[1]&0xff)==0xff)
             {
-                b[4]++;
+                ident[0]++;
             }
-            b[5]++;                 //identifier
+            ident[1]++;                 //identifier
+
+            b[4]=ident[0];
+            b[5]=ident[1];
         }
     }
 }

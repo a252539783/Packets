@@ -258,12 +258,7 @@ public class ServerService extends Service {
     }
 
     class TCPStatus {
-        public static final int SYN_CONNECT = 0;
-        public static final int ACK_CONNECT = 1;
-        public static final int FIN_CONNECT = 2;
-
         Socket mSocket;
-        int mStatus;
         InputStream is;
         OutputStream os;
         ReadThread mReadThread;
@@ -282,7 +277,7 @@ public class ServerService extends Service {
             os=mSocket.getOutputStream();
             is=mSocket.getInputStream();
             mPacketList=new PacketList();
-            mPacketList.add(packet);
+            mPacketList.add(packet.getIpInfo());
             mPackets.add(mPacketList);
 
             mBuilder=new TCPPacket.Builder(this,packet)
@@ -295,7 +290,8 @@ public class ServerService extends Service {
 
         public void ack(TCPPacket packet)
         {
-            mBuilder.freshId();
+            //mBuilder.freshId();
+            mPacketList.add(packet.getIpInfo());
             if (packet.getDataLength()==0)
             {
                 return ;
@@ -303,7 +299,7 @@ public class ServerService extends Service {
 
             try {
                 if (packet.getPort()==6666)
-                    Log.e("6666","send"+new String(packet.getRawData(),packet.mOffset,packet.getDataLength(),"utf-8"));
+                    Log.e("6666","send"+new String(packet.getRawData(),packet.mOffset+packet.mHeaderLength,packet.getDataLength(),"utf-8"));
                 os.write(packet.getRawData(),packet.mOffset+packet.mHeaderLength,packet.getDataLength());
                 mLocal.write(mBuilder.build(packet));
             } catch (IOException e) {
@@ -313,16 +309,17 @@ public class ServerService extends Service {
 
         public void ack(ByteBuffer data)
         {
-            mBuilder.freshId();
-            TCPPacket packet=(TCPPacket) mPacketList.getLast();
+            //mBuilder.freshId();
+            TCPPacket packet=(TCPPacket) ((IPPacket) mPacketList.getLast()).getData();
             if (packet.getPort()==6666)
                 try {
-                    Log.e("6666","recv"+new String(packet.getRawData(),packet.mOffset,packet.getDataLength(),"utf-8"));
+                    Log.e("6666","recv"+new String(packet.getRawData(),packet.mOffset+packet.mHeaderLength,packet.getDataLength(),"utf-8"));
                 } catch (UnsupportedEncodingException e) {
                     e.printStackTrace();
                 }
 
-            mLocal.write(mBuilder.build((TCPPacket) mPacketList.getLast(),data));
+            mPacketList.add(mBuilder.build(packet,data));
+            mLocal.write(mPacketList.getLast());
         }
 
         class ReadThread extends Thread
