@@ -126,7 +126,7 @@ public class ClientService extends VpnService{
         return super.onStartCommand(intent, flags, startId);
     }
 
-    public void write(Packet packet)
+    public synchronized void write(Packet packet)
     {
         ByteBuffer b=ByteBuffer.wrap(packet.getRawData());
         try {

@@ -21,6 +21,7 @@ import java.util.ArrayList;
 import java.util.concurrent.ExecutorService;
 import java.util.concurrent.Executors;
 import java.util.concurrent.LinkedBlockingQueue;
+import java.util.concurrent.ThreadPoolExecutor;
 
 /**
  * Created by liquanfei_sx on 2017/8/11
@@ -153,17 +154,12 @@ public class ServerService extends Service {
                         if (tcp.fin)
                         {
                             Log.e("xx","transmit tcp fin:");
-                            try {
                                 TCPStatus status=mSockets.get(tcp.getSourcePort());
                                 if (status!=null)
                                 {
-                                    status.mSocket.close();
+                                    status.close();
                                     mSockets.remove(tcp.getSourcePort());
                                 }
-
-                            } catch (IOException e) {
-                                mSockets.remove(tcp.getSourcePort());
-                            }
                         }else
                         {
                             TCPStatus status=mSockets.get(tcp.getSourcePort());
@@ -180,10 +176,11 @@ public class ServerService extends Service {
                     {
                         Log.e("xx","transmit tcp unknown:");
                     }
+                    Log.e("xx","thread pool size:"+((ThreadPoolExecutor)mThreadPool).getPoolSize());
                 }
-
-
             }
+
+
         }
 
         boolean connect(Packet packet)
@@ -288,20 +285,35 @@ public class ServerService extends Service {
             mReadThread.start();
         }
 
+        public void close()
+        {
+            try {
+                mSocket.close();
+                mReadThread.stop();
+            } catch (IOException e) {
+                e.printStackTrace();
+            }
+        }
+
         public void ack(TCPPacket packet)
         {
             //mBuilder.freshId();
             mPacketList.add(packet.getIpInfo());
-            if (packet.getDataLength()==0)
+            if (packet.getDataLength()==0 && !packet.fin)
             {
                 return ;
             }
 
             try {
-                if (packet.getPort()==6666)
-                    Log.e("6666","send"+new String(packet.getRawData(),packet.mOffset+packet.mHeaderLength,packet.getDataLength(),"utf-8"));
-                os.write(packet.getRawData(),packet.mOffset+packet.mHeaderLength,packet.getDataLength());
+                if (packet.getPort() == 6666)
+                    Log.e("6666", "send" + new String(packet.getRawData(), packet.mOffset + packet.mHeaderLength, packet.getDataLength(), "utf-8"));
+                if (packet.getDataLength() != 0)
+                    os.write(packet.getRawData(), packet.mOffset + packet.mHeaderLength, packet.getDataLength());
                 mLocal.write(mBuilder.build(packet));
+
+                if (packet.fin){
+                    mLocal.write(mBuilder.build(packet,null,true));
+                }
             } catch (IOException e) {
                 Log.e("xx","write to dest fail:ServerService.TCPStatus.ack(TCPPacket)");
             }
@@ -324,7 +336,7 @@ public class ServerService extends Service {
 
         class ReadThread extends Thread
         {
-            ByteBuffer buffer=ByteBuffer.allocate(32767);
+            ByteBuffer buffer=ByteBuffer.allocate(65535*100);
 
             @Override
             public void run() {

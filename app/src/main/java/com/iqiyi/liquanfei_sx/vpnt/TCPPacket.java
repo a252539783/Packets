@@ -185,15 +185,20 @@ public class TCPPacket extends Packet {
 
         IPPacket build(TCPPacket packet)
         {
-            return build(packet,null);
+            return build(packet,null,false);
         }
 
         IPPacket build(ByteBuffer data)
         {
-            return build(null,data);
+            return build(null,data,false);
         }
 
         IPPacket build(TCPPacket packet,ByteBuffer dataBuffer)
+        {
+            return build(packet, dataBuffer,false);
+        }
+
+        IPPacket build(TCPPacket packet,ByteBuffer dataBuffer,boolean fin)
         {
             byte[] data;
             if (dataBuffer==null) {
@@ -240,16 +245,21 @@ public class TCPPacket extends Packet {
             b[11]=(byte)(checksum<<24>>24);             //checksum
 
             /**tcp*/
-            if (packet!=null) {
-                int ack = packet.sn + packet.dataLen;
+            int ack=0;
+            if (packet!=null && !fin) {
+                ack = packet.sn + packet.dataLen;
                 if (packet.syn) ack++;
                 if (packet.fin) ack++;
                 Log.e("xx","build ack sn"+ack);
-                b[28] = (byte) (ack >> 24);
-                b[29] = (byte) (ack << 8 >> 24);
-                b[30] = (byte) (ack << 16 >> 24);
-                b[31] = (byte) (ack << 24 >> 24);                  //ack sn
+
+            }else if (fin)
+            {
+                sn++;
             }
+            b[28] = (byte) (ack >> 24);
+            b[29] = (byte) (ack << 8 >> 24);
+            b[30] = (byte) (ack << 16 >> 24);
+            b[31] = (byte) (ack << 24 >> 24);                  //ack sn
 
                 b[24] = (byte) (sn >> 24);
                 b[25] = (byte) (sn << 8 >> 24);
@@ -258,16 +268,16 @@ public class TCPPacket extends Packet {
                 sn += dataBuffer.limit();
 
             b[33]=ACK;
-            if (packet!=null)
+            if (packet!=null && !fin)
             {
                 if (packet.syn) {
                     b[33] |= SYN;
                     sn++;
                 }
-                if (packet.fin) {
-                    b[33] |= FIN;             //identifier
-                    sn++;
-                }
+            }else if (fin)
+            {
+                b[33] = FIN;
+                sn++;
             }
 
             if (packet!=null)
