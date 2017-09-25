@@ -421,41 +421,49 @@ public class ServerService extends Service {
                                 }
                             }
                         }
-                            if (key.isReadable()) {
-                                Log.e("xx", "key read"+((IPPacket)status.mPacketList.getLast()).getDestIp());
-                                mBuffer.clear();
+                        if (key.isWritable()) {
+                            //Log.e("xx", "key write");
+                            while (!status.mReadySend.isEmpty()) {
+                                ByteBuffer buffer = status.mReadySend.peek();
+                                if (buffer.position() == buffer.limit()) {
+                                    status.mReadySend.poll();
+                                    continue;
+                                }
+
                                 try
                                 {
-                                    channel.read(mBuffer);
-                                    mBuffer.flip();
-                                    status.ack(mBuffer);
+                                    channel.write(buffer);
+                                    key.interestOps(key.interestOps() & ~SelectionKey.OP_WRITE);
+                                    channel.register(mSelector,SelectionKey.OP_READ,status);
                                 }catch (Exception e)
                                 {
                                     Log.e("xx","when write:"+e.toString());
                                     key.cancel();
                                 }
+                                break;
                             }
-                            if (key.isWritable()) {
-                                //Log.e("xx", "key write");
-                                while (!status.mReadySend.isEmpty()) {
-                                    ByteBuffer buffer = status.mReadySend.peek();
-                                    if (buffer.position() == buffer.limit()) {
-                                        status.mReadySend.poll();
-                                        continue;
-                                    }
-
-                                    try
-                                    {
-                                        channel.write(buffer);
-                                    }catch (Exception e)
-                                    {
-                                        Log.e("xx","when write:"+e.toString());
-                                        key.cancel();
-                                    }
-                                    break;
+                        }
+                        if (key.isValid()&&key.isReadable()) {
+                            Log.e("xx", "key read"+((IPPacket)status.mPacketList.getLast()).getDestIp());
+                            mBuffer.clear();
+                            try
+                            {
+                                if (channel.read(mBuffer)<0)
+                                {
+                                    channel.close();
+                                    key.cancel();
+                                }else {
+                                    mBuffer.flip();
+                                    status.ack(mBuffer);
+                                    channel.register(mSelector,SelectionKey.OP_READ,status);
                                 }
+                            }catch (Exception e)
+                            {
+                                Log.e("xx","when write:"+e.toString());
+                                key.cancel();
                             }
-                        channel.register(mSelector,SelectionKey.OP_READ,status);
+                        }
+
                     }
                 }
 
