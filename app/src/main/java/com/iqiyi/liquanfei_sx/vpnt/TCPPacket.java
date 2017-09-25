@@ -67,28 +67,28 @@ public class TCPPacket extends Packet {
             checksum=(checksum>>16)+checksum&0xffff;
         checksum=(~checksum)&0xffff;
 
-        if (getDestIp().equals("123.207.152.184")||getSourceIp().equals("123.207.152.184"))
-        {
-            Log.e("xx","check sum:"+checksum);
-            Log.e("xx","tcp:");
-            if (syn)
-                Log.e("xx","syn:");
-            if (ack)
-                Log.e("xx","ack:");
-            Log.e("xx","header:"+mHeaderLength);
-            Log.e("xx","window:"+mWindowSize);
-            Log.e("xx","sn:"+sn+" cksn:"+cksn);
-            Log.e("xx","port:"+mDestPort+" source:"+mSourcePort);
-
-            String s="";
-            for (int i=offset+20;i<offset+mHeaderLength;i++)
-            {
-                s+=data[i]+" ";
-            }
-
-            Log.e("xx","option "+s);
-            Log.e("xx","data:"+new String(getRawData(),offset+mHeaderLength,dataLen));
-        }
+//        if (getDestIp().equals("123.207.152.184")||getSourceIp().equals("123.207.152.184"))
+//        {
+//            Log.e("xx","check sum:"+checksum);
+//            Log.e("xx","tcp:");
+//            if (syn)
+//                Log.e("xx","syn:");
+//            if (ack)
+//                Log.e("xx","ack:");
+//            Log.e("xx","header:"+mHeaderLength);
+//            Log.e("xx","window:"+mWindowSize);
+//            Log.e("xx","sn:"+sn+" cksn:"+cksn);
+//            Log.e("xx","port:"+mDestPort+" source:"+mSourcePort);
+//
+//            String s="";
+//            for (int i=offset+20;i<offset+mHeaderLength;i++)
+//            {
+//                s+=data[i]+" ";
+//            }
+//
+//            Log.e("xx","option "+s);
+//            Log.e("xx","data:"+new String(getRawData(),offset+mHeaderLength,dataLen));
+//        }
 
     }
 
@@ -250,7 +250,7 @@ public class TCPPacket extends Packet {
                 ack = packet.sn + packet.dataLen;
                 if (packet.syn) ack++;
                 if (packet.fin) ack++;
-                Log.e("xx","build ack sn"+ack);
+                //Log.e("xx","build ack sn"+ack);
 
             }else if (fin)
             {
@@ -325,7 +325,7 @@ public class TCPPacket extends Packet {
             while (checksum>>16!=0)
                 checksum=(checksum>>16)+checksum&0xffff;
             checksum=(~checksum)&0xffff;
-            Log.e("xx","build cal checksum:"+checksum);
+//            Log.e("xx","build cal checksum:"+checksum);
 
             byte[] src=new byte[len];
             try{

@@ -12,12 +12,17 @@ import android.util.SparseArray;
 
 import java.io.IOException;
 import java.io.InputStream;
-import java.io.OutputStream;
 import java.io.UnsupportedEncodingException;
 import java.net.InetSocketAddress;
-import java.net.Socket;
 import java.nio.ByteBuffer;
+import java.nio.channels.ClosedChannelException;
+import java.nio.channels.SelectionKey;
+import java.nio.channels.Selector;
+import java.nio.channels.SocketChannel;
 import java.util.ArrayList;
+import java.util.Iterator;
+import java.util.LinkedList;
+import java.util.Queue;
 import java.util.concurrent.ExecutorService;
 import java.util.concurrent.Executors;
 import java.util.concurrent.LinkedBlockingQueue;
@@ -31,19 +36,30 @@ public class ServerService extends Service {
 
     private MB mB=new MB();
     private ClientService mLocal=null;
+    private Selector mSelector= null;
     private TransmitThread mTransmitThread=null;
+    private ReadThread mReadThread=null;
     private ArrayList<PacketList> mPackets=new ArrayList<>();
+    private ByteBufferPool mBufferPool=ByteBufferPool.getDefault();
+
+    private boolean registering=false;
 
     @Override
     public void onCreate() {
         super.onCreate();
 
+        try {
+            mSelector=Selector.open();
+        } catch (IOException e) {
+            e.printStackTrace();
+        }
     }
 
     @Override
     public int onStartCommand(Intent intent, int flags, int startId) {
         Log.e("xx","server started");
         mTransmitThread=new TransmitThread();
+        mReadThread=new ReadThread();
         return super.onStartCommand(intent, flags, startId);
     }
 
@@ -73,6 +89,7 @@ public class ServerService extends Service {
             public void run() {
                 super.run();
                 while (mLocal==null);
+                mReadThread.start();
                 mTransmitThread.start();
             }
         }.start();
@@ -255,41 +272,50 @@ public class ServerService extends Service {
     }
 
     class TCPStatus {
-        Socket mSocket;
-        InputStream is;
-        OutputStream os;
-        ReadThread mReadThread;
+        //Socket mSocket;
+//        InputStream is;
+//        OutputStream os;
+        SocketChannel mChannel;
+        //ReadThread mReadThread;
         PacketList mPacketList;
+        Queue<ByteBuffer> mReadySend=new LinkedList<>();
+
         private TCPPacket.Builder mBuilder;
 
         public TCPStatus(TCPPacket packet) throws IOException {
-            Log.e("xx","socket connecting "+packet.getDestIp()+":"+packet.getPort()+"from:"+packet.getSourcePort());
-            mSocket=new Socket();
-            mSocket.bind(null);
-            mLocal.protect(mSocket);
+
+
+            //mSocket=new Socket();
+            //mSocket.bind(null);
+            //mLocal.protect(mSocket);
             //mSocket.connect(new InetSocketAddress("121.199.31.116",8908));
-            mSocket.connect(new InetSocketAddress(packet.getDestIp(),packet.getPort()));
-            Log.e("xx","socket connected");
-            mReadThread=new ReadThread();
-            os=mSocket.getOutputStream();
-            is=mSocket.getInputStream();
+            //mSocket.connect(new InetSocketAddress(packet.getDestIp(),packet.getPort()));
+            //os=mSocket.getOutputStream();
+            //is=mSocket.getInputStream();
             mPacketList=new PacketList();
             mPacketList.add(packet.getIpInfo());
             mPackets.add(mPacketList);
-
             mBuilder=new TCPPacket.Builder(this,packet)
-            .setDest(packet.getIpInfo().getSourceIpB())
-            .setSource(packet.getIpInfo().getDestIpB());
+                    .setDest(packet.getIpInfo().getSourceIpB())
+                    .setSource(packet.getIpInfo().getDestIpB());
 
+            mChannel=SocketChannel.open();
+            mLocal.protect(mChannel.socket());
+            mChannel.configureBlocking(false);
+            registering=true;
+            mSelector.wakeup();
+            mChannel.register(mSelector, SelectionKey.OP_CONNECT,TCPStatus.this);
+            mChannel.connect(new InetSocketAddress(packet.getDestIp(),packet.getPort()));
+            registering=false;
+
+            //mReadThread.start();
             mLocal.write(mBuilder.build(packet));
-            mReadThread.start();
         }
 
         public void close()
         {
             try {
-                mSocket.close();
-                mReadThread.stop();
+                mChannel.close();
             } catch (IOException e) {
                 e.printStackTrace();
             }
@@ -304,19 +330,28 @@ public class ServerService extends Service {
                 return ;
             }
 
-            try {
-                if (packet.getPort() == 6666)
-                    Log.e("6666", "send" + new String(packet.getRawData(), packet.mOffset + packet.mHeaderLength, packet.getDataLength(), "utf-8"));
                 if (packet.getDataLength() != 0)
-                    os.write(packet.getRawData(), packet.mOffset + packet.mHeaderLength, packet.getDataLength());
+                {
+                    ByteBuffer []buffers=mBufferPool.get(packet.getRawData(), packet.mOffset + packet.mHeaderLength, packet.getDataLength());
+                    for (int i=0;i<buffers.length;i++){
+                        mReadySend.add(buffers[i]);
+                    }
+
+                    try {
+                        registering=true;
+                        mSelector.wakeup();
+                        mChannel.register(mSelector,SelectionKey.OP_WRITE,TCPStatus.this);
+                        registering=false;
+                    } catch (ClosedChannelException e) {
+                        e.printStackTrace();
+                    }
+                }
+//                    os.write(packet.getRawData(), packet.mOffset + packet.mHeaderLength, packet.getDataLength());
                 mLocal.write(mBuilder.build(packet));
 
                 if (packet.fin){
                     mLocal.write(mBuilder.build(packet,null,true));
                 }
-            } catch (IOException e) {
-                Log.e("xx","write to dest fail:ServerService.TCPStatus.ack(TCPPacket)");
-            }
         }
 
         public void ack(ByteBuffer data)
@@ -334,30 +369,101 @@ public class ServerService extends Service {
             mLocal.write(mPacketList.getLast());
         }
 
-        class ReadThread extends Thread
-        {
-            ByteBuffer buffer=ByteBuffer.allocate(65535*100);
+//        class ReadThread extends Thread
+//        {
+//            ByteBuffer mBuffer=ByteBuffer.allocate(65535*100);
+//
+//            @Override
+//            public void run() {
+//                super.run();
+//                try{
+//                    int len;
+//                    while (true)
+//                    {
+//                        len=0;
+//                        while ((len=is.available())==0);
+//                        read(is,mBuffer.array(),len);
+//                        mBuffer.limit(len);
+//
+//                        ack(mBuffer);
+//                    }
+//                }catch (IOException e)
+//                {
+//                    e.printStackTrace();
+//                }
+//
+//            }
+//        }
+    }
 
-            @Override
-            public void run() {
-                super.run();
-                try{
-                    int len;
-                    while (true)
-                    {
-                        len=0;
-                        while ((len=is.available())==0);
-                        read(is,buffer.array(),len);
-                        buffer.limit(len);
+    class ReadThread extends Thread{
+        ByteBuffer mBuffer =ByteBuffer.allocate(65535);
 
-                        ack(buffer);
+        @Override
+        public void run() {
+            super.run();
+            try {
+                while (true) {
+                    while (registering || mSelector.select() == 0) ;
+                    Iterator<SelectionKey> keys = mSelector.selectedKeys().iterator();
+                    while (keys.hasNext()) {
+                        SelectionKey key = keys.next();
+                        keys.remove();
+                        SocketChannel channel = (SocketChannel) key.channel();
+                        TCPStatus status = (TCPStatus) key.attachment();
+                        if (key.isConnectable()) {
+                            //Log.e("xx", "key connect");
+                            if (channel.isConnectionPending()) {
+                                if (channel.finishConnect())
+                                {
+                                    channel.register(mSelector,SelectionKey.OP_READ,status);
+                                    Log.e("xx","real connect");
+                                }
+                            }
+                        }
+                            if (key.isReadable()) {
+                                Log.e("xx", "key read"+((IPPacket)status.mPacketList.getLast()).getDestIp());
+                                mBuffer.clear();
+                                try
+                                {
+                                    channel.read(mBuffer);
+                                    mBuffer.flip();
+                                    status.ack(mBuffer);
+                                }catch (Exception e)
+                                {
+                                    Log.e("xx","when write:"+e.toString());
+                                    key.cancel();
+                                }
+                            }
+                            if (key.isWritable()) {
+                                //Log.e("xx", "key write");
+                                while (!status.mReadySend.isEmpty()) {
+                                    ByteBuffer buffer = status.mReadySend.peek();
+                                    if (buffer.position() == buffer.limit()) {
+                                        status.mReadySend.poll();
+                                        continue;
+                                    }
+
+                                    try
+                                    {
+                                        channel.write(buffer);
+                                    }catch (Exception e)
+                                    {
+                                        Log.e("xx","when write:"+e.toString());
+                                        key.cancel();
+                                    }
+                                    break;
+                                }
+                            }
+                        channel.register(mSelector,SelectionKey.OP_READ,status);
                     }
-                }catch (IOException e)
-                {
-                    e.printStackTrace();
                 }
 
+
+            } catch (IOException e) {
+                Log.e("xx", e.toString());
             }
+
         }
     }
 

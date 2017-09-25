@@ -33,9 +33,6 @@ public class ClientService extends VpnService{
     private ParcelFileDescriptor mInterface;
     DatagramChannel mTunnel;
     OutputStream os=null;
-    static {
-        System.loadLibrary("native-lib");
-    }
 
     @Override
     public void onCreate() {
@@ -92,7 +89,7 @@ public class ClientService extends VpnService{
                         FileInputStream in = new FileInputStream(
                                 mInterface.getFileDescriptor());
                         os=new FileOutputStream(mInterface.getFileDescriptor());
-                        // Allocate the buffer for a single packet.
+                        // Allocate the mBuffer for a single packet.
                         ByteBuffer packet = ByteBuffer.allocate(32767);
                         int length;
                         try {

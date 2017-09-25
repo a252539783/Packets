@@ -8,9 +8,6 @@ import android.content.Intent;
  */
 
 public class MApp extends Application {
-    static {
-        System.loadLibrary("native-lib");
-    }
     @Override
     public void onCreate() {
         super.onCreate();

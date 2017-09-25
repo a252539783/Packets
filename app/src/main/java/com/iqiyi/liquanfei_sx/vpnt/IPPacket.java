@@ -56,13 +56,12 @@ public class IPPacket extends Packet{
         checksum=(~checksum)&0xffff;
 
 
-        if (getDestIp().equals("123.207.152.184")||getSourceIp().equals("123.207.152.184")) {
-//            Log.e("xx", "IP Version:" + mVersion);
-            Log.e("xx", "Header Length:" + mHeaderLength);
-            Log.e("xx", "Total Length:" + length);
-            Log.e("xx", "ttl:" + mTTL);
-            Log.e("xx", "check:"+checksum+"  ident:" + (((data[4] & 0xff) << 8) | ((data[5] & 0xff))));
-        }
+//        if (getDestIp().equals("123.207.152.184")||getSourceIp().equals("123.207.152.184")) {
+//            Log.e("xx", "Header Length:" + mHeaderLength);
+//            Log.e("xx", "Total Length:" + length);
+//            Log.e("xx", "ttl:" + mTTL);
+//            Log.e("xx", "check:"+checksum+"  ident:" + (((data[4] & 0xff) << 8) | ((data[5] & 0xff))));
+//        }
     }
 
     public byte[] getSourceIpB()
