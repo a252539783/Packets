@@ -182,7 +182,7 @@ public class ServerService extends Service {
                             TCPStatus status=mSockets.get(tcp.getSourcePort());
                             if (status==null)
                             {
-                                Log.e("xx","find no connected:ServerService.TransmitThread.doTransmit()");
+                                mThreadPool.execute(new ConnectRunnable(tcp));
                             }else
                             {
                                 mThreadPool.execute(new ACKRunnable(tcp,status));
@@ -200,20 +200,25 @@ public class ServerService extends Service {
 
         }
 
-        boolean connect(Packet packet)
+        public void remove(TCPStatus status)
+        {
+            mSockets.remove(((TCPPacket) ((IPPacket) status.mPacketList.getLast()).getData()).getSourcePort());
+        }
+
+        TCPStatus connect(Packet packet)
         {
             if (!(packet instanceof TCPPacket))
-                return false;
+                return null;
 
             TCPStatus status;
             try {
                 status = new TCPStatus((TCPPacket) packet);
             } catch (IOException e) {
-                return false;
+                return null;
             }
 
             mSockets.put(((TCPPacket) packet).getSourcePort(),status);
-            return true;
+            return status;
         }
 
         void pause()
@@ -232,7 +237,7 @@ public class ServerService extends Service {
 
             @Override
             public void run() {
-                if (connect(packet))   //connect successfully and send sync-ack
+                if (connect(packet)!=null)   //connect successfully and send sync-ack
                 {
                     //Log.e("xx","connected successfully");
                 }
@@ -277,6 +282,7 @@ public class ServerService extends Service {
 //        OutputStream os;
         SocketChannel mChannel;
         //ReadThread mReadThread;
+        boolean closed=false;
         PacketList mPacketList;
         Queue<ByteBuffer> mReadySend=new LinkedList<>();
 
@@ -309,23 +315,35 @@ public class ServerService extends Service {
             registering=false;
 
             //mReadThread.start();
-            mLocal.write(mBuilder.build(packet));
+            //mLocal.write(mBuilder.build(packet));
+            ack(packet);
         }
 
         public void close()
         {
             try {
-                mChannel.close();
+                fin();
+                if (closed)
+                {
+                    mChannel.close();
+                    mTransmitThread.remove(this);
+                }
+                closed=true;
             } catch (IOException e) {
                 e.printStackTrace();
             }
+        }
+
+        public void fin()
+        {
+            mLocal.write(mBuilder.build((TCPPacket) ((IPPacket) mPacketList.getLast()).getData(),null,true));
         }
 
         public void ack(TCPPacket packet)
         {
             //mBuilder.freshId();
             mPacketList.add(packet.getIpInfo());
-            if (packet.getDataLength()==0 && !packet.fin)
+            if (!packet.syn&&packet.getDataLength()==0 && !packet.fin)
             {
                 return ;
             }
@@ -350,7 +368,17 @@ public class ServerService extends Service {
                 mLocal.write(mBuilder.build(packet));
 
                 if (packet.fin){
-                    mLocal.write(mBuilder.build(packet,null,true));
+                    //mLocal.write(mBuilder.build(packet));
+                    if (closed)
+                    {
+                        try {
+                            mChannel.close();
+                        } catch (IOException e) {
+                            e.printStackTrace();
+                        }
+                        mTransmitThread.remove(this);
+                    }else
+                        closed=true;
                 }
         }
 
@@ -423,24 +451,38 @@ public class ServerService extends Service {
                         }
                         if (key.isWritable()) {
                             //Log.e("xx", "key write");
-                            while (!status.mReadySend.isEmpty()) {
-                                ByteBuffer buffer = status.mReadySend.peek();
-                                if (buffer.position() == buffer.limit()) {
-                                    status.mReadySend.poll();
-                                    continue;
-                                }
+                            if (!status.mReadySend.isEmpty())
+                            {
+                                while (!status.mReadySend.isEmpty()) {
+                                    ByteBuffer buffer = status.mReadySend.peek();
+                                    if (buffer==null)
+                                        break;
+                                    if (buffer.position() == buffer.limit()) {
+                                        status.mReadySend.poll();
+                                        mBufferPool.recycle(buffer);
+                                        continue;
+                                    }
 
-                                try
-                                {
-                                    channel.write(buffer);
-                                    key.interestOps(key.interestOps() & ~SelectionKey.OP_WRITE);
-                                    channel.register(mSelector,SelectionKey.OP_READ,status);
-                                }catch (Exception e)
-                                {
-                                    Log.e("xx","when write:"+e.toString());
-                                    key.cancel();
+                                    try
+                                    {
+                                        int start=buffer.position();
+                                        channel.write(buffer);
+                                        TCPPacket packet=(TCPPacket) ((IPPacket) status.mPacketList.getLast()).getData();
+                                        if (packet.getPort()==6666||packet.getSourcePort()==6666||true)
+                                        {
+                                            Log.e("written :",new String(buffer.array(),start,buffer.position()));
+                                        }
+                                    }catch (Exception e)
+                                    {
+                                        Log.e("xx","when write:"+e.toString());
+                                        key.cancel();
+                                    }
+                                    break;
                                 }
-                                break;
+                            }else
+                            {
+                                key.interestOps(key.interestOps() & ~SelectionKey.OP_WRITE);
+                                channel.register(mSelector,SelectionKey.OP_READ,status);
                             }
                         }
                         if (key.isValid()&&key.isReadable()) {
@@ -448,9 +490,9 @@ public class ServerService extends Service {
                             mBuffer.clear();
                             try
                             {
-                                if (channel.read(mBuffer)<0)
+                                if (status.closed||channel.read(mBuffer)<0)
                                 {
-                                    channel.close();
+                                    status.close();
                                     key.cancel();
                                 }else {
                                     mBuffer.flip();

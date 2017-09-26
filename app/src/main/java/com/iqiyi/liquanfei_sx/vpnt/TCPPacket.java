@@ -251,10 +251,6 @@ public class TCPPacket extends Packet {
                 if (packet.syn) ack++;
                 if (packet.fin) ack++;
                 //Log.e("xx","build ack sn"+ack);
-
-            }else if (fin)
-            {
-                sn++;
             }
             b[28] = (byte) (ack >> 24);
             b[29] = (byte) (ack << 8 >> 24);
@@ -270,13 +266,13 @@ public class TCPPacket extends Packet {
             b[33]=ACK;
             if (packet!=null && !fin)
             {
-                if (packet.syn) {
+                if (packet.syn&&!packet.ack) {
                     b[33] |= SYN;
                     sn++;
                 }
             }else if (fin)
             {
-                b[33] = FIN;
+                b[33] |= FIN;
                 sn++;
             }
 
