@@ -1,5 +1,7 @@
 package com.iqiyi.liquanfei_sx.vpnt;
 
+import android.util.Log;
+
 import java.nio.ByteBuffer;
 import java.util.LinkedList;
 import java.util.List;
@@ -13,7 +15,7 @@ import java.util.concurrent.LinkedTransferQueue;
 public class ByteBufferPool {
 
     public static final int SIZE_INFINITY=-1;
-    public static final int CAPABILITY_DEFAULT=4096;
+    public static final int CAPABILITY_DEFAULT=1024;
 
     private static ByteBufferPool mDefault=new ByteBufferPool();
 
@@ -55,12 +57,11 @@ public class ByteBufferPool {
 
     public ByteBuffer[] get(byte []src,int offset,int length)
     {
-        ByteBuffer[] res=new ByteBuffer[length/mBufferCapability+length%mBufferCapability==0?0:1];
+        ByteBuffer[] res=new ByteBuffer[length/mBufferCapability+((length%mBufferCapability)==0?0:1)];
         for (int i=0;i<res.length;i++)
         {
             res[i]=get();
             res[i].put(src,offset+mBufferCapability*i,i==res.length-1?length-mBufferCapability*i:mBufferCapability);
-            //res[i].limit(res[i].position());
             res[i].flip();
         }
 
@@ -71,6 +72,7 @@ public class ByteBufferPool {
     {
         if (mBufferMaxSize==SIZE_INFINITY || mBuffers.size() <mBufferMaxSize)
         {
+            buffer.clear();
             mBuffers.add(buffer);
         }
     }
