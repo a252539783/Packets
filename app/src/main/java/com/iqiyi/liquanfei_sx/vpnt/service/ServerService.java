@@ -1,4 +1,4 @@
-package com.iqiyi.liquanfei_sx.vpnt;
+package com.iqiyi.liquanfei_sx.vpnt.service;
 
 import android.app.Service;
 import android.content.ComponentName;
@@ -9,6 +9,11 @@ import android.os.IBinder;
 import android.support.annotation.Nullable;
 import android.util.Log;
 import android.util.SparseArray;
+
+import com.iqiyi.liquanfei_sx.vpnt.ByteBufferPool;
+import com.iqiyi.liquanfei_sx.vpnt.packet.IPPacket;
+import com.iqiyi.liquanfei_sx.vpnt.packet.Packet;
+import com.iqiyi.liquanfei_sx.vpnt.packet.TCPPacket;
 
 import java.io.IOException;
 import java.io.InputStream;
@@ -276,7 +281,7 @@ public class ServerService extends Service {
         }
     }
 
-    class TCPStatus {
+    public class TCPStatus {
         //Socket mSocket;
 //        InputStream is;
 //        OutputStream os;

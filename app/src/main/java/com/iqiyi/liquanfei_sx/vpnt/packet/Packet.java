@@ -1,4 +1,4 @@
-package com.iqiyi.liquanfei_sx.vpnt;
+package com.iqiyi.liquanfei_sx.vpnt.packet;
 
 /**
  * Created by liquanfei_sx on 2017/8/15.
@@ -7,7 +7,7 @@ package com.iqiyi.liquanfei_sx.vpnt;
 public class Packet {
 
     private byte[] mData=null;
-    int mOffset=0;
+    public int mOffset=0;
 
     public Packet(byte[] data,int offset)
     {

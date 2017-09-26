@@ -1,4 +1,4 @@
-package com.iqiyi.liquanfei_sx.vpnt;
+package com.iqiyi.liquanfei_sx.vpnt.service;
 
 import android.content.ComponentName;
 import android.content.Intent;
@@ -8,6 +8,9 @@ import android.os.Binder;
 import android.os.IBinder;
 import android.os.ParcelFileDescriptor;
 import android.util.Log;
+
+import com.iqiyi.liquanfei_sx.vpnt.packet.IPPacket;
+import com.iqiyi.liquanfei_sx.vpnt.packet.Packet;
 
 import java.io.FileInputStream;
 import java.io.FileOutputStream;

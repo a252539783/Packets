@@ -1,6 +1,4 @@
-package com.iqiyi.liquanfei_sx.vpnt;
-
-import android.util.Log;
+package com.iqiyi.liquanfei_sx.vpnt.packet;
 
 /**
  * Created by liquanfei_sx on 2017/8/15.

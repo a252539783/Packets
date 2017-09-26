@@ -1,6 +1,8 @@
-package com.iqiyi.liquanfei_sx.vpnt;
+package com.iqiyi.liquanfei_sx.vpnt.packet;
 
 import android.util.Log;
+
+import com.iqiyi.liquanfei_sx.vpnt.service.ServerService;
 
 import java.nio.ByteBuffer;
 
@@ -20,11 +22,11 @@ public class TCPPacket extends Packet {
     private IPPacket mIpInfo=null;
     private int mSourcePort,mDestPort;
     private int sn,cksn;
-    int mHeaderLength;
+    public int mHeaderLength;
     private int mWindowSize;
     private int dataLen=0;
 
-    boolean urg, ack, psh, rst, syn, fin;
+    public boolean urg, ack, psh, rst, syn, fin;
 
     public TCPPacket(byte[] data,int offset,IPPacket ip) {
         super(data,offset);
@@ -122,7 +124,7 @@ public class TCPPacket extends Packet {
         return mIpInfo;
     }
 
-    static class Builder
+    public static class Builder
     {
         static byte[] ident=new byte[2];
         static boolean idInit=true;
@@ -131,7 +133,7 @@ public class TCPPacket extends Packet {
         private ServerService.TCPStatus mStatus;
         private int sn=0;
 
-        Builder(ServerService.TCPStatus status,TCPPacket initPacket)
+        public Builder(ServerService.TCPStatus status,TCPPacket initPacket)
         {
             mStatus=status;
             byte[] b=buffer.array();
@@ -162,7 +164,7 @@ public class TCPPacket extends Packet {
             }
         }
 
-        Builder setSource(byte []ip)
+        public Builder setSource(byte []ip)
         {
             byte[] b=buffer.array();
             b[12]=ip[0];
@@ -173,7 +175,7 @@ public class TCPPacket extends Packet {
             return this;
         }
 
-        Builder setDest(byte []ip)
+        public Builder setDest(byte []ip)
         {
             byte[] b=buffer.array();
             b[16]=ip[0];
@@ -183,22 +185,22 @@ public class TCPPacket extends Packet {
             return this;
         }
 
-        IPPacket build(TCPPacket packet)
+        public IPPacket build(TCPPacket packet)
         {
             return build(packet,null,false);
         }
 
-        IPPacket build(ByteBuffer data)
+        public IPPacket build(ByteBuffer data)
         {
             return build(null,data,false);
         }
 
-        IPPacket build(TCPPacket packet,ByteBuffer dataBuffer)
+        public IPPacket build(TCPPacket packet,ByteBuffer dataBuffer)
         {
             return build(packet, dataBuffer,false);
         }
 
-        IPPacket build(TCPPacket packet,ByteBuffer dataBuffer,boolean fin)
+        public IPPacket build(TCPPacket packet,ByteBuffer dataBuffer,boolean fin)
         {
             byte[] data;
             if (dataBuffer==null) {
@@ -337,7 +339,7 @@ public class TCPPacket extends Packet {
             return new IPPacket(src);
         }
 
-        synchronized void freshId()
+        private synchronized void freshId()
         {
             byte []b=buffer.array();
             if ((ident[1]&0xff)==0xff)
