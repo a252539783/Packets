@@ -1,12 +1,8 @@
-package com.iqiyi.liquanfei_sx.vpnt;
-
-import android.util.Log;
+package com.iqiyi.liquanfei_sx.vpnt.tools;
 
 import java.nio.ByteBuffer;
 import java.util.LinkedList;
-import java.util.List;
 import java.util.Queue;
-import java.util.concurrent.LinkedTransferQueue;
 
 /**
  * Created by Administrator on 2017/9/19.
