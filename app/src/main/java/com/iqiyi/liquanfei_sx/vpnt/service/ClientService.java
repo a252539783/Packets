@@ -19,6 +19,7 @@ import java.io.OutputStream;
 import java.net.InetSocketAddress;
 import java.nio.ByteBuffer;
 import java.nio.channels.DatagramChannel;
+import java.util.ArrayList;
 
 /**
  * Created by liquanfei_sx on 2017/8/7.
@@ -40,7 +41,6 @@ public class ClientService extends VpnService{
     @Override
     public void onCreate() {
         super.onCreate();
-
     }
 
     @Override
@@ -153,9 +153,14 @@ public class ClientService extends VpnService{
         }
     }
 
-    class MB extends Binder
+    public ArrayList<ServerService.PacketList> getPackets()
     {
-        ClientService get()
+        return server.mPackets;
+    }
+
+    public class MB extends Binder
+    {
+        public ClientService get()
         {
             return ClientService.this;
         }

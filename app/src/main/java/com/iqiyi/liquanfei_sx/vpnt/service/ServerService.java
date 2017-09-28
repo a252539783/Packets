@@ -4,13 +4,15 @@ import android.app.Service;
 import android.content.ComponentName;
 import android.content.Intent;
 import android.content.ServiceConnection;
+import android.content.pm.PackageInfo;
 import android.os.Binder;
 import android.os.IBinder;
 import android.support.annotation.Nullable;
 import android.util.Log;
 import android.util.SparseArray;
 
-import com.iqiyi.liquanfei_sx.vpnt.ByteBufferPool;
+import com.iqiyi.liquanfei_sx.vpnt.tools.AppPortList;
+import com.iqiyi.liquanfei_sx.vpnt.tools.ByteBufferPool;
 import com.iqiyi.liquanfei_sx.vpnt.packet.IPPacket;
 import com.iqiyi.liquanfei_sx.vpnt.packet.Packet;
 import com.iqiyi.liquanfei_sx.vpnt.packet.TCPPacket;
@@ -40,11 +42,14 @@ import java.util.concurrent.ThreadPoolExecutor;
 public class ServerService extends Service {
 
     private MB mB=new MB();
+    private static AppPortList mPortList;
     private ClientService mLocal=null;
     private Selector mSelector= null;
     private TransmitThread mTransmitThread=null;
     private ReadThread mReadThread=null;
-    private ArrayList<PacketList> mPackets=new ArrayList<>();
+
+    ArrayList<PacketList> mPackets=new ArrayList<>();
+
     private ByteBufferPool mBufferPool=ByteBufferPool.getDefault();
 
     private boolean registering=false;
@@ -52,7 +57,7 @@ public class ServerService extends Service {
     @Override
     public void onCreate() {
         super.onCreate();
-
+        mPortList=AppPortList.get();
         try {
             mSelector=Selector.open();
         } catch (IOException e) {
@@ -207,7 +212,7 @@ public class ServerService extends Service {
 
         public void remove(TCPStatus status)
         {
-            mSockets.remove(((TCPPacket) ((IPPacket) status.mPacketList.getLast()).getData()).getSourcePort());
+            mSockets.remove(status.mPacketList.port());
         }
 
         TCPStatus connect(Packet packet)
@@ -303,8 +308,8 @@ public class ServerService extends Service {
             //mSocket.connect(new InetSocketAddress(packet.getDestIp(),packet.getPort()));
             //os=mSocket.getOutputStream();
             //is=mSocket.getInputStream();
-            mPacketList=new PacketList();
-            mPacketList.add(packet.getIpInfo());
+            mPacketList=new PacketList(packet);
+            //mPacketList.add(packet.getIpInfo());
             mPackets.add(mPacketList);
             mBuilder=new TCPPacket.Builder(this,packet)
                     .setDest(packet.getIpInfo().getSourceIpB())
@@ -341,13 +346,13 @@ public class ServerService extends Service {
 
         public void fin()
         {
-            mLocal.write(mBuilder.build((TCPPacket) ((IPPacket) mPacketList.getLast()).getData(),null,true));
+            mLocal.write(mBuilder.build(mPacketList.getLast(),null,true));
         }
 
         public void ack(TCPPacket packet)
         {
             //mBuilder.freshId();
-            mPacketList.add(packet.getIpInfo());
+            mPacketList.add(packet);
             if (!packet.syn&&packet.getDataLength()==0 && !packet.fin)
             {
                 return ;
@@ -390,7 +395,7 @@ public class ServerService extends Service {
         public void ack(ByteBuffer data)
         {
             //mBuilder.freshId();
-            TCPPacket packet=(TCPPacket) ((IPPacket) mPacketList.getLast()).getData();
+            TCPPacket packet=mPacketList.getLast();
             if (packet.getPort()==6666)
                 try {
                     Log.e("6666","recv"+new String(packet.getRawData(),packet.mOffset+packet.mHeaderLength,packet.getDataLength(),"utf-8"));
@@ -398,7 +403,7 @@ public class ServerService extends Service {
                     e.printStackTrace();
                 }
 
-            mPacketList.add(mBuilder.build(packet,data));
+            mPacketList.add((TCPPacket) mBuilder.build(packet,data).getData());
             mLocal.write(mPacketList.getLast());
         }
 
@@ -472,8 +477,8 @@ public class ServerService extends Service {
                                     {
                                         int start=buffer.position();
                                         channel.write(buffer);
-                                        TCPPacket packet=(TCPPacket) ((IPPacket) status.mPacketList.getLast()).getData();
-                                        if (packet.getPort()==6666||packet.getSourcePort()==6666||true)
+                                        TCPPacket packet=status.mPacketList.getLast();
+                                        if (true)
                                         {
                                             Log.e("written :",new String(buffer.array(),start,buffer.position()));
                                         }
@@ -491,7 +496,7 @@ public class ServerService extends Service {
                             }
                         }
                         if (key.isValid()&&key.isReadable()) {
-                            Log.e("xx", "key read"+((IPPacket)status.mPacketList.getLast()).getDestIp());
+                            //Log.e("xx", "key read"+((IPPacket)status.mPacketList.getLast()).getDestIp());
                             mBuffer.clear();
                             try
                             {
@@ -522,35 +527,35 @@ public class ServerService extends Service {
         }
     }
 
-    static void read(InputStream is,byte[] b,int length) throws IOException {
-        int len=0;
-        while (len!=length)
-        {
-            len+=is.read(b,len,length-len);
-        }
-    }
-
-    static class PacketList
+    public static class PacketList
     {
-        private String pkgName,appName;
+        PackageInfo mInfo;
         private int port;
-        private ArrayList<Packet> packets;
+        private ArrayList<TCPPacket> packets;
 
-        PacketList()
+        PacketList(TCPPacket init)
         {
             packets=new ArrayList<>();
+            add(init);
+            port=init.getSourcePort();
+            mInfo=mPortList.getPkgInfo(port);
         }
 
-        void add(Packet p)
+        void add(TCPPacket p)
         {
             packets.add(p);
         }
 
-        Packet get(int i){
+        public TCPPacket get(int i){
             return packets.get(i);
         }
 
-        Packet getLast() {
+        public int port()
+        {
+            return port;
+        }
+
+        TCPPacket getLast() {
             return packets.get(packets.size()-1);
         }
     }
