@@ -7,32 +7,102 @@ import android.net.VpnService;
 import android.os.IBinder;
 import android.support.v7.app.AppCompatActivity;
 import android.os.Bundle;
+import android.support.v7.widget.RecyclerView;
 import android.util.Log;
+import android.view.LayoutInflater;
+import android.view.View;
+import android.view.ViewGroup;
+import android.widget.Button;
 
 import com.iqiyi.liquanfei_sx.vpnt.service.ClientService;
 import com.iqiyi.liquanfei_sx.vpnt.service.ServerService;
 
-public class MainActivity extends AppCompatActivity {
+public class MainActivity extends AppCompatActivity implements View.OnClickListener{
 
     private ClientService mServer=null;
+    private Button button;
+    MFloatingWindow window;
 
     @Override
     protected void onCreate(Bundle savedInstanceState) {
         super.onCreate(savedInstanceState);
         setContentView(R.layout.activity_main);
+        //window=new MFloatingWindow(this);
         // Example of a call to a native method
         //TextView tv = (TextView) findViewById(R.id.sample_text);
         //tv.setText(stringFromJNI());
-        final Intent i= VpnService.prepare(this);
+//        final Intent i= VpnService.prepare(this);
+//
+//        if (i==null)
+//        {
+//            Log.e("xx","success");
+//            onActivityResult(1,1,null);
+//        }else
+//        {
+//            startActivityForResult(i,1);
+//        }
 
-        if (i==null)
-        {
-            Log.e("xx","success");
-            onActivityResult(1,1,null);
-        }else
-        {
-            startActivityForResult(i,1);
-        }
+        button=(Button)findViewById(R.id.b_test);
+        button.setOnClickListener(this);
+
+        ExpandableRecyclerView rv=(ExpandableRecyclerView)findViewById(R.id.rv);
+        rv.setAdapter(new ExpandableRecyclerView.Adapter() {
+            @Override
+            public void onBindExpandView(ExpandableRecyclerView view, int position) {
+                view.setAdapter(new ExpandableRecyclerView.Adapter() {
+                    @Override
+                    public void onBindExpandView(ExpandableRecyclerView view, int position) {
+                    }
+
+                    @Override
+                    public boolean canExpand(int position) {
+                        return true;
+                    }
+
+                    @Override
+                    public RecyclerView.ViewHolder onCreateViewHolder(ViewGroup parent, int viewType) {
+                        return new RecyclerView.ViewHolder(LayoutInflater.from(MainActivity.this).inflate(R.layout.float_main_button,null,false)) {
+                        };
+                    }
+
+                    @Override
+                    public void onBindViewHolder(RecyclerView.ViewHolder holder, int position) {
+
+                    }
+
+                    @Override
+                    public int getItemCount() {
+                        return 20;
+                    }
+                });
+            }
+
+            @Override
+            public boolean canExpand(int position) {
+                return true;
+            }
+
+            @Override
+            public RecyclerView.ViewHolder onCreateViewHolder(ViewGroup parent, int viewType) {
+                return new RecyclerView.ViewHolder(LayoutInflater.from(MainActivity.this).inflate(R.layout.item_test,null,false)) {
+                };
+            }
+
+            @Override
+            public void onBindViewHolder(RecyclerView.ViewHolder holder, int position) {
+
+            }
+
+            @Override
+            public int getItemCount() {
+                return 5;
+            }
+        });
+    }
+
+    @Override
+    public void onClick(View v) {
+        //window.remove();
     }
 
     /**

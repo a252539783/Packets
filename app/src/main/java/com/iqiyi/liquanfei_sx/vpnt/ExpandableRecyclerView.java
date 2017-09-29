@@ -3,11 +3,16 @@ package com.iqiyi.liquanfei_sx.vpnt;
 import android.content.Context;
 import android.support.annotation.Nullable;
 import android.support.v4.util.ArrayMap;
+import android.support.v7.widget.DefaultItemAnimator;
 import android.support.v7.widget.LinearLayoutManager;
 import android.support.v7.widget.RecyclerView;
+import android.support.v7.widget.SimpleItemAnimator;
 import android.util.AttributeSet;
+import android.util.Log;
+import android.view.MotionEvent;
 import android.view.View;
 import android.view.ViewGroup;
+import android.view.animation.Animation;
 
 import com.iqiyi.liquanfei_sx.vpnt.tools.Rf;
 
@@ -22,6 +27,7 @@ import java.util.List;
 public class ExpandableRecyclerView extends RecyclerView implements View.OnClickListener {
 
     private static int TYPE_RECYCLER=-1000;
+    static boolean aaa=false;
 
     private Adapter mAdapter=null;
     private MAdapter mInnerAdapter=null;
@@ -48,20 +54,38 @@ public class ExpandableRecyclerView extends RecyclerView implements View.OnClick
         init();
     }
 
-    private void init()
+    private static OnClickListener getOnClickListener(View v)
     {
-        setLayoutManager(new MLinearLayoutManager(getContext()));
-        mInnerAdapter=new MAdapter();
-        super.setAdapter(mInnerAdapter);
+        Object li= Rf.readField(View.class,v,"mListenerInfo");
+        if (li==null)
+            return null;
+
+        Object l=Rf.readField(li,"mOnClickListener");
+        if (l==null)
+            return null;
+
+        return (OnClickListener)l;
     }
 
-    public void setAdapter(Adapter adapter) {
-        mAdapter=adapter;
-        mIsExpandView.clear();
-        for (int i=0;i<mAdapter.getItemCount();i++)
+    private void init()
+    {
+        if (!aaa)
         {
-            mIsExpandView.add(false);
+            mCanExpand=false;
+            aaa=true;
+        }else
+        {
+            mCanExpand=true;
         }
+        setLayoutManager(new MLinearLayoutManager(getContext()));
+        getLayoutManager().setAutoMeasureEnabled(true);
+        ((SimpleItemAnimator)getItemAnimator()).setSupportsChangeAnimations(false);
+        getItemAnimator().setRemoveDuration(0);
+        getItemAnimator().setMoveDuration(0);
+        getItemAnimator().setChangeDuration(0);
+        getItemAnimator().setAddDuration(0);
+        mInnerAdapter=new MAdapter();
+        super.setAdapter(mInnerAdapter);
     }
 
     public void setExpandable(boolean can)
@@ -72,6 +96,15 @@ public class ExpandableRecyclerView extends RecyclerView implements View.OnClick
     public Adapter getAdapter()
     {
         return mAdapter;
+    }
+
+    public void setAdapter(Adapter adapter) {
+        mAdapter=adapter;
+        mIsExpandView.clear();
+        for (int i=0;i<mAdapter.getItemCount();i++)
+        {
+            mIsExpandView.add(false);
+        }
     }
 
     private MAdapter innerAdapter()
@@ -121,9 +154,6 @@ public class ExpandableRecyclerView extends RecyclerView implements View.OnClick
                 position--;
             }else
             {
-                if (position==-1)
-                {
-                }
             }
             realPosition++;
         }
@@ -143,14 +173,28 @@ public class ExpandableRecyclerView extends RecyclerView implements View.OnClick
                 maskPosition++;
             }else
             {
-                if (position==-1)
-                {
-                }
             }
             position--;
         }
 
         return maskPosition;
+    }
+
+    @Override
+    public void onClick(View v) {
+        MAdapter.ListenerInfo li=mChildClickListeners.get(v);
+        expandItem(li.mPosition);
+
+        OnClickListener l=li.mL;
+        if (l!=null&&l!=this)
+            l.onClick(v);
+    }
+
+    public static abstract class Adapter<VH extends ViewHolder> extends RecyclerView.Adapter<VH>
+    {
+        public abstract void onBindExpandView(ExpandableRecyclerView view, int position);
+
+        public abstract boolean canExpand(int position);
     }
 
     private class MAdapter extends RecyclerView.Adapter
@@ -221,76 +265,60 @@ public class ExpandableRecyclerView extends RecyclerView implements View.OnClick
         }
     }
 
-
-
-    @Override
-    public void onClick(View v) {
-        MAdapter.ListenerInfo li=mChildClickListeners.get(v);
-        expandItem(li.mPosition);
-
-        OnClickListener l=li.mL;
-        if (l!=null&&l!=this)
-            l.onClick(v);
-    }
-
-    private static OnClickListener getOnClickListener(View v)
-    {
-        Object li= Rf.readField(View.class,v,"mListenerInfo");
-        if (li==null)
-            return null;
-
-        Object l=Rf.readField(li,"mOnClickListener");
-        if (l==null)
-            return null;
-
-        return (OnClickListener)l;
-    }
-
     private class MLinearLayoutManager extends LinearLayoutManager
     {
+//
+//        @Override
+//        public void onMeasure(Recycler recycler, State state, int widthSpec,int heightSpec) {
+//            int measuredHeight=MeasureSpec.getSize(heightSpec);
+//            int measuredWidth = MeasureSpec.getSize(widthSpec);
+//            if (!mCanExpand)
+//            {
+//                //super.onMeasure(recycler, state, widthSpec, heightSpec);
+//                //return ;
+//            }
+//
+//            int height=0;
+//            for (int i=0;i<mInnerAdapter.getItemCount();i++)
+//            {
+//                try {
+//                    View view = recycler.getViewForPosition(0);
+//                    if (view != null) {
+//                        measureChild(view, widthSpec, heightSpec);
+//                        height += view.getMeasuredHeight();
+//                    } else {
+//                        break;
+//                    }
+//                }catch (IndexOutOfBoundsException e)
+//                {
+//                    break;
+//                }
+//            }
+//            if (height>measuredHeight)
+//            {
+//                height=measuredHeight;
+//            }
+//            setMeasuredDimension(measuredWidth, height);
+//        }
 
         public MLinearLayoutManager(Context context) {
             super(context);
         }
 
         @Override
-        public void onMeasure(Recycler recycler, State state, int widthSpec,int heightSpec) {
-            int measuredHeight=MeasureSpec.getSize(heightSpec);
-            int measuredWidth = MeasureSpec.getSize(widthSpec);
-            if (!mCanExpand)
-            {
-                //super.onMeasure(recycler, state, widthSpec, heightSpec);
-                //return ;
-            }
-
-            int height=0;
-            for (int i=0;i<mInnerAdapter.getItemCount();i++)
-            {
-                try {
-                    View view = recycler.getViewForPosition(0);
-                    if (view != null) {
-                        measureChild(view, widthSpec, heightSpec);
-                        height += view.getMeasuredHeight();
-                    } else {
-                        break;
-                    }
-                }catch (IndexOutOfBoundsException e)
-                {
-                    break;
-                }
-            }
-            if (height>measuredHeight)
-            {
-                height=measuredHeight;
-            }
-            setMeasuredDimension(measuredWidth, height);
+        public void onMeasure(Recycler recycler, State state, int widthSpec, int heightSpec) {
+            super.onMeasure(recycler, state, widthSpec, heightSpec);
         }
     }
 
-    public static abstract class Adapter<VH extends ViewHolder> extends RecyclerView.Adapter<VH>
-    {
-        public abstract void onBindExpandView(ExpandableRecyclerView view, int position);
+    @Override
+    public boolean dispatchTouchEvent(MotionEvent ev) {
 
-        public abstract boolean canExpand(int position);
+        if (!mCanExpand&&ev.getAction()==MotionEvent.ACTION_MOVE)
+        {
+            //super.dispatchTouchEvent(ev);
+            return false;
+        }
+        return super.dispatchTouchEvent(ev);
     }
 }

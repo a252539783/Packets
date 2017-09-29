@@ -13,6 +13,6 @@ public class MApp extends Application {
     @Override
     public void onCreate() {
         super.onCreate();
-        AppPortList.init(this);
+        //AppPortList.init(this);
     }
 }
