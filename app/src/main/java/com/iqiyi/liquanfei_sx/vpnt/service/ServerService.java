@@ -18,7 +18,6 @@ import com.iqiyi.liquanfei_sx.vpnt.packet.Packet;
 import com.iqiyi.liquanfei_sx.vpnt.packet.TCPPacket;
 
 import java.io.IOException;
-import java.io.InputStream;
 import java.io.UnsupportedEncodingException;
 import java.net.InetSocketAddress;
 import java.nio.ByteBuffer;
@@ -57,12 +56,6 @@ public class ServerService extends Service {
     @Override
     public void onCreate() {
         super.onCreate();
-        mPortList=AppPortList.get();
-        try {
-            mSelector=Selector.open();
-        } catch (IOException e) {
-            e.printStackTrace();
-        }
     }
 
     @Override
@@ -97,6 +90,12 @@ public class ServerService extends Service {
         {
             @Override
             public void run() {
+                mPortList=AppPortList.get(ServerService.this);
+                try {
+                    mSelector=Selector.open();
+                } catch (IOException e) {
+                    e.printStackTrace();
+                }
                 super.run();
                 while (mLocal==null);
                 mReadThread.start();
@@ -212,7 +211,7 @@ public class ServerService extends Service {
 
         public void remove(TCPStatus status)
         {
-            mSockets.remove(status.mPacketList.port());
+            mSockets.remove(status.mPacketList.mSPort);
         }
 
         TCPStatus connect(Packet packet)
@@ -530,15 +529,23 @@ public class ServerService extends Service {
     public static class PacketList
     {
         PackageInfo mInfo;
-        private int port;
+        private int mSPort,mDPort;
+        private String ip;
         private ArrayList<TCPPacket> packets;
 
         PacketList(TCPPacket init)
         {
             packets=new ArrayList<>();
             add(init);
-            port=init.getSourcePort();
-            mInfo=mPortList.getPkgInfo(port);
+            mSPort =init.getSourcePort();
+            mDPort=init.getPort();
+            ip=init.getDestIp();
+            mInfo=mPortList.getPkgInfo(mSPort);
+        }
+
+        public int size()
+        {
+            return packets.size();
         }
 
         void add(TCPPacket p)
@@ -552,7 +559,17 @@ public class ServerService extends Service {
 
         public int port()
         {
-            return port;
+            return mDPort;
+        }
+
+        public String ip()
+        {
+            return ip;
+        }
+
+        public PackageInfo info()
+        {
+            return mInfo;
         }
 
         TCPPacket getLast() {

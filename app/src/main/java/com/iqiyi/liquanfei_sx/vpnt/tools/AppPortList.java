@@ -3,6 +3,7 @@ package com.iqiyi.liquanfei_sx.vpnt.tools;
 import android.content.Context;
 import android.content.pm.PackageInfo;
 import android.content.pm.PackageManager;
+import android.graphics.drawable.Drawable;
 import android.util.Log;
 import android.util.SparseArray;
 
@@ -29,6 +30,7 @@ public class AppPortList {
     private PackageManager mPm;
     private SparseArray<PackageInfo> mPkgList=new SparseArray<>();
     private SparseArray<PackageInfo> mPortList=new SparseArray<>();
+    private SparseArray<Drawable> mIcons=new SparseArray<>();
 
     private AppPortList(Context c)
     {
@@ -43,6 +45,7 @@ public class AppPortList {
         for (int i=0;i<infos.size();i++)
         {
             mPkgList.put(infos.get(i).applicationInfo.uid,infos.get(i));
+            mIcons.put(infos.get(i).applicationInfo.uid,infos.get(i).applicationInfo.loadIcon(mPm));
         }
     }
 
@@ -124,9 +127,16 @@ public class AppPortList {
         instance=new AppPortList(c);
     }
 
-    public static AppPortList get()
+    public static AppPortList get(Context c)
     {
+        if (instance==null)
+            init(c);
         return instance;
+    }
+
+    public static Drawable getIcon(int uid)
+    {
+        return instance.mIcons.get(uid);
     }
 
 }
