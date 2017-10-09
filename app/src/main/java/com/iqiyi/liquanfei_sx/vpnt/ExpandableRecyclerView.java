@@ -13,6 +13,7 @@ import android.view.MotionEvent;
 import android.view.View;
 import android.view.ViewGroup;
 import android.view.animation.Animation;
+import android.widget.LinearLayout;
 
 import com.iqiyi.liquanfei_sx.vpnt.tools.Rf;
 
@@ -27,7 +28,6 @@ import java.util.List;
 public class ExpandableRecyclerView extends RecyclerView implements View.OnClickListener {
 
     private static int TYPE_RECYCLER=-1000;
-    static boolean aaa=false;
 
     private Adapter mAdapter=null;
     private MAdapter mInnerAdapter=null;
@@ -36,6 +36,7 @@ public class ExpandableRecyclerView extends RecyclerView implements View.OnClick
     private boolean mCanMultiExpandable=false;
 
     private boolean mCanExpand =false;
+    private boolean mIsExpand=false;
 
     private List<Boolean> mIsExpandView=new LinkedList<>();
 
@@ -69,14 +70,6 @@ public class ExpandableRecyclerView extends RecyclerView implements View.OnClick
 
     private void init()
     {
-        if (!aaa)
-        {
-            mCanExpand=false;
-            aaa=true;
-        }else
-        {
-            mCanExpand=true;
-        }
         setLayoutManager(new MLinearLayoutManager(getContext()));
         getLayoutManager().setAutoMeasureEnabled(true);
         ((SimpleItemAnimator)getItemAnimator()).setSupportsChangeAnimations(false);
@@ -84,6 +77,7 @@ public class ExpandableRecyclerView extends RecyclerView implements View.OnClick
         getItemAnimator().setMoveDuration(0);
         getItemAnimator().setChangeDuration(0);
         getItemAnimator().setAddDuration(0);
+        setNestedScrollingEnabled(false);
         mInnerAdapter=new MAdapter();
         super.setAdapter(mInnerAdapter);
     }
@@ -214,6 +208,7 @@ public class ExpandableRecyclerView extends RecyclerView implements View.OnClick
             if (mIsExpandView.get(position))
             {
                 ExpandableRecyclerView v=(ExpandableRecyclerView)holder.itemView;
+                //v.setLayoutParams(new LinearLayout.LayoutParams(ViewGroup.LayoutParams.WRAP_CONTENT,400));
                 mAdapter.onBindExpandView(v,maskPosition);
                 v.setExpandable(true);
             }
@@ -312,13 +307,8 @@ public class ExpandableRecyclerView extends RecyclerView implements View.OnClick
     }
 
     @Override
-    public boolean dispatchTouchEvent(MotionEvent ev) {
-
-        if (!mCanExpand&&ev.getAction()==MotionEvent.ACTION_MOVE)
-        {
-            //super.dispatchTouchEvent(ev);
-            return false;
-        }
-        return super.dispatchTouchEvent(ev);
+    public boolean dispatchNestedScroll(int dxConsumed, int dyConsumed, int dxUnconsumed, int dyUnconsumed, int[] offsetInWindow) {
+        return super.dispatchNestedScroll(dxConsumed, dyConsumed, dxUnconsumed, dyUnconsumed, offsetInWindow);
+        //return true;
     }
 }
