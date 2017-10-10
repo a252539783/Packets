@@ -9,6 +9,7 @@ import android.view.ViewGroup;
 import android.widget.ImageView;
 import android.widget.TextView;
 
+import com.iqiyi.liquanfei_sx.vpnt.packet.TCPPacket;
 import com.iqiyi.liquanfei_sx.vpnt.service.ServerService;
 import com.iqiyi.liquanfei_sx.vpnt.tools.AppPortList;
 
@@ -30,12 +31,13 @@ public class PacketsAdapter extends ExpandableRecyclerView.Adapter<PacketsAdapte
 
     @Override
     public void onBindExpandView(ExpandableRecyclerView view, int position) {
-        view.setAdapter(new ChildAdapter());
+        view.setAdapter(new ChildAdapter(position));
     }
 
     @Override
     public boolean canExpand(int position) {
         return mPacketLists.size()!=0;
+        //return false;
     }
 
     @Override
@@ -46,9 +48,9 @@ public class PacketsAdapter extends ExpandableRecyclerView.Adapter<PacketsAdapte
     @Override
     public void onBindViewHolder(PacketsAdapter.H1 holder, int position) {
         ServerService.PacketList packetList= mPacketLists.get(position);
-        PackageInfo info=packetList.info();
-        holder.icon.setImageDrawable(AppPortList.getIcon(info.applicationInfo.uid));
-        holder.name.setText(info.applicationInfo.name+":"+info.applicationInfo.packageName);
+        AppPortList.AppInfo info=packetList.info();
+        holder.icon.setImageDrawable(info.icon);
+        holder.name.setText(info.appName+":"+info.info.applicationInfo.packageName);
         holder.ip.setText(packetList.ip()+":"+packetList.port());
     }
 
@@ -74,14 +76,22 @@ public class PacketsAdapter extends ExpandableRecyclerView.Adapter<PacketsAdapte
 
     static class H2 extends RecyclerView.ViewHolder
     {
+        TextView text;
 
         public H2(View itemView) {
             super(itemView);
+            text=(TextView)itemView.findViewById(R.id.t_packet_item_text);
         }
     }
 
-    private class ChildAdapter extends ExpandableRecyclerView.Adapter
+    private class ChildAdapter extends ExpandableRecyclerView.Adapter<H2>
     {
+        int mPosition;
+
+        ChildAdapter(int position)
+        {
+            mPosition=position;
+        }
 
         @Override
         public void onBindExpandView(ExpandableRecyclerView view, int position) {
@@ -94,18 +104,19 @@ public class PacketsAdapter extends ExpandableRecyclerView.Adapter<PacketsAdapte
         }
 
         @Override
-        public RecyclerView.ViewHolder onCreateViewHolder(ViewGroup parent, int viewType) {
-            return null;
+        public H2 onCreateViewHolder(ViewGroup parent, int viewType) {
+            return new H2(mLf.inflate(R.layout.item_packet,parent,false));
         }
 
         @Override
-        public void onBindViewHolder(RecyclerView.ViewHolder holder, int position) {
-
+        public void onBindViewHolder(H2 holder, int position) {
+            TCPPacket packet=mPacketLists.get(mPosition).get(position);
+            holder.text.setText(new String(packet.getRawData(),packet.mOffset+packet.mHeaderLength,packet.getDataLength()));
         }
 
         @Override
         public int getItemCount() {
-            return 0;
+            return mPacketLists.get(mPosition).size();
         }
     }
 }

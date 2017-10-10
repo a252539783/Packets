@@ -17,11 +17,13 @@ import android.widget.Button;
 import com.iqiyi.liquanfei_sx.vpnt.service.ClientService;
 import com.iqiyi.liquanfei_sx.vpnt.service.ServerService;
 
-public class MainActivity extends AppCompatActivity implements View.OnClickListener{
+public class MainActivity extends AppCompatActivity implements View.OnClickListener,ClientService.OnPacketsAddListener,ClientService.OnServerConnectedListener{
 
     private ClientService mServer=null;
     private Button button;
     MFloatingWindow window;
+    ExpandableRecyclerView rv;
+    PacketsAdapter pa;
 
     @Override
     protected void onCreate(Bundle savedInstanceState) {
@@ -31,78 +33,28 @@ public class MainActivity extends AppCompatActivity implements View.OnClickListe
         // Example of a call to a native method
         //TextView tv = (TextView) findViewById(R.id.sample_text);
         //tv.setText(stringFromJNI());
-//        final Intent i= VpnService.prepare(this);
-//
-//        if (i==null)
-//        {
-//            Log.e("xx","success");
-//            onActivityResult(1,1,null);
-//        }else
-//        {
-//            startActivityForResult(i,1);
-//        }
+        final Intent i= VpnService.prepare(this);
+
+        if (i==null)
+        {
+            Log.e("xx","success");
+            onActivityResult(1,1,null);
+        }else
+        {
+            startActivityForResult(i,1);
+        }
 
         button=(Button)findViewById(R.id.b_test);
         button.setOnClickListener(this);
 
-        ExpandableRecyclerView rv=(ExpandableRecyclerView)findViewById(R.id.rv);
-        rv.setAdapter(new ExpandableRecyclerView.Adapter() {
-            @Override
-            public void onBindExpandView(ExpandableRecyclerView view, int position) {
-                view.setAdapter(new ExpandableRecyclerView.Adapter() {
-                    @Override
-                    public void onBindExpandView(ExpandableRecyclerView view, int position) {
-                    }
-
-                    @Override
-                    public boolean canExpand(int position) {
-                        return true;
-                    }
-
-                    @Override
-                    public RecyclerView.ViewHolder onCreateViewHolder(ViewGroup parent, int viewType) {
-                        return new RecyclerView.ViewHolder(LayoutInflater.from(MainActivity.this).inflate(R.layout.float_main_button,null,false)) {
-                        };
-                    }
-
-                    @Override
-                    public void onBindViewHolder(RecyclerView.ViewHolder holder, int position) {
-
-                    }
-
-                    @Override
-                    public int getItemCount() {
-                        return 20;
-                    }
-                });
-            }
-
-            @Override
-            public boolean canExpand(int position) {
-                return true;
-            }
-
-            @Override
-            public RecyclerView.ViewHolder onCreateViewHolder(ViewGroup parent, int viewType) {
-                return new RecyclerView.ViewHolder(LayoutInflater.from(MainActivity.this).inflate(R.layout.item_test,null,false)) {
-                };
-            }
-
-            @Override
-            public void onBindViewHolder(RecyclerView.ViewHolder holder, int position) {
-
-            }
-
-            @Override
-            public int getItemCount() {
-                return 5;
-            }
-        });
+        rv=(ExpandableRecyclerView)findViewById(R.id.rv);
     }
 
     @Override
     public void onClick(View v) {
         //window.remove();
+
+        //pa.notifyDataSetChanged();
     }
 
     /**
@@ -118,12 +70,13 @@ public class MainActivity extends AppCompatActivity implements View.OnClickListe
     @Override
     protected void onActivityResult(int requestCode, int resultCode, Intent data) {
         super.onActivityResult(requestCode, resultCode, data);
-        startService(new Intent(this,ClientService.class));
         startService(new Intent(this,ServerService.class));
+        startService(new Intent(this,ClientService.class));
         bindService(new Intent(this, ClientService.class), new ServiceConnection() {
             @Override
             public void onServiceConnected(ComponentName name, IBinder service) {
                 mServer=((ClientService.MB)service).get();
+                mServer.setOnServerConnectedListener(MainActivity.this);
             }
 
             @Override
@@ -131,5 +84,33 @@ public class MainActivity extends AppCompatActivity implements View.OnClickListe
                 mServer=null;
             }
         },BIND_AUTO_CREATE);
+    }
+
+    void fresh()
+    {
+        rv.post(new Runnable() {
+            @Override
+            public void run() {
+                pa.notifyDataSetChanged();
+            }
+        });
+    }
+
+    @Override
+    public void onPacketsAdd(final int position) {
+        rv.post(new Runnable() {
+            @Override
+            public void run() {
+
+                pa.notifyItemInserted(position);
+            }
+        });
+    }
+
+    @Override
+    public void onConnected() {
+        pa=new PacketsAdapter(mServer.getPackets(),MainActivity.this);
+        rv.setAdapter(pa);
+        mServer.setOnPacketsAddListener(this);
     }
 }

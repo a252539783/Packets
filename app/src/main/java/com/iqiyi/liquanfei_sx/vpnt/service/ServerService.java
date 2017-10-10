@@ -47,7 +47,9 @@ public class ServerService extends Service {
     private TransmitThread mTransmitThread=null;
     private ReadThread mReadThread=null;
 
-    ArrayList<PacketList> mPackets=new ArrayList<>();
+    private ListenerInfo mListenerInfo=new ListenerInfo();
+
+    public static ArrayList<PacketList> mPackets=new ArrayList<>();
 
     private ByteBufferPool mBufferPool=ByteBufferPool.getDefault();
 
@@ -108,6 +110,16 @@ public class ServerService extends Service {
     public void stopDaemon()
     {
         mTransmitThread.pause();
+    }
+
+    void setOnPacketAddListener(ClientService.OnPacketAddListener l)
+    {
+        mListenerInfo.mOnPacketAddListener=l;
+    }
+
+    void setOnPacketsAddListener(ClientService.OnPacketsAddListener l)
+    {
+        mListenerInfo.mOnPacketsAddListener=l;
     }
 
     public boolean transmit(Packet packet)
@@ -290,26 +302,25 @@ public class ServerService extends Service {
 //        InputStream is;
 //        OutputStream os;
         SocketChannel mChannel;
-        //ReadThread mReadThread;
         boolean closed=false;
         PacketList mPacketList;
         Queue<ByteBuffer> mReadySend=new LinkedList<>();
+        int mPosition=0;
 
         private TCPPacket.Builder mBuilder;
 
         public TCPStatus(TCPPacket packet) throws IOException {
 
-
-            //mSocket=new Socket();
-            //mSocket.bind(null);
-            //mLocal.protect(mSocket);
-            //mSocket.connect(new InetSocketAddress("121.199.31.116",8908));
-            //mSocket.connect(new InetSocketAddress(packet.getDestIp(),packet.getPort()));
-            //os=mSocket.getOutputStream();
-            //is=mSocket.getInputStream();
             mPacketList=new PacketList(packet);
-            //mPacketList.add(packet.getIpInfo());
-            mPackets.add(mPacketList);
+            if (mPacketList.mInfo!=null)
+            {
+                mPackets.add(mPacketList);
+                mPosition=mPackets.size()-1;
+                if (mListenerInfo.mOnPacketsAddListener!=null)
+                {
+                    mListenerInfo.mOnPacketsAddListener.onPacketsAdd(mPackets.size()-1);
+                }
+            }
             mBuilder=new TCPPacket.Builder(this,packet)
                     .setDest(packet.getIpInfo().getSourceIpB())
                     .setSource(packet.getIpInfo().getDestIpB());
@@ -322,9 +333,6 @@ public class ServerService extends Service {
             mChannel.register(mSelector, SelectionKey.OP_CONNECT,TCPStatus.this);
             mChannel.connect(new InetSocketAddress(packet.getDestIp(),packet.getPort()));
             registering=false;
-
-            //mReadThread.start();
-            //mLocal.write(mBuilder.build(packet));
             ack(packet);
         }
 
@@ -350,8 +358,11 @@ public class ServerService extends Service {
 
         public void ack(TCPPacket packet)
         {
-            //mBuilder.freshId();
             mPacketList.add(packet);
+            if (mListenerInfo.mOnPacketAddListener!=null)
+            {
+                mListenerInfo.mOnPacketAddListener.onPacketAdd(mPosition,mPacketList.size()-1);
+            }
             if (!packet.syn&&packet.getDataLength()==0 && !packet.fin)
             {
                 return ;
@@ -373,11 +384,9 @@ public class ServerService extends Service {
                         e.printStackTrace();
                     }
                 }
-//                    os.write(packet.getRawData(), packet.mOffset + packet.mHeaderLength, packet.getDataLength());
                 mLocal.write(mBuilder.build(packet));
 
                 if (packet.fin){
-                    //mLocal.write(mBuilder.build(packet));
                     if (closed)
                     {
                         try {
@@ -393,7 +402,6 @@ public class ServerService extends Service {
 
         public void ack(ByteBuffer data)
         {
-            //mBuilder.freshId();
             TCPPacket packet=mPacketList.getLast();
             if (packet.getPort()==6666)
                 try {
@@ -404,33 +412,11 @@ public class ServerService extends Service {
 
             mPacketList.add((TCPPacket) mBuilder.build(packet,data).getData());
             mLocal.write(mPacketList.getLast());
+            if (mListenerInfo.mOnPacketAddListener!=null)
+            {
+                mListenerInfo.mOnPacketAddListener.onPacketAdd(mPosition,mPacketList.size()-1);
+            }
         }
-
-//        class ReadThread extends Thread
-//        {
-//            ByteBuffer mBuffer=ByteBuffer.allocate(65535*100);
-//
-//            @Override
-//            public void run() {
-//                super.run();
-//                try{
-//                    int len;
-//                    while (true)
-//                    {
-//                        len=0;
-//                        while ((len=is.available())==0);
-//                        read(is,mBuffer.array(),len);
-//                        mBuffer.limit(len);
-//
-//                        ack(mBuffer);
-//                    }
-//                }catch (IOException e)
-//                {
-//                    e.printStackTrace();
-//                }
-//
-//            }
-//        }
     }
 
     class ReadThread extends Thread{
@@ -528,7 +514,7 @@ public class ServerService extends Service {
 
     public static class PacketList
     {
-        PackageInfo mInfo;
+        AppPortList.AppInfo mInfo;
         private int mSPort,mDPort;
         private String ip;
         private ArrayList<TCPPacket> packets;
@@ -540,7 +526,9 @@ public class ServerService extends Service {
             mSPort =init.getSourcePort();
             mDPort=init.getPort();
             ip=init.getDestIp();
-            mInfo=mPortList.getPkgInfo(mSPort);
+            mInfo=mPortList.getAppInfo(mSPort);
+            if (mInfo!=null)
+            Log.e("xx","find app:"+mInfo.info.packageName);
         }
 
         public int size()
@@ -567,7 +555,7 @@ public class ServerService extends Service {
             return ip;
         }
 
-        public PackageInfo info()
+        public AppPortList.AppInfo info()
         {
             return mInfo;
         }
@@ -575,5 +563,11 @@ public class ServerService extends Service {
         TCPPacket getLast() {
             return packets.get(packets.size()-1);
         }
+    }
+
+    static class ListenerInfo
+    {
+        private ClientService.OnPacketAddListener mOnPacketAddListener;
+        private ClientService.OnPacketsAddListener mOnPacketsAddListener;
     }
 }

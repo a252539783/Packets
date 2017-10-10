@@ -28,9 +28,8 @@ public class AppPortList {
     private final File _TCP6=new File("/proc/net/tcp6");
 
     private PackageManager mPm;
-    private SparseArray<PackageInfo> mPkgList=new SparseArray<>();
-    private SparseArray<PackageInfo> mPortList=new SparseArray<>();
-    private SparseArray<Drawable> mIcons=new SparseArray<>();
+    private SparseArray<AppInfo> mPkgList=new SparseArray<>();
+    private SparseArray<AppInfo> mPortList=new SparseArray<>();
 
     private AppPortList(Context c)
     {
@@ -44,8 +43,7 @@ public class AppPortList {
         List<PackageInfo> infos=mPm.getInstalledPackages(PackageManager.GET_GIDS);
         for (int i=0;i<infos.size();i++)
         {
-            mPkgList.put(infos.get(i).applicationInfo.uid,infos.get(i));
-            mIcons.put(infos.get(i).applicationInfo.uid,infos.get(i).applicationInfo.loadIcon(mPm));
+            mPkgList.put(infos.get(i).applicationInfo.uid,new AppInfo(infos.get(i),mPm));
         }
     }
 
@@ -65,21 +63,11 @@ public class AppPortList {
                 }
                 int uid=Integer.parseInt(s.next());
                 int port=Integer.parseInt(ip.split(":")[1],16);
-                PackageInfo pkgName=mPkgList.get(uid);
-                if (pkgName==null)
-                {
-                    if (!inited)
-                    {
-                        freshPkg();
-                        pkgName=mPkgList.get(uid);
-                        inited=true;
-                    }
-                }
-
-                if (pkgName==null)
+                AppInfo ai=mPkgList.get(uid);
+                if (ai==null)
                     continue;
 
-                mPortList.put(port,pkgName);
+                mPortList.put(port,ai);
             }
 
             reader=new BufferedReader(new InputStreamReader(new FileInputStream(_TCP6)));
@@ -94,21 +82,11 @@ public class AppPortList {
                 }
                 int uid=Integer.parseInt(s.next());
                 int port=Integer.parseInt(ip.split(":")[1],16);
-                PackageInfo pkgName=mPkgList.get(uid);
-                if (pkgName==null)
-                {
-                    if (!inited)
-                    {
-                        freshPkg();
-                        pkgName=mPkgList.get(uid);
-                        inited=true;
-                    }
-                }
-
-                if (pkgName==null)
+                AppInfo ai=mPkgList.get(uid);
+                if (ai==null)
                     continue;
 
-                mPortList.put(port,pkgName);
+                mPortList.put(port,ai);
             }
         } catch (FileNotFoundException e) {
 
@@ -116,7 +94,7 @@ public class AppPortList {
         }
     }
 
-    public PackageInfo getPkgInfo(int port)
+    public AppInfo getAppInfo(int port)
     {
         freshPort();
         return mPortList.get(port);
@@ -136,7 +114,26 @@ public class AppPortList {
 
     public static Drawable getIcon(int uid)
     {
-        return instance.mIcons.get(uid);
+        return instance.mPkgList.get(uid).icon;
+    }
+
+    public static String getAppName(int uid)
+    {
+        return instance.mPkgList.get(uid).appName;
+    }
+
+    public static class AppInfo
+    {
+        public PackageInfo info;
+        public String appName;
+        public Drawable icon;
+
+        private AppInfo(PackageInfo info,PackageManager pm)
+        {
+            this.info=info;
+            icon=info.applicationInfo.loadIcon(pm);
+            appName=info.applicationInfo.loadLabel(pm).toString();
+        }
     }
 
 }

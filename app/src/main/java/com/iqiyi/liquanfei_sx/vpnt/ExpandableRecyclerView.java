@@ -20,6 +20,7 @@ import com.iqiyi.liquanfei_sx.vpnt.tools.Rf;
 import java.util.Iterator;
 import java.util.LinkedList;
 import java.util.List;
+import java.util.ListIterator;
 
 /**
  * Created by Administrator on 2017/9/28.
@@ -32,6 +33,40 @@ public class ExpandableRecyclerView extends RecyclerView implements View.OnClick
     private Adapter mAdapter=null;
     private MAdapter mInnerAdapter=null;
     private ArrayMap<View,MAdapter.ListenerInfo> mChildClickListeners=new ArrayMap<>();
+
+    private AdapterDataObserver mObserver=new AdapterDataObserver() {
+        @Override
+        public void onChanged() {
+            rangeChanged();
+            mInnerAdapter.notifyDataSetChanged();
+        }
+
+        @Override
+        public void onItemRangeChanged(int positionStart, int itemCount) {
+            mInnerAdapter.notifyItemRangeChanged(positionStart, itemCount);
+        }
+
+        @Override
+        public void onItemRangeChanged(int positionStart, int itemCount, Object payload) {
+            mInnerAdapter.notifyItemRangeChanged(positionStart, itemCount, payload);
+        }
+
+        @Override
+        public void onItemRangeInserted(int positionStart, int itemCount) {
+            itemInserted(positionStart,itemCount);
+            mInnerAdapter.notifyItemRangeInserted(positionStart, itemCount);
+        }
+
+        @Override
+        public void onItemRangeRemoved(int positionStart, int itemCount) {
+            mInnerAdapter.notifyItemRangeRemoved(positionStart, itemCount);
+        }
+
+        @Override
+        public void onItemRangeMoved(int fromPosition, int toPosition, int itemCount) {
+            mInnerAdapter.notifyItemMoved(fromPosition, toPosition);
+        }
+    };
 
     private boolean mCanMultiExpandable=false;
 
@@ -94,6 +129,7 @@ public class ExpandableRecyclerView extends RecyclerView implements View.OnClick
 
     public void setAdapter(Adapter adapter) {
         mAdapter=adapter;
+        mAdapter.registerAdapterDataObserver(mObserver);
         mIsExpandView.clear();
         for (int i=0;i<mAdapter.getItemCount();i++)
         {
@@ -101,7 +137,7 @@ public class ExpandableRecyclerView extends RecyclerView implements View.OnClick
         }
     }
 
-    private MAdapter innerAdapter()
+    MAdapter innerAdapter()
     {
         return mInnerAdapter;
     }
@@ -133,6 +169,53 @@ public class ExpandableRecyclerView extends RecyclerView implements View.OnClick
 
         mIsExpandView.add(position,true);
         mInnerAdapter.notifyItemInserted(position);
+    }
+
+    private void rangeChanged()
+    {
+        Iterator<Boolean> it=mIsExpandView.iterator();
+        int i=0;
+        while(it.hasNext())
+        {
+            if (it.next())
+            {
+                it.remove();
+                mInnerAdapter.notifyItemRemoved(i);
+            }else
+            {
+                i++;
+            }
+        }
+        mIsExpandView.clear();
+        for (i=0;i<mAdapter.getItemCount();i++)
+        {
+            mIsExpandView.add(false);
+        }
+    }
+
+    private void itemInserted(int position,int len)
+    {
+        ListIterator<Boolean> it=mIsExpandView.listIterator();
+        while (it.hasNext())
+        {
+            if (position==0)
+                break;
+
+            if (!it.next())
+            {
+                position--;
+            }
+        }
+
+        if (it.hasNext()&&!it.next())
+        {
+            it.previous();
+        }
+
+        for (;len!=0;len--)
+        {
+            it.add(false);
+        }
     }
 
     private int getRealPosition(int position)
@@ -191,7 +274,7 @@ public class ExpandableRecyclerView extends RecyclerView implements View.OnClick
         public abstract boolean canExpand(int position);
     }
 
-    private class MAdapter extends RecyclerView.Adapter
+     class MAdapter extends RecyclerView.Adapter
     {
         @Override
         public ViewHolder onCreateViewHolder(ViewGroup parent, int viewType) {
@@ -217,23 +300,29 @@ public class ExpandableRecyclerView extends RecyclerView implements View.OnClick
                 if (mAdapter.canExpand(maskPosition))
                 {
                     View v=holder.itemView;
-                    mChildClickListeners.put(v,new ListenerInfo(getOnClickListener(v),maskPosition,position));
-                    v.setOnClickListener(ExpandableRecyclerView.this);
+                    OnClickListener l=getOnClickListener(v);
+                    ListenerInfo li=mChildClickListeners.get(v);
+                    if (li==null)
+                    {
+                        mChildClickListeners.put(v,new ListenerInfo(l,maskPosition,position));
+                        v.setOnClickListener(ExpandableRecyclerView.this);
+                    }else
+                    {
+                        if (l!=ExpandableRecyclerView.this)
+                        {
+                            li.mL=l;
+                        }
+                        li.mPosition=position;
+                        li.mMaskPosition=maskPosition;
+                    }
                 }
             }
         }
 
         @Override
         public int getItemCount() {
-            Iterator<Boolean> it=mIsExpandView.iterator();
-            int count=0;
-            while (it.hasNext())
-            {
-                it.next();
-                count++;
-            }
 
-            return count;
+            return mIsExpandView.size();
         }
 
         @Override

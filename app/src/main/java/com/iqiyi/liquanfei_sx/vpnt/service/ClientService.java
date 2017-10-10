@@ -31,8 +31,9 @@ public class ClientService extends VpnService{
     private String addr="127.0.0.1";
     private int port=4444;
     private MB mb=new MB();
-    private InetSocketAddress mServer=null;
     private ServerService server=null;
+
+    private OnServerConnectedListener mOnServerConnectedListener=null;
 
     private ParcelFileDescriptor mInterface;
     DatagramChannel mTunnel;
@@ -52,7 +53,11 @@ public class ClientService extends VpnService{
             @Override
             public void onServiceConnected(ComponentName name, IBinder service) {
                 server=((ServerService.MB)service).get();
-                Log.e("xx","connected to server");
+
+                if (mOnServerConnectedListener!=null)
+                {
+                    mOnServerConnectedListener.onConnected();
+                }
             }
 
             @Override
@@ -69,21 +74,6 @@ public class ClientService extends VpnService{
 
                 while (server==null);
                 server.startDaemon();
-                /*mServer=new InetSocketAddress(addr,port);
-                try {
-                    mTunnel=DatagramChannel.open();
-                } catch (IOException e) {
-                    e.printStackTrace();
-                }
-                if (!protect(mTunnel.socket())) {
-                    throw new IllegalStateException("Cannot protect the tunnel");
-                }
-                try {
-                    mTunnel.connect(mServer);
-                    mTunnel.configureBlocking(false);
-                } catch (IOException e) {
-                    e.printStackTrace();
-                }*/
                 build();
 
                 new Thread() {
@@ -136,6 +126,21 @@ public class ClientService extends VpnService{
         }
     }
 
+    public void setOnServerConnectedListener(OnServerConnectedListener l)
+    {
+        mOnServerConnectedListener=l;
+    }
+
+    public void setOnPacketAddListener(OnPacketAddListener l)
+    {
+        server.setOnPacketAddListener(l);
+    }
+
+    public void setOnPacketsAddListener(OnPacketsAddListener l)
+    {
+        server.setOnPacketsAddListener(l);
+    }
+
     @Override
     public IBinder onBind(Intent intent) {
         return mb;
@@ -155,7 +160,7 @@ public class ClientService extends VpnService{
 
     public ArrayList<ServerService.PacketList> getPackets()
     {
-        return server.mPackets;
+        return ServerService.mPackets;
     }
 
     public class MB extends Binder
@@ -164,5 +169,20 @@ public class ClientService extends VpnService{
         {
             return ClientService.this;
         }
+    }
+
+    public interface OnPacketsAddListener
+    {
+        void onPacketsAdd(int position);
+    }
+
+    public interface OnPacketAddListener
+    {
+        void onPacketAdd(int packetsPosition,int position);
+    }
+
+    public interface OnServerConnectedListener
+    {
+        void onConnected();
     }
 }
