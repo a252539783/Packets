@@ -21,13 +21,13 @@ import java.io.IOException;
 import java.io.UnsupportedEncodingException;
 import java.net.InetSocketAddress;
 import java.nio.ByteBuffer;
-import java.nio.channels.ClosedChannelException;
 import java.nio.channels.SelectionKey;
 import java.nio.channels.Selector;
 import java.nio.channels.SocketChannel;
 import java.util.ArrayList;
 import java.util.Iterator;
 import java.util.LinkedList;
+import java.util.NoSuchElementException;
 import java.util.Queue;
 import java.util.concurrent.ExecutorService;
 import java.util.concurrent.Executors;
@@ -44,6 +44,7 @@ public class ServerService extends Service {
     private static AppPortList mPortList;
     private ClientService mLocal=null;
     private Selector mSelector= null;
+    Queue<Key> prepareRegister=new LinkedList<>();
     private TransmitThread mTransmitThread=null;
     private ReadThread mReadThread=null;
 
@@ -375,14 +376,17 @@ public class ServerService extends Service {
                         mReadySend.add(buffers[i]);
                     }
 
-                    try {
-                        registering=true;
-                        mSelector.wakeup();
-                        mChannel.register(mSelector,SelectionKey.OP_WRITE,TCPStatus.this);
-                        registering=false;
-                    } catch (ClosedChannelException e) {
-                        e.printStackTrace();
-                    }
+                    //Log.e("xx", "add write"+mPacketList.mInfo.appName+":"+buffers.length+":"+packet.getDataLength());
+
+                    prepareRegister.add(new Key(mChannel,SelectionKey.OP_WRITE,TCPStatus.this));
+//                    try {
+//                        registering=true;
+//                        mSelector.wakeup();
+//                        mChannel.register(mSelector,SelectionKey.OP_WRITE,TCPStatus.this);
+//                        registering=false;
+//                    } catch (ClosedChannelException e) {
+//                        Log.e("xx", "close "+mPacketList.mInfo.appName);
+//                    }
                 }
                 mLocal.write(mBuilder.build(packet));
 
@@ -419,7 +423,22 @@ public class ServerService extends Service {
         }
     }
 
+    static class Key
+    {
+        SocketChannel channel;
+        int op;
+        TCPStatus status;
+
+        Key(SocketChannel c,int o,TCPStatus s)
+        {
+            channel=c;
+            op=o;
+            status=s;
+        }
+    }
+
     class ReadThread extends Thread{
+
         ByteBuffer mBuffer =ByteBuffer.allocate(65535);
 
         @Override
@@ -427,6 +446,18 @@ public class ServerService extends Service {
             super.run();
             try {
                 while (true) {
+                    while (!prepareRegister.isEmpty())
+                    {
+                        Key key;
+                        try {
+                            key= prepareRegister.poll();
+                        }catch (NoSuchElementException e)
+                        {
+                            break;
+                        }
+                        key.channel.register(mSelector,key.op,key.status);
+                    }
+
                     while (registering || mSelector.select() == 0) ;
                     Iterator<SelectionKey> keys = mSelector.selectedKeys().iterator();
                     while (keys.hasNext()) {
@@ -439,13 +470,17 @@ public class ServerService extends Service {
                             if (channel.isConnectionPending()) {
                                 if (channel.finishConnect())
                                 {
-                                    channel.register(mSelector,SelectionKey.OP_READ,status);
-                                    Log.e("xx","real connect");
+                                    //prepareRegister.add(new Key(channel,SelectionKey.OP_READ,status));
+                                    //channel.register(mSelector,SelectionKey.OP_READ,status);
+                                    key.interestOps(key.interestOps()|SelectionKey.OP_READ);
+                                    if (status.mPacketList.mInfo!=null)
+                                    Log.e("xx","real connect:"+status.mPacketList.mInfo.appName);
                                 }
                             }
                         }
                         if (key.isWritable()) {
-                            //Log.e("xx", "key write");
+                            if (status.mPacketList.mInfo!=null)
+                            Log.e("xx", "key write"+status.mPacketList.mInfo.appName);
                             if (!status.mReadySend.isEmpty())
                             {
                                 while (!status.mReadySend.isEmpty()) {
@@ -476,8 +511,8 @@ public class ServerService extends Service {
                                 }
                             }else
                             {
-                                key.interestOps(key.interestOps() & ~SelectionKey.OP_WRITE);
-                                channel.register(mSelector,SelectionKey.OP_READ,status);
+                                key.interestOps((key.interestOps()|SelectionKey.OP_READ)&~SelectionKey.OP_WRITE);
+                                //channel.register(mSelector,SelectionKey.OP_READ,status);
                             }
                         }
                         if (key.isValid()&&key.isReadable()) {
@@ -492,7 +527,8 @@ public class ServerService extends Service {
                                 }else {
                                     mBuffer.flip();
                                     status.ack(mBuffer);
-                                    channel.register(mSelector,SelectionKey.OP_READ,status);
+                                    key.interestOps(key.interestOps()|SelectionKey.OP_READ);
+                                    //channel.register(mSelector,SelectionKey.OP_READ,status);
                                 }
                             }catch (Exception e)
                             {
