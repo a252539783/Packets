@@ -1,6 +1,8 @@
 package com.iqiyi.liquanfei_sx.vpnt;
 
 import android.content.Context;
+import android.graphics.Color;
+import android.graphics.Rect;
 import android.support.annotation.Nullable;
 import android.support.v4.util.ArrayMap;
 import android.support.v7.widget.DefaultItemAnimator;
@@ -114,6 +116,13 @@ public class ExpandableRecyclerView extends RecyclerView implements View.OnClick
         getItemAnimator().setAddDuration(0);
         setNestedScrollingEnabled(false);
         mInnerAdapter=new MAdapter();
+        setBackgroundColor(Color.GRAY);
+        addItemDecoration(new ItemDecoration() {
+            @Override
+            public void getItemOffsets(Rect outRect, View view, RecyclerView parent, RecyclerView.State state) {
+                outRect.set(0, 0, 0, 1);
+            }
+        });
         super.setAdapter(mInnerAdapter);
     }
 
@@ -260,7 +269,7 @@ public class ExpandableRecyclerView extends RecyclerView implements View.OnClick
     @Override
     public void onClick(View v) {
         MAdapter.ListenerInfo li=mChildClickListeners.get(v);
-        expandItem(li.mPosition);
+        expandItem(li.mMaskPosition);
 
         OnClickListener l=li.mL;
         if (l!=null&&l!=this)
