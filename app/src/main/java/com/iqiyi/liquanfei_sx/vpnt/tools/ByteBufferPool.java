@@ -45,7 +45,7 @@ public class ByteBufferPool {
     {
         if (mBuffers.peek()==null)
         {
-            mBuffers.add(ByteBuffer.allocate(mBufferCapability));
+            return ByteBuffer.allocate(mBufferCapability);
         }
 
         return mBuffers.poll();

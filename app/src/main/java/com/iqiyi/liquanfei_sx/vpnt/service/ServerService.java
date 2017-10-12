@@ -204,10 +204,16 @@ public class ServerService extends Service {
                             TCPStatus status=mSockets.get(tcp.getSourcePort());
                             if (status==null)
                             {
-                                mThreadPool.execute(new ConnectRunnable(tcp));
+                                mLocal.write(new TCPPacket.Builder(tcp)
+                                        .setDest(tcp.getIpInfo().getSourceIpB())
+                                        .setSource(tcp.getIpInfo().getDestIpB())
+                                        .build(tcp,null,true));
+                                //mThreadPool.execute(new ConnectRunnable(tcp));
+                                //new ConnectRunnable(tcp).run();
                             }else
                             {
                                 mThreadPool.execute(new ACKRunnable(tcp,status));
+                                //new ACKRunnable(tcp,status).run();
                             }
                         }
                     }
@@ -322,7 +328,7 @@ public class ServerService extends Service {
                     mListenerInfo.mOnPacketsAddListener.onPacketsAdd(mPackets.size()-1);
                 }
             }
-            mBuilder=new TCPPacket.Builder(this,packet)
+            mBuilder=new TCPPacket.Builder(packet)
                     .setDest(packet.getIpInfo().getSourceIpB())
                     .setSource(packet.getIpInfo().getDestIpB());
 
@@ -357,7 +363,7 @@ public class ServerService extends Service {
             mLocal.write(mBuilder.build(mPacketList.getLast(),null,true));
         }
 
-        public void ack(TCPPacket packet)
+        public synchronized void ack(TCPPacket packet)      //避免发送队列混乱
         {
             mPacketList.add(packet);
             if (mListenerInfo.mOnPacketAddListener!=null)
@@ -369,16 +375,20 @@ public class ServerService extends Service {
                 return ;
             }
 
+            //Log.e("write will add :",new String(packet.getRawData(),packet.mOffset+packet.mHeaderLength,packet.getDataLength()));
+
                 if (packet.getDataLength() != 0)
                 {
                     ByteBuffer []buffers=mBufferPool.get(packet.getRawData(), packet.mOffset + packet.mHeaderLength, packet.getDataLength());
-                    for (int i=0;i<buffers.length;i++){
-                        mReadySend.add(buffers[i]);
-                    }
+                        for (int i = 0; i < buffers.length; i++) {
+                            mReadySend.add(buffers[i]);
+                            //Log.e("write added :",new String(buffers[i].array(),0,buffers[i].limit()));
+                        }
 
                     //Log.e("xx", "add write"+mPacketList.mInfo.appName+":"+buffers.length+":"+packet.getDataLength());
 
                     prepareRegister.add(new Key(mChannel,SelectionKey.OP_WRITE,TCPStatus.this));
+                    mSelector.wakeup();
 //                    try {
 //                        registering=true;
 //                        mSelector.wakeup();
@@ -407,7 +417,7 @@ public class ServerService extends Service {
         public void ack(ByteBuffer data)
         {
             TCPPacket packet=mPacketList.getLast();
-            if (packet.getPort()==6666)
+            if (packet.getPort()!=666666)
                 try {
                     Log.e("6666","recv"+new String(packet.getRawData(),packet.mOffset+packet.mHeaderLength,packet.getDataLength(),"utf-8"));
                 } catch (UnsupportedEncodingException e) {
@@ -458,7 +468,8 @@ public class ServerService extends Service {
                         key.channel.register(mSelector,key.op,key.status);
                     }
 
-                    while (registering || mSelector.select() == 0) ;
+                    if (mSelector.select()<=0)
+                        continue;
                     Iterator<SelectionKey> keys = mSelector.selectedKeys().iterator();
                     while (keys.hasNext()) {
                         SelectionKey key = keys.next();
@@ -483,7 +494,7 @@ public class ServerService extends Service {
                             Log.e("xx", "key write"+status.mPacketList.mInfo.appName);
                             if (!status.mReadySend.isEmpty())
                             {
-                                while (!status.mReadySend.isEmpty()) {
+                                while (status.mReadySend.peek()!=null) {
                                     ByteBuffer buffer = status.mReadySend.peek();
                                     if (buffer==null)
                                         break;
@@ -511,6 +522,7 @@ public class ServerService extends Service {
                                 }
                             }else
                             {
+                                Log.e("xx", "key write no data"+status.mPacketList.mInfo.appName);
                                 key.interestOps((key.interestOps()|SelectionKey.OP_READ)&~SelectionKey.OP_WRITE);
                                 //channel.register(mSelector,SelectionKey.OP_READ,status);
                             }

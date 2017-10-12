@@ -130,12 +130,10 @@ public class TCPPacket extends Packet {
         static boolean idInit=true;
 
         ByteBuffer buffer=ByteBuffer.allocate(65535);
-        private ServerService.TCPStatus mStatus;
         private int sn=0;
 
-        public Builder(ServerService.TCPStatus status,TCPPacket initPacket)
+        public Builder(TCPPacket initPacket)
         {
-            mStatus=status;
             byte[] b=buffer.array();
             int port=initPacket.getSourcePort();
             int sport=initPacket.getPort();
@@ -274,7 +272,7 @@ public class TCPPacket extends Packet {
                 }
             }else if (fin)
             {
-                b[33] |= FIN;
+                b[33] |= RST;
                 sn++;
             }
 
