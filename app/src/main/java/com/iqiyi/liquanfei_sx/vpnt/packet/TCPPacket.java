@@ -119,6 +119,29 @@ public class TCPPacket extends Packet {
         return mSourcePort;
     }
 
+    public String getHeader()
+    {
+        StringBuilder sb=new StringBuilder();
+        sb.append(getSourcePort()).append(":").append(mDestPort)
+                .append(" ").append(sn).append(":").append(cksn)
+                .append(" ").append(mHeaderLength).append(" ");
+
+        if (syn)
+            sb.append("S");
+        if (ack)
+            sb.append("A");
+        if (psh)
+            sb.append("P");
+        if (fin)
+            sb.append("F");
+        if (rst)
+            sb.append("R");
+        sb.append(" ");
+        sb.append(getDataLength());
+
+        return sb.toString();
+    }
+
     public IPPacket getIpInfo()
     {
         return mIpInfo;
@@ -185,20 +208,20 @@ public class TCPPacket extends Packet {
 
         public IPPacket build(TCPPacket packet)
         {
-            return build(packet,null,false);
+            return build(packet,null,ACK);
         }
 
         public IPPacket build(ByteBuffer data)
         {
-            return build(null,data,false);
+            return build(null,data,ACK);
         }
 
         public IPPacket build(TCPPacket packet,ByteBuffer dataBuffer)
         {
-            return build(packet, dataBuffer,false);
+            return build(packet, dataBuffer,ACK);
         }
 
-        public IPPacket build(TCPPacket packet,ByteBuffer dataBuffer,boolean fin)
+        public IPPacket build(TCPPacket packet,ByteBuffer dataBuffer,byte type)
         {
             byte[] data;
             if (dataBuffer==null) {
@@ -246,7 +269,8 @@ public class TCPPacket extends Packet {
 
             /**tcp*/
             int ack=0;
-            if (packet!=null && !fin) {
+            b[33]=ACK;
+            if (type==ACK) {
                 ack = packet.sn + packet.dataLen;
                 if (packet.syn) ack++;
                 if (packet.fin) ack++;
@@ -263,21 +287,24 @@ public class TCPPacket extends Packet {
                 b[27] = (byte) (sn << 24 >> 24);               //sn
                 sn += dataBuffer.limit();
 
-            b[33]=ACK;
-            if (packet!=null && !fin)
+            if (type==ACK)
             {
                 if (packet.syn&&!packet.ack) {
                     b[33] |= SYN;
                     sn++;
                 }
-            }else if (fin)
+            }else if (type==FIN)
+            {
+                b[33] |= FIN;
+                sn++;
+            }else if (type==RST)
             {
                 b[33] |= RST;
                 sn++;
             }
 
             if (packet!=null)
-            for (int i=40;i<packet.mHeaderLength+packet.mOffset;i++)
+            for (int i=packet.mOffset+20;i<packet.mHeaderLength+packet.mOffset;i++)
             {
                 b[i]=packet.getRawData()[i];
             }

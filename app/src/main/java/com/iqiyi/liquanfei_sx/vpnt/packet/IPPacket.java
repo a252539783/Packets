@@ -1,5 +1,7 @@
 package com.iqiyi.liquanfei_sx.vpnt.packet;
 
+import android.util.Log;
+
 /**
  * Created by liquanfei_sx on 2017/8/15.
  */
@@ -39,6 +41,7 @@ public class IPPacket extends Packet{
         if (mProtocol==6)
         {
             mData=new TCPPacket(data,mHeaderLength,this);
+            Log.e("xx","ip header l  "+mHeaderLength);
         }else
         {
             mData=new Packet(data,mHeaderLength);
@@ -86,6 +89,16 @@ public class IPPacket extends Packet{
                 .append(mSourceIp[1]&0xff).append('.')
                 .append(mSourceIp[2]&0xff).append('.')
                 .append(mSourceIp[3]&0xff).toString();
+    }
+
+    public String getHeader()
+    {
+        StringBuilder sb= new StringBuilder().append(getSourceIp()).append(":")
+                .append(getDestIp());
+        if (mData instanceof TCPPacket)
+            sb.append(((TCPPacket) mData).getHeader());
+
+        return sb.toString();
     }
 
     public Packet getData()

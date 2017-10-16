@@ -47,11 +47,13 @@ public class PacketsAdapter extends ExpandableRecyclerView.Adapter<PacketsAdapte
 
     @Override
     public void onBindViewHolder(PacketsAdapter.H1 holder, int position) {
+        if (position==mPacketLists.size())
+            return ;
         ServerService.PacketList packetList= mPacketLists.get(position);
         AppPortList.AppInfo info=packetList.info();
         holder.icon.setImageDrawable(info.icon);
         holder.name.setText(info.appName+":"+info.info.applicationInfo.packageName);
-        holder.ip.setText(packetList.ip()+":"+packetList.port());
+        holder.ip.setText(packetList.ip()+":"+packetList.mSPort);
     }
 
     @Override
@@ -111,7 +113,7 @@ public class PacketsAdapter extends ExpandableRecyclerView.Adapter<PacketsAdapte
         @Override
         public void onBindViewHolder(H2 holder, int position) {
             TCPPacket packet=mPacketLists.get(mPosition).get(position);
-            holder.text.setText(new String(packet.getRawData(),packet.mOffset+packet.mHeaderLength,packet.getDataLength()));
+            holder.text.setText(mPacketLists.get(mPosition).get(position).getIpInfo().getHeader());
         }
 
         @Override

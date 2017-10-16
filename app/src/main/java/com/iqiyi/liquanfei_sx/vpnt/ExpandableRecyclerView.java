@@ -313,7 +313,7 @@ public class ExpandableRecyclerView extends RecyclerView implements View.OnClick
                     ListenerInfo li=mChildClickListeners.get(v);
                     if (li==null)
                     {
-                        mChildClickListeners.put(v,new ListenerInfo(l,maskPosition,position));
+                        mChildClickListeners.put(v,new ListenerInfo(l,position,maskPosition));
                         v.setOnClickListener(ExpandableRecyclerView.this);
                     }else
                     {
