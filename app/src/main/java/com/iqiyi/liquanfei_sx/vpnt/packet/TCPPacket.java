@@ -42,12 +42,19 @@ public class TCPPacket extends Packet {
 
         dataLen=data.length-mHeaderLength-offset;
 
-        urg = ((data[offset + 13]&0xff) << 2 >> 7 )== 1;
-        ack = ((data[offset + 13]&0xff) << 3 >> 7) == 1;
-        psh = ((data[offset + 13]&0xff) << 4 >> 7) == 1;
-        rst = ((data[offset + 13]&0xff) << 5 >> 7) == 1;
-        syn = ((data[offset + 13]&0xff) << 6 >> 7) == 1;
-        fin = ((data[offset + 13]&0xff) << 7 >> 7) == 1;
+        urg = (((data[offset + 13]&0xff) << 2) >> 7 )== 1;
+        ack = (((data[offset + 13]&0xff) << 3) >> 7) == 1;
+        psh = (((data[offset + 13]&0xff) << 4) >> 7) == 1;
+        rst = (((data[offset + 13]&0xff) << 5) >> 7) == 1;
+        syn = (((data[offset + 13]&0xff) << 6) >> 7) == 1;
+        fin = (((data[offset + 13]&0xff) << 7) >> 7) == 1;
+//        urg=(data[offset+13]&URG)!=0;
+//        ack=(data[offset+13]&ACK)!=0;
+//        psh=(data[offset+13]&PSH)!=0;
+//        rst=(data[offset+13]&RST)!=0;
+//        fin=(data[offset+13]&FIN)!=0;
+//        syn=(data[offset+13]&SYN)!=0;
+
 
         mWindowSize=((data[offset+14]&0xff)<<8)|(data[offset+15]&0xff);
 

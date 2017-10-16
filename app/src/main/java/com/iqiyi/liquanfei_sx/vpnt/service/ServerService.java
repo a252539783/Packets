@@ -234,7 +234,7 @@ public class ServerService extends Service {
             mSockets.remove(status.mPacketList.mSPort);
         }
 
-        TCPStatus connect(Packet packet)
+        synchronized TCPStatus connect(Packet packet)
         {
             if (!(packet instanceof TCPPacket))
                 return null;
@@ -371,13 +371,14 @@ public class ServerService extends Service {
             //ack(packet);
         }
 
-        public void close()
+        void close()
         {
             try {
                 fin();
                 if (closed)
                 {
                     mChannel.close();
+                    Log.e("xx","local close");
                     mTransmitThread.remove(this);
                 }
                 closed=true;
@@ -386,7 +387,28 @@ public class ServerService extends Service {
             }
         }
 
-        public void fin()
+        void reset()
+        {
+            try {
+                rst();
+                if (closed)
+                {
+                    mChannel.close();
+                    Log.e("xx","local reset");
+                    mTransmitThread.remove(this);
+                }
+                closed=true;
+            } catch (IOException e) {
+                e.printStackTrace();
+            }
+        }
+
+        void fin()
+        {
+            mWriteThread.write(mBuilder.build(mPacketList.getLast(),null,TCPPacket.FIN));
+        }
+
+        void rst()
         {
             mWriteThread.write(mBuilder.build(mPacketList.getLast(),null,TCPPacket.RST));
         }
@@ -398,7 +420,7 @@ public class ServerService extends Service {
             {
                 mListenerInfo.mOnPacketAddListener.onPacketAdd(mPosition,mPacketList.size()-1);
             }
-            if (!packet.syn&&packet.getDataLength()==0 && !packet.fin)
+            if (!packet.syn&&packet.getDataLength()==0 && !packet.fin&&!packet.rst)
             {
                 return ;
             }
@@ -434,17 +456,37 @@ public class ServerService extends Service {
 //                    }
                 }
 
-                if (packet.fin||packet.rst){
+                if (packet.fin){
                     if (closed)
                     {
                         try {
                             mChannel.close();
+                            Log.e("xx","local close");
                         } catch (IOException e) {
                             e.printStackTrace();
                         }
                         mTransmitThread.remove(this);
-                    }else
-                        closed=true;
+                    }else {
+                        closed = true;
+                        close();
+                    }
+                }
+
+                if (packet.rst)
+                {
+                    if (closed)
+                    {
+                        try {
+                            mChannel.close();
+                            Log.e("xx","local reset");
+                        } catch (IOException e) {
+                            e.printStackTrace();
+                        }
+                        mTransmitThread.remove(this);
+                    }else {
+                        closed = true;
+                        reset();
+                    }
                 }
         }
 
@@ -520,86 +562,89 @@ public class ServerService extends Service {
                         keys.remove();
                         SocketChannel channel = (SocketChannel) key.channel();
                         TCPStatus status = (TCPStatus) key.attachment();
-                        if (key.isConnectable()) {
-                            //Log.e("xx", "key connect");
-                            if (channel.isConnectionPending()) {
-                                if (channel.finishConnect())
-                                {
-                                    //prepareRegister.add(new Key(channel,SelectionKey.OP_READ,status));
-                                    //channel.register(mSelector,SelectionKey.OP_READ,status);
-                                    key.interestOps(key.interestOps()|SelectionKey.OP_READ);
-                                    status.ack(status.mPacketList.get(0));
-                                    //prepareRegister.add(new Key(channel,SelectionKey.OP_CONNECT,status));
-                                    //mSelector.wakeup();
-                                    if (status.mPacketList.mInfo!=null)
-                                    Log.e("xx","real connect:"+status.mPacketList.mInfo.appName+":"+status.mPacketList.port()+":"+status.mPacketList.ip());
+                        try{
+                            if (key.isConnectable()) {
+                                //Log.e("xx", "key connect");
+                                if (channel.isConnectionPending()) {
+                                    if (channel.finishConnect())
+                                    {
+                                        //prepareRegister.add(new Key(channel,SelectionKey.OP_READ,status));
+                                        //channel.register(mSelector,SelectionKey.OP_READ,status);
+                                        key.interestOps(key.interestOps()|SelectionKey.OP_READ);
+                                        status.ack(status.mPacketList.get(0));
+                                        //prepareRegister.add(new Key(channel,SelectionKey.OP_CONNECT,status));
+                                        //mSelector.wakeup();
+                                        if (status.mPacketList.mInfo!=null)
+                                            Log.e("xx","real connect:"+status.mPacketList.mInfo.appName+":"+status.mPacketList.port()+":"+status.mPacketList.ip());
+                                    }
                                 }
                             }
-                        }
-                        if (key.isWritable()) {
-                            if (status.mPacketList.mInfo!=null)
-                            Log.e("xx", "key write"+status.mPacketList.mInfo.appName);
-                            if (!status.mReadySend.isEmpty())
-                            {
-                                while (status.mReadySend.peek()!=null) {
-                                    SendEntry se = status.mReadySend.peek();
-                                    ByteBuffer buffer=se.mReadySend.peek();
-                                    if (buffer==null) {
-                                        mWriteThread.write(se.packet);
-                                        status.mReadySend.poll();
-                                        continue;
-                                    }
-
-                                    if (buffer.position() == buffer.limit()) {
-                                        se.mReadySend.poll();
-                                        mBufferPool.recycle(buffer);
-                                        continue;
-                                    }
-
-                                    try
-                                    {
-                                        int start=buffer.position();
-                                        channel.write(buffer);
-                                        if (true)
-                                        {
-                                            Log.e("written :",new String(buffer.array(),start,buffer.position()));
+                            if (key.isWritable()) {
+                                if (status.mPacketList.mInfo!=null)
+                                    Log.e("xx", "key write"+status.mPacketList.mInfo.appName);
+                                if (!status.mReadySend.isEmpty())
+                                {
+                                    while (status.mReadySend.peek()!=null) {
+                                        SendEntry se = status.mReadySend.peek();
+                                        ByteBuffer buffer=se.mReadySend.peek();
+                                        if (buffer==null) {
+                                            mWriteThread.write(se.packet);
+                                            status.mReadySend.poll();
+                                            continue;
                                         }
-                                    }catch (Exception e)
-                                    {
-                                        Log.e("xx","when write:"+e.toString());
-                                        key.cancel();
+
+                                        if (buffer.position() == buffer.limit()) {
+                                            se.mReadySend.poll();
+                                            mBufferPool.recycle(buffer);
+                                            continue;
+                                        }
+
+                                        try
+                                        {
+                                            int start=buffer.position();
+                                            channel.write(buffer);
+                                            if (true)
+                                            {
+                                                Log.e("written :",new String(buffer.array(),start,buffer.position()));
+                                            }
+                                        }catch (Exception e)
+                                        {
+                                            Log.e("xx","when write:"+e.toString());
+                                            key.cancel();
+                                        }
+                                        break;
                                     }
-                                    break;
-                                }
-                            }else
-                            {
-                                //Log.e("xx", "key write no data"+status.mPacketList.mInfo.appName);
-                                key.interestOps((key.interestOps()|SelectionKey.OP_READ)&~SelectionKey.OP_WRITE);
-                                //channel.register(mSelector,SelectionKey.OP_READ,status);
-                            }
-                        }
-                        if (key.isValid()&&key.isReadable()) {
-                            //Log.e("xx", "key read"+((IPPacket)status.mPacketList.getLast()).getDestIp());
-                            mBuffer.clear();
-                            try
-                            {
-                                if (status.closed||channel.read(mBuffer)<0)
+                                }else
                                 {
-                                    status.close();
-                                    key.cancel();
-                                }else {
-                                    mBuffer.flip();
-                                    status.ack(mBuffer);
-                                    key.interestOps(key.interestOps()|SelectionKey.OP_READ);
+                                    //Log.e("xx", "key write no data"+status.mPacketList.mInfo.appName);
+                                    key.interestOps((key.interestOps()|SelectionKey.OP_READ)&~SelectionKey.OP_WRITE);
                                     //channel.register(mSelector,SelectionKey.OP_READ,status);
                                 }
-                            }catch (Exception e)
-                            {
-                                Log.e("xx","when write:"+e.toString());
-                                key.cancel();
                             }
-                        }
-
+                            if (key.isValid()&&key.isReadable()) {
+                                //Log.e("xx", "key read"+((IPPacket)status.mPacketList.getLast()).getDestIp());
+                                mBuffer.clear();
+                                try
+                                {
+                                    if (status.closed||channel.read(mBuffer)<0)
+                                    {
+                                        Log.e("xx","closed by remote");
+                                        status.reset();
+                                        key.cancel();
+                                    }else {
+                                        mBuffer.flip();
+                                        status.ack(mBuffer);
+                                        key.interestOps(key.interestOps()|SelectionKey.OP_READ);
+                                        //channel.register(mSelector,SelectionKey.OP_READ,status);
+                                    }
+                                }catch (Exception e)
+                                {
+                                    Log.e("xx","when write:"+e.toString());
+                                    key.cancel();
+                                }
+                            }
+                        }catch (CancelledKeyException e)
+                        {}
                     }
                 }
 
