@@ -195,7 +195,7 @@ public class ServerService extends Service {
                         mThreadPool.execute(new ConnectRunnable(tcp));
                     }else
                     {
-                        if (false||tcp.fin)
+                        if (false&&tcp.fin)
                         {
                             Log.e("xx","transmit tcp fin:");
                                 TCPStatus status=mSockets.get(tcp.getSourcePort());
@@ -405,29 +405,39 @@ public class ServerService extends Service {
 
         void fin()
         {
-            mWriteThread.write(mBuilder.build(mPacketList.getLast(),null,TCPPacket.FIN));
+            mPacketList.add((TCPPacket) mBuilder.build(mPacketList.getLast(),null,TCPPacket.FIN).getData());
+            mWriteThread.write(mPacketList.getLast());
         }
 
         void rst()
         {
-            mWriteThread.write(mBuilder.build(mPacketList.getLast(),null,TCPPacket.RST));
+            mPacketList.add((TCPPacket) mBuilder.build(mPacketList.getLast(),null,TCPPacket.RST).getData());
+            mWriteThread.write(mPacketList.getLast());
         }
 
         public synchronized void ack(TCPPacket packet)      //避免发送队列混乱
         {
+            if (packet.syn)
+            {
+                mWriteThread.write(mBuilder.build(packet));
+                return ;
+            }
+
             mPacketList.add(packet);
             if (mListenerInfo.mOnPacketAddListener!=null)
             {
                 mListenerInfo.mOnPacketAddListener.onPacketAdd(mPosition,mPacketList.size()-1);
             }
+
+            if (packet.fin||packet.rst)
+            {
+                mPacketList.add((TCPPacket) mBuilder.build(packet).getData());
+                mWriteThread.write(mPacketList.getLast());
+            }
+
             if (!packet.syn&&packet.getDataLength()==0 && !packet.fin&&!packet.rst)
             {
                 return ;
-            }
-
-            if (packet.syn)
-            {
-                mWriteThread.write(mBuilder.build(packet));
             }
 
             //Log.e("write will add :",new String(packet.getRawData(),packet.mOffset+packet.mHeaderLength,packet.getDataLength()));
@@ -605,7 +615,7 @@ public class ServerService extends Service {
                                             channel.write(buffer);
                                             if (true)
                                             {
-                                                Log.e("written :",new String(buffer.array(),start,buffer.position()));
+                                                //Log.e("written :",new String(buffer.array(),start,buffer.position()));
                                             }
                                         }catch (Exception e)
                                         {
