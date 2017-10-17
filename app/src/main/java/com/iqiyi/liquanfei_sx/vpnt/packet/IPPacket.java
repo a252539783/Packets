@@ -52,8 +52,8 @@ public class IPPacket extends Packet{
         {
             checksum+=(((data[i*2]&0xff)<<8|(data[i*2+1]&0xff)));
         }
-        checksum=(checksum>>16)+checksum&0xffff;
-        checksum=(checksum>>16)+checksum&0xffff;
+        checksum=(checksum>>>16)+checksum&0xffff;
+        checksum=(checksum>>>16)+checksum&0xffff;
         checksum=(~checksum)&0xffff;
 
 

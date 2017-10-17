@@ -38,16 +38,16 @@ public class TCPPacket extends Packet {
         sn=((data[offset+4]&0xff)<<24|(data[offset+5]&0xff)<<16|(data[offset+6]&0xff)<<8|data[offset+7]&0xff)&0xffffffff;
         cksn=((data[offset+8]&0xff)<<24|(data[offset+9]&0xff)<<16|(data[offset+10]&0xff)<<8|data[offset+11]&0xff)&0xffffffff;
 
-        mHeaderLength=(((data[offset+12]&0xff)>>4))*4;
+        mHeaderLength=(((data[offset+12]&0xff)>>>4))*4;
 
         dataLen=data.length-mHeaderLength-offset;
 
-        urg = (((data[offset + 13]&0xff) << 2) >> 7 )== 1;
-        ack = (((data[offset + 13]&0xff) << 3) >> 7) == 1;
-        psh = (((data[offset + 13]&0xff) << 4) >> 7) == 1;
-        rst = (((data[offset + 13]&0xff) << 5) >> 7) == 1;
-        syn = (((data[offset + 13]&0xff) << 6) >> 7) == 1;
-        fin = (((data[offset + 13]&0xff) << 7) >> 7) == 1;
+        urg = (((data[offset + 13]&0xff) << 26) >>> 31 )== 1;
+        ack = (((data[offset + 13]&0xff) << 27) >>> 31) == 1;
+        psh = (((data[offset + 13]&0xff) << 28) >>> 31) == 1;
+        rst = (((data[offset + 13]&0xff) << 29) >>> 31) == 1;
+        syn = (((data[offset + 13]&0xff) << 30) >>> 31) == 1;
+        fin = (((data[offset + 13]&0xff) << 31) >>> 31) == 1;
 //        urg=(data[offset+13]&URG)!=0;
 //        ack=(data[offset+13]&ACK)!=0;
 //        psh=(data[offset+13]&PSH)!=0;
@@ -58,23 +58,23 @@ public class TCPPacket extends Packet {
 
         mWindowSize=((data[offset+14]&0xff)<<8)|(data[offset+15]&0xff);
 
-        int checksum=0;
-        for (int i=0;i<(data.length-offset)/2;i++)
-        {
-            checksum+=(((data[offset + i*2]&0xff)<<8|(data[offset + i*2+1]&0xff)));
-        }
-        for (int i=6;i<10;i++)
-        {
-            checksum+=(((data[ i*2]&0xff)<<8|(data[ i*2+1]&0xff)));
-        }
-        checksum+=0x06+mHeaderLength+dataLen;
-        if (data.length%2!=0)
-        {
-            checksum+=((data[data.length-1]&0xff)<<8);
-        }
-        while (checksum>>16!=0)
-            checksum=(checksum>>16)+checksum&0xffff;
-        checksum=(~checksum)&0xffff;
+//        int checksum=0;
+//        for (int i=0;i<(data.length-offset)/2;i++)
+//        {
+//            checksum+=(((data[offset + i*2]&0xff)<<8|(data[offset + i*2+1]&0xff)));
+//        }
+//        for (int i=6;i<10;i++)
+//        {
+//            checksum+=(((data[ i*2]&0xff)<<8|(data[ i*2+1]&0xff)));
+//        }
+//        checksum+=0x06+mHeaderLength+dataLen;
+//        if (data.length%2!=0)
+//        {
+//            checksum+=((data[data.length-1]&0xff)<<8);
+//        }
+//        while (checksum>>16!=0)
+//            checksum=(checksum>>16)+checksum&0xffff;
+//        checksum=(~checksum)&0xffff;
 
 //        if (getDestIp().equals("123.207.152.184")||getSourceIp().equals("123.207.152.184"))
 //        {
@@ -143,6 +143,7 @@ public class TCPPacket extends Packet {
             sb.append("F");
         if (rst)
             sb.append("R");
+        sb.append(mData[mOffset+13]);
         sb.append(" ");
         sb.append(getDataLength());
 
@@ -167,10 +168,10 @@ public class TCPPacket extends Packet {
             byte[] b=buffer.array();
             int port=initPacket.getSourcePort();
             int sport=initPacket.getPort();
-            b[20]=(byte)(sport<<16>>24);
-            b[21]=(byte)(sport<<24>>24);
-            b[22]=(byte)(port<<16>>24);
-            b[23]=(byte)(port<<24>>24);         //source port and dest port
+            b[20]=(byte)(sport<<16>>>24);
+            b[21]=(byte)(sport<<24>>>24);
+            b[22]=(byte)(port<<16>>>24);
+            b[23]=(byte)(port<<24>>>24);         //source port and dest port
 
             b[0]=0x45;
             b[1]=0x00;
@@ -183,7 +184,7 @@ public class TCPPacket extends Packet {
                 b[i]=0;
 
             b[34]=(byte)(65535>>8);
-            b[35]=(byte)(65535<<24>>24);
+            b[35]=(byte)(65535<<24>>>24);
 
             if (!idInit) {
                 ident[0] = initPacket.getRawData()[4];
@@ -261,7 +262,7 @@ public class TCPPacket extends Packet {
             b[32]=(byte)((packet.mHeaderLength/4)<<4);
 
             b[2]=(byte)(len>>8);
-            b[3]=(byte)(len<<24>>24);       //total length
+            b[3]=(byte)(len<<24>>>24);       //total length
 
             int checksum=0;
             b[10]=b[11]=0;
@@ -269,44 +270,44 @@ public class TCPPacket extends Packet {
             {
                 checksum+=(((b[i*2]&0xff)<<8|(b[i*2+1]&0xff)));
             }
-            checksum=(checksum>>16)+checksum&0xffff;
+            checksum=(checksum>>>16)+checksum&0xffff;
             checksum=(~checksum)&0xffff;
-            b[10]=(byte)(checksum>>8);
-            b[11]=(byte)(checksum<<24>>24);             //checksum
+            b[10]=(byte)(checksum>>>8);
+            b[11]=(byte)(checksum<<24>>>24);             //checksum
 
             /**tcp*/
             int ack=0;
-            b[33]=ACK;
             if (type==ACK) {
                 ack = packet.sn + packet.dataLen;
                 if (packet.syn) ack++;
                 if (packet.fin) ack++;
                 //Log.e("xx","build ack sn"+ack);
             }
-            b[28] = (byte) (ack >> 24);
-            b[29] = (byte) (ack << 8 >> 24);
-            b[30] = (byte) (ack << 16 >> 24);
-            b[31] = (byte) (ack << 24 >> 24);                  //ack sn
+            b[28] = (byte) (ack >>> 24);
+            b[29] = (byte) (ack << 8 >>> 24);
+            b[30] = (byte) (ack << 16 >>> 24);
+            b[31] = (byte) (ack << 24 >>> 24);                  //ack sn
 
-                b[24] = (byte) (sn >> 24);
-                b[25] = (byte) (sn << 8 >> 24);
-                b[26] = (byte) (sn << 16 >> 24);
-                b[27] = (byte) (sn << 24 >> 24);               //sn
+                b[24] = (byte) (sn >>> 24);
+                b[25] = (byte) (sn << 8 >>> 24);
+                b[26] = (byte) (sn << 16 >>> 24);
+                b[27] = (byte) (sn << 24 >>> 24);               //sn
                 sn += dataBuffer.limit();
 
+            b[33]=ACK;
             if (type==ACK)
             {
                 if (packet.syn&&!packet.ack) {
-                    b[33] |= SYN;
+                    b[33] = (byte)(b[33]|SYN);
                     sn++;
                 }
             }else if (type==FIN)
             {
-                b[33] |= FIN;
+                b[33] = (byte)(b[33]|FIN);
                 sn++;
             }else if (type==RST)
             {
-                b[33] |= RST;
+                b[33] = (byte)(b[33]|RST);
                 sn++;
             }
 
@@ -337,10 +338,10 @@ public class TCPPacket extends Packet {
 
             checksum+=0x06+tcpHeadLen+dataBuffer.limit();
             while (checksum>>16!=0)
-                checksum=(checksum>>16)+checksum&0xffff;
+                checksum=(checksum>>>16)+checksum&0xffff;
             checksum=(~checksum)&0xffff;
-            b[36]=(byte)(checksum<<16>>24);
-            b[37]=(byte)(checksum<<24>>24);     //checksum
+            b[36]=(byte)(checksum<<16>>>24);
+            b[37]=(byte)(checksum<<24>>>24);     //checksum
 
             checksum=0;
             for (int i=10;i<(tcpHeadLen+ipHeadLen)/2;i++)
@@ -353,7 +354,7 @@ public class TCPPacket extends Packet {
             }
             checksum+=0x06+tcpHeadLen+dataBuffer.limit();
             while (checksum>>16!=0)
-                checksum=(checksum>>16)+checksum&0xffff;
+                checksum=(checksum>>>16)+checksum&0xffff;
             checksum=(~checksum)&0xffff;
 //            Log.e("xx","build cal checksum:"+checksum);
 
@@ -368,6 +369,10 @@ public class TCPPacket extends Packet {
             }
 
 
+            if (packet.syn)
+            {
+                Log.e("xx","b33 :"+b[33]);
+            }
             return new IPPacket(src);
         }
 
