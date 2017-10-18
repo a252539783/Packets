@@ -42,22 +42,22 @@ import java.util.concurrent.ThreadPoolExecutor;
 
 public class ServerService extends Service {
 
-    private MB mB=new MB();
+    private MB mB = new MB();
     private static AppPortList mPortList;
-    private ClientService mLocal=null;
-    private Selector mSelector= null;
-    Queue<Key> prepareRegister=new LinkedList<>();
-    private TransmitThread mTransmitThread=null;
-    private WriteThread mWriteThread=null;
-    private ReadThread mReadThread=null;
+    private ClientService mLocal = null;
+    private Selector mSelector = null;
+    Queue<Key> prepareRegister = new LinkedList<>();
+    private TransmitThread mTransmitThread = null;
+    private WriteThread mWriteThread = null;
+    private ReadThread mReadThread = null;
 
-    private ListenerInfo mListenerInfo=new ListenerInfo();
+    private ListenerInfo mListenerInfo = new ListenerInfo();
 
-    public static ArrayList<PacketList> mPackets=new ArrayList<>();
+    public static ArrayList<PacketList> mPackets = new ArrayList<>();
 
-    private ByteBufferPool mBufferPool=ByteBufferPool.getDefault();
+    private ByteBufferPool mBufferPool = ByteBufferPool.getDefault();
 
-    private boolean registering=false;
+    private boolean registering = false;
 
     @Override
     public void onCreate() {
@@ -66,10 +66,10 @@ public class ServerService extends Service {
 
     @Override
     public int onStartCommand(Intent intent, int flags, int startId) {
-        Log.e("xx","server started");
-        mWriteThread=new WriteThread();
-        mTransmitThread=new TransmitThread();
-        mReadThread=new ReadThread();
+        Log.e("xx", "server started");
+        mWriteThread = new WriteThread();
+        mTransmitThread = new TransmitThread();
+        mReadThread = new ReadThread();
         return super.onStartCommand(intent, flags, startId);
     }
 
@@ -79,32 +79,30 @@ public class ServerService extends Service {
         bindService(new Intent(ServerService.this, ClientService.class), new ServiceConnection() {
             @Override
             public void onServiceConnected(ComponentName name, IBinder service) {
-                mLocal=((ClientService.MB)service).get();
-                Log.e("xx","bind to client");
+                mLocal = ((ClientService.MB) service).get();
+                Log.e("xx", "bind to client");
             }
 
             @Override
             public void onServiceDisconnected(ComponentName name) {
 
             }
-        },BIND_AUTO_CREATE);
+        }, BIND_AUTO_CREATE);
         return mB;
     }
 
-    public void startDaemon()
-    {
-        new Thread()
-        {
+    public void startDaemon() {
+        new Thread() {
             @Override
             public void run() {
-                mPortList=AppPortList.get(ServerService.this);
+                mPortList = AppPortList.get(ServerService.this);
                 try {
-                    mSelector=Selector.open();
+                    mSelector = Selector.open();
                 } catch (IOException e) {
                     e.printStackTrace();
                 }
                 super.run();
-                while (mLocal==null);
+                while (mLocal == null) ;
                 mReadThread.start();
                 mTransmitThread.start();
                 mWriteThread.start();
@@ -113,23 +111,19 @@ public class ServerService extends Service {
 
     }
 
-    public void stopDaemon()
-    {
+    public void stopDaemon() {
         mTransmitThread.pause();
     }
 
-    void setOnPacketAddListener(ClientService.OnPacketAddListener l)
-    {
-        mListenerInfo.mOnPacketAddListener=l;
+    void setOnPacketAddListener(ClientService.OnPacketAddListener l) {
+        mListenerInfo.mOnPacketAddListener = l;
     }
 
-    void setOnPacketsAddListener(ClientService.OnPacketsAddListener l)
-    {
-        mListenerInfo.mOnPacketsAddListener=l;
+    void setOnPacketsAddListener(ClientService.OnPacketsAddListener l) {
+        mListenerInfo.mOnPacketsAddListener = l;
     }
 
-    public boolean transmit(Packet packet)
-    {
+    public boolean transmit(Packet packet) {
         //Log.e("xx","add");
         mTransmitThread.mPackets.add(packet);
         if (!mTransmitThread.mPause)
@@ -138,104 +132,91 @@ public class ServerService extends Service {
         return true;
     }
 
-    public void setLocal(ClientService local)
-    {
-        mLocal=local;
+    public void setLocal(ClientService local) {
+        mLocal = local;
     }
 
-    class MB extends Binder
-    {
-        ServerService get()
-        {
+    class MB extends Binder {
+        ServerService get() {
             return ServerService.this;
         }
     }
 
-    private class TransmitThread extends Thread
-    {
+    private class TransmitThread extends Thread {
         LinkedBlockingQueue<Packet> mPackets;
         SparseArray<TCPStatus> mSockets;
         private ExecutorService mThreadPool;
 
-        boolean mPause=true;
+        boolean mPause = true;
 
-        TransmitThread()
-        {
-            mSockets=new SparseArray<>();
-            mPackets=new LinkedBlockingQueue<>();
-            mThreadPool= Executors.newCachedThreadPool();
+        TransmitThread() {
+            mSockets = new SparseArray<>();
+            mPackets = new LinkedBlockingQueue<>();
+            mThreadPool = Executors.newCachedThreadPool();
         }
 
         @Override
         public void run() {
             super.run();
-            mPause=false;
-            Log.e("xx","daemon started");
-            while (!mPause||!mPackets.isEmpty())
-            {
-                Packet packet=mPackets.poll();
+            mPause = false;
+            Log.e("xx", "daemon started");
+            while (!mPause || !mPackets.isEmpty()) {
+                Packet packet = mPackets.poll();
                 doTransmit(packet);
             }
-            Log.e("xx","daemon ended");
+            Log.e("xx", "daemon ended");
         }
 
-        private void doTransmit(Packet packet)
-        {
-            if (packet instanceof IPPacket)
-            {
-                IPPacket ip=(IPPacket)packet;
+        private void doTransmit(Packet packet) {
+            if (packet instanceof IPPacket) {
+                IPPacket ip = (IPPacket) packet;
 
-                if (ip.getData() instanceof TCPPacket)
-                {
-                    Log.e("xx","transmit tcp packet:");
-                    TCPPacket tcp=(TCPPacket) ip.getData();
-                    if (tcp.syn)
-                    {
-                        Log.e("xx","transmit tcp sync:");
+                if (ip.getData() instanceof TCPPacket) {
+                    Log.e("xx", "transmit tcp packet:");
+                    TCPPacket tcp = (TCPPacket) ip.getData();
+                    if (tcp.syn) {
+                        Log.e("xx", "transmit tcp sync:");
                         mThreadPool.execute(new ConnectRunnable(tcp));
-                    }else
-                    {
-                        if (false&&tcp.fin)
-                        {
-                            Log.e("xx","transmit tcp fin:");
-                                TCPStatus status=mSockets.get(tcp.getSourcePort());
-                                if (status!=null)
-                                {
-                                    status.close();
-                                    mSockets.remove(tcp.getSourcePort());
-                                }
-                        }else
-                        {
-                            TCPStatus status=mSockets.get(tcp.getSourcePort());
-                            if (status==null)
-                            {
+                    } else {
+                        if (false && tcp.fin) {
+                            Log.e("xx", "transmit tcp fin:");
+                            TCPStatus status = mSockets.get(tcp.getSourcePort());
+                            if (status != null) {
+                                status.close();
+                                mSockets.remove(tcp.getSourcePort());
+                            }
+                        } else {
+                            TCPStatus status = mSockets.get(tcp.getSourcePort());
+                            if (status == null) {
                                 mWriteThread.write(new TCPPacket.Builder(tcp)
                                         .setDest(tcp.getIpInfo().getSourceIpB())
                                         .setSource(tcp.getIpInfo().getDestIpB())
-                                        .build(tcp,null,TCPPacket.RST));
+                                        .build(tcp, null, TCPPacket.RST));
                                 //mThreadPool.execute(new ConnectRunnable(tcp));
                                 //new ConnectRunnable(tcp).run();
-                            }else
-                            {
-                                mThreadPool.execute(new ACKRunnable(tcp,status));
+                            } else {
+                                /**由于线程分配问题，此处如果直接简单的提交任务将有可能无法保持想要的任务顺序
+                                 * 所以在任务提交之前先把待处理的任务放入转发队列，在实际转发的过程中判断任务是否处理完毕即可
+                                 */
+                                SendEntry se = new SendEntry(tcp);
+                                status.mReadySend.add(se);
+                                mThreadPool.execute(new ACKRunnable(se, status));
                                 //new ACKRunnable(tcp,status).run();
                             }
                         }
                     }
-                    Log.e("xx","thread pool size:"+((ThreadPoolExecutor)mThreadPool).getPoolSize());
+                    Log.e("xx", "thread pool size:" + ((ThreadPoolExecutor) mThreadPool).getPoolSize());
                 }
             }
 
 
         }
 
-        public void remove(TCPStatus status)
-        {
+        public void remove(TCPStatus status) {
             mSockets.remove(status.mPacketList.mSPort);
         }
 
-        synchronized TCPStatus connect(Packet packet)
-        {
+        synchronized TCPStatus connect(Packet packet) {
             if (!(packet instanceof TCPPacket))
                 return null;
 
@@ -246,18 +227,16 @@ public class ServerService extends Service {
                 return null;
             }
 
-            mSockets.put(((TCPPacket) packet).getSourcePort(),status);
+            mSockets.put(((TCPPacket) packet).getSourcePort(), status);
             return status;
         }
 
-        void pause()
-        {
-            mPause=true;
+        void pause() {
+            mPause = true;
         }
 
 
-        class ConnectRunnable implements Runnable
-        {
+        class ConnectRunnable implements Runnable {
             private TCPPacket packet;
 
             ConnectRunnable(TCPPacket packet) {
@@ -266,19 +245,18 @@ public class ServerService extends Service {
 
             @Override
             public void run() {
-                if (connect(packet)!=null)   //connect successfully and send sync-ack
+                if (connect(packet) != null)   //connect successfully and send sync-ack
                 {
                     //Log.e("xx","connected successfully");
                 }
             }
         }
 
-        class ACKRunnable implements Runnable
-        {
-            private TCPPacket packet;
+        class ACKRunnable implements Runnable {
+            private SendEntry packet;
             private TCPStatus status;
 
-            ACKRunnable(TCPPacket packet,TCPStatus status) {
+            ACKRunnable(SendEntry packet, TCPStatus status) {
                 this.packet = packet;
                 this.status = status;
             }
@@ -290,47 +268,55 @@ public class ServerService extends Service {
         }
     }
 
-    private class WriteThread extends Thread
-    {
-        Queue<Packet> mReadyWrite=new ConcurrentLinkedQueue<>();
-        boolean mPause=true;
+    private class WriteThread extends Thread {
+        Queue<Packet> mReadyWrite = new ConcurrentLinkedQueue<>();
+        boolean mPause = true;
 
         @Override
         public void run() {
             super.run();
-            mPause=false;
-            while(!mPause)
-            {
+            mPause = false;
+            while (!mPause) {
                 Packet p;
                 try {
                     p = mReadyWrite.poll();
-                }catch (Exception e)
-                {
+                } catch (Exception e) {
                     continue;
                 }
 
-                if (p==null)
+                if (p == null)
                     continue;
                 mLocal.write(p);
             }
         }
 
-        void write(Packet packet)
-        {
+        void write(Packet packet) {
             mReadyWrite.add(packet);
             //mLocal.write(packet);
         }
     }
 
-    static class SendEntry
-    {
-        SendEntry(Packet p)
-        {
-            packet=p;
+    /**
+     * 转发队列的项目
+     */
+    static class SendEntry {
+        SendEntry(TCPPacket p) {
+            packet = p;
+
+            /**
+             * DataLength!=0 表明该项目会被转发(不是syn/fin/rst等)
+             */
+            if (packet.getDataLength() != 0)
+                available = true;
         }
 
-        Queue<ByteBuffer> mReadySend=new LinkedList<>();
-        Packet packet;
+        boolean available = false;    //是否会被转发
+        Queue<ByteBuffer> mReadySend = null;      //转发数据可能太大，该队列是转发数据分包的结果
+
+        /**
+         * 构造时表示要被转发的数据包；当要被转发的数据包进行分包保存后，改值被设置为被转发数据包的回复包
+         */
+        TCPPacket packet;
     }
 
     public class TCPStatus {
@@ -338,223 +324,195 @@ public class ServerService extends Service {
 //        InputStream is;
 //        OutputStream os;
         SocketChannel mChannel;
-        boolean closed=false;
+        boolean closed = false;
         PacketList mPacketList;
-        Queue<SendEntry> mReadySend=new LinkedList<>();
-        int mPosition=0;
+        Queue<SendEntry> mReadySend = new LinkedList<>();
+        int mPosition = 0;
 
         private TCPPacket.Builder mBuilder;
 
         public TCPStatus(TCPPacket packet) throws IOException {
 
-            mPacketList=new PacketList(packet);
-            if (mPacketList.mInfo!=null)
-            {
+            mPacketList = new PacketList(packet);
+            if (mPacketList.mInfo != null) {
                 mPackets.add(mPacketList);
-                mPosition=mPackets.size()-1;
-                if (mListenerInfo.mOnPacketsAddListener!=null)
-                {
-                    mListenerInfo.mOnPacketsAddListener.onPacketsAdd(mPackets.size()-1);
+                mPosition = mPackets.size() - 1;
+                if (mListenerInfo.mOnPacketsAddListener != null) {
+                    mListenerInfo.mOnPacketsAddListener.onPacketsAdd(mPackets.size() - 1);
                 }
             }
-            mBuilder=new TCPPacket.Builder(packet)
+            mBuilder = new TCPPacket.Builder(packet)
                     .setDest(packet.getIpInfo().getSourceIpB())
                     .setSource(packet.getIpInfo().getDestIpB());
 
-            mChannel=SocketChannel.open();
+            mChannel = SocketChannel.open();
             mLocal.protect(mChannel.socket());
             mChannel.configureBlocking(false);
-            prepareRegister.add(new Key(mChannel,SelectionKey.OP_CONNECT,TCPStatus.this));
+            prepareRegister.add(new Key(mChannel, SelectionKey.OP_CONNECT, TCPStatus.this));
             mSelector.wakeup();
-            mChannel.connect(new InetSocketAddress(packet.getDestIp(),packet.getPort()));
-            registering=false;
+            mChannel.connect(new InetSocketAddress(packet.getDestIp(), packet.getPort()));
+            registering = false;
             //ack(packet);
         }
 
-        void close()
-        {
+        void close() {
             try {
                 fin();
-                if (closed)
-                {
+                if (closed) {
                     mChannel.close();
-                    Log.e("xx","local close");
+                    Log.e("xx", "local close");
                     mTransmitThread.remove(this);
                 }
-                closed=true;
+                closed = true;
             } catch (IOException e) {
                 e.printStackTrace();
             }
         }
 
-        void reset()
-        {
+        void reset() {
             try {
                 rst();
-                if (closed)
-                {
+                if (closed) {
                     mChannel.close();
-                    Log.e("xx","local reset");
+                    Log.e("xx", "local reset");
                     mTransmitThread.remove(this);
                 }
-                closed=true;
+                closed = true;
             } catch (IOException e) {
                 e.printStackTrace();
             }
         }
 
-        void fin()
-        {
-            mPacketList.add((TCPPacket) mBuilder.build(mPacketList.getLast(),null,TCPPacket.FIN).getData());
+        void fin() {
+            mPacketList.add((TCPPacket) mBuilder.build(mPacketList.getLast(), null, TCPPacket.FIN).getData());
             mWriteThread.write(mPacketList.getLast());
         }
 
-        void rst()
-        {
-            mPacketList.add((TCPPacket) mBuilder.build(mPacketList.getLast(),null,TCPPacket.RST).getData());
+        void rst() {
+            mPacketList.add((TCPPacket) mBuilder.build(mPacketList.getLast(), null, TCPPacket.RST).getData());
             mWriteThread.write(mPacketList.getLast());
         }
 
-        public synchronized void ack(TCPPacket packet)      //避免发送队列混乱
+        public synchronized void ack(SendEntry se)      //避免发送队列混乱
         {
-            if (packet.syn)
-            {
-                mWriteThread.write(mBuilder.build(packet));
-                return ;
+            if (se.packet.syn) {
+                se.available = false;
+                mWriteThread.write(mBuilder.build(se.packet));
+                return;
             }
 
-            mPacketList.add(packet);
-            if (mListenerInfo.mOnPacketAddListener!=null)
-            {
-                mListenerInfo.mOnPacketAddListener.onPacketAdd(mPosition,mPacketList.size()-1);
+            mPacketList.add(se.packet);
+            if (mListenerInfo.mOnPacketAddListener != null) {
+                mListenerInfo.mOnPacketAddListener.onPacketAdd(mPosition, mPacketList.size() - 1);
             }
 
-            if (packet.fin||packet.rst)
-            {
-                mPacketList.add((TCPPacket) mBuilder.build(packet).getData());
+            if (se.packet.fin || se.packet.rst) {
+                se.available = false;
+                mPacketList.add((TCPPacket) mBuilder.build(se.packet).getData());
                 mWriteThread.write(mPacketList.getLast());
             }
 
-            if (!packet.syn&&packet.getDataLength()==0 && !packet.fin&&!packet.rst)
-            {
-                return ;
+            if (!se.packet.syn && se.packet.getDataLength() == 0 && !se.packet.fin && !se.packet.rst) {
+                se.available = false;
+                return;
             }
 
-            //Log.e("write will add :",new String(packet.getRawData(),packet.mOffset+packet.mHeaderLength,packet.getDataLength()));
-
-                if (packet.getDataLength() != 0)
-                {
-                    SendEntry se=new SendEntry(mBuilder.build(packet));
-                    ByteBuffer []buffers=mBufferPool.get(packet.getRawData(), packet.mOffset + packet.mHeaderLength, packet.getDataLength());
-                        for (int i = 0; i < buffers.length; i++) {
-                            se.mReadySend.add(buffers[i]);
-                            //Log.e("write added :",new String(buffers[i].array(),0,buffers[i].limit()));
-                        }
-                    mReadySend.add(se);
-
-                    //Log.e("xx", "add write"+mPacketList.mInfo.appName+":"+buffers.length+":"+packet.getDataLength());
-
-                    prepareRegister.add(new Key(mChannel,SelectionKey.OP_WRITE,TCPStatus.this));
-                    mSelector.wakeup();
-//                    try {
-//                        registering=true;
-//                        mSelector.wakeup();
-//                        mChannel.register(mSelector,SelectionKey.OP_WRITE,TCPStatus.this);
-//                        registering=false;
-//                    } catch (ClosedChannelException e) {
-//                        Log.e("xx", "close "+mPacketList.mInfo.appName);
-//                    }
+            if (se.packet.getDataLength() != 0) {
+                se.mReadySend = new LinkedList<>();
+                /**分包*/
+                ByteBuffer[] buffers = mBufferPool.get(se.packet.getRawData(), se.packet.mOffset + se.packet.mHeaderLength, se.packet.getDataLength());
+                for (int i = 0; i < buffers.length; i++) {
+                    se.mReadySend.add(buffers[i]);
+                    //Log.e("write added :", new String(buffers[i].array(), 0, buffers[i].limit()));
                 }
+                /**设置回复包*/
+                se.packet = (TCPPacket) mBuilder.build(se.packet).getData();
 
-                if (packet.fin){
-                    if (closed)
-                    {
-                        try {
-                            mChannel.close();
-                            Log.e("xx","local close");
-                        } catch (IOException e) {
-                            e.printStackTrace();
-                        }
-                        mTransmitThread.remove(this);
-                    }else {
-                        closed = true;
-                        close();
+                prepareRegister.add(new Key(mChannel, SelectionKey.OP_WRITE, TCPStatus.this));
+                mSelector.wakeup();
+            }
+
+            if (se.packet.fin) {
+                se.available = false;
+                if (closed) {
+                    try {
+                        mChannel.close();
+                        Log.e("xx", "local close");
+                    } catch (IOException e) {
+                        e.printStackTrace();
                     }
+                    mTransmitThread.remove(this);
+                } else {
+                    closed = true;
+                    close();
                 }
+            }
 
-                if (packet.rst)
-                {
-                    if (closed)
-                    {
-                        try {
-                            mChannel.close();
-                            Log.e("xx","local reset");
-                        } catch (IOException e) {
-                            e.printStackTrace();
-                        }
-                        mTransmitThread.remove(this);
-                    }else {
-                        closed = true;
-                        reset();
+            if (se.packet.rst) {
+                se.available = false;
+                if (closed) {
+                    try {
+                        mChannel.close();
+                        Log.e("xx", "local reset");
+                    } catch (IOException e) {
+                        e.printStackTrace();
                     }
+                    mTransmitThread.remove(this);
+                } else {
+                    closed = true;
+                    reset();
                 }
+            }
         }
 
-        public synchronized void ack(ByteBuffer data)
-        {
-            TCPPacket packet=mPacketList.getLast();
-            if (packet.getPort()!=666666)
+        public synchronized void ack(ByteBuffer data) {
+            TCPPacket packet = mPacketList.getLast();
+            if (packet.getPort() != 666666)
                 try {
-                    Log.e("6666","recv"+packet.getPort()+":"+new String(packet.getRawData(),packet.mOffset+packet.mHeaderLength,packet.getDataLength(),"utf-8"));
+                    Log.e("6666", "recv" + packet.getPort() + ":" + new String(packet.getRawData(), packet.mOffset + packet.mHeaderLength, packet.getDataLength(), "utf-8"));
                 } catch (UnsupportedEncodingException e) {
                     e.printStackTrace();
                 }
 
-            mPacketList.add((TCPPacket) mBuilder.build(packet,data).getData());
+            mPacketList.add((TCPPacket) mBuilder.build(packet, data).getData());
             mWriteThread.write(mPacketList.getLast());
-            if (mListenerInfo.mOnPacketAddListener!=null)
-            {
-                mListenerInfo.mOnPacketAddListener.onPacketAdd(mPosition,mPacketList.size()-1);
+            if (mListenerInfo.mOnPacketAddListener != null) {
+                mListenerInfo.mOnPacketAddListener.onPacketAdd(mPosition, mPacketList.size() - 1);
             }
         }
     }
 
-    static class Key
-    {
+    static class Key {
         SocketChannel channel;
         int op;
         TCPStatus status;
 
-        Key(SocketChannel c,int o,TCPStatus s)
-        {
-            channel=c;
-            op=o;
-            status=s;
+        Key(SocketChannel c, int o, TCPStatus s) {
+            channel = c;
+            op = o;
+            status = s;
         }
     }
 
-    class ReadThread extends Thread{
+    class ReadThread extends Thread {
 
-        ByteBuffer mBuffer =ByteBuffer.allocate(65535);
+        ByteBuffer mBuffer = ByteBuffer.allocate(65535);
 
         @Override
         public void run() {
             super.run();
             try {
                 while (true) {
-                    while (!prepareRegister.isEmpty())
-                    {
+                    while (!prepareRegister.isEmpty()) {
                         Key key;
                         try {
-                            key= prepareRegister.poll();
-                        }catch (NoSuchElementException e)
-                        {
+                            key = prepareRegister.poll();
+                        } catch (NoSuchElementException e) {
                             break;
                         }
                         try {
                             key.channel.register(mSelector, key.op, key.status);
-                        }catch (CancelledKeyException e)
-                        {
+                        } catch (CancelledKeyException e) {
 
                         }
                     }
@@ -562,8 +520,7 @@ public class ServerService extends Service {
                     try {
                         if (mSelector.select() <= 0)
                             continue;
-                    }catch (CancelledKeyException e)
-                    {
+                    } catch (CancelledKeyException e) {
 
                     }
                     Iterator<SelectionKey> keys = mSelector.selectedKeys().iterator();
@@ -572,89 +529,91 @@ public class ServerService extends Service {
                         keys.remove();
                         SocketChannel channel = (SocketChannel) key.channel();
                         TCPStatus status = (TCPStatus) key.attachment();
-                        try{
+                        try {
                             if (key.isConnectable()) {
                                 //Log.e("xx", "key connect");
                                 if (channel.isConnectionPending()) {
-                                    if (channel.finishConnect())
-                                    {
+                                    if (channel.finishConnect()) {
                                         //prepareRegister.add(new Key(channel,SelectionKey.OP_READ,status));
                                         //channel.register(mSelector,SelectionKey.OP_READ,status);
-                                        key.interestOps(key.interestOps()|SelectionKey.OP_READ);
-                                        status.ack(status.mPacketList.get(0));
+                                        key.interestOps(key.interestOps() | SelectionKey.OP_READ);
+                                        status.ack(new SendEntry(status.mPacketList.get(0)));
                                         //prepareRegister.add(new Key(channel,SelectionKey.OP_CONNECT,status));
                                         //mSelector.wakeup();
-                                        if (status.mPacketList.mInfo!=null)
-                                            Log.e("xx","real connect:"+status.mPacketList.mInfo.appName+":"+status.mPacketList.port()+":"+status.mPacketList.ip());
+                                        if (status.mPacketList.mInfo != null)
+                                            Log.e("xx", "real connect:" + status.mPacketList.mInfo.appName + ":" + status.mPacketList.port() + ":" + status.mPacketList.ip());
                                     }
                                 }
                             }
                             if (key.isWritable()) {
-                                if (status.mPacketList.mInfo!=null)
-                                    Log.e("xx", "key write"+status.mPacketList.mInfo.appName);
-                                if (!status.mReadySend.isEmpty())
-                                {
-                                    while (status.mReadySend.peek()!=null) {
+                                if (!status.mReadySend.isEmpty()) {
+                                    while (status.mReadySend.peek() != null) {
                                         SendEntry se = status.mReadySend.peek();
-                                        ByteBuffer buffer=se.mReadySend.peek();
-                                        if (buffer==null) {
+                                        if (!se.available) {
+                                            /**找到一个要被转发的包，或者退出*/
+                                            status.mReadySend.poll();
+                                            continue;
+                                        }
+
+                                        /**说明该包还未被处理，下一轮继续判断*/
+                                        if (se.mReadySend == null) {
+                                            break;
+                                        }
+
+                                        ByteBuffer buffer = se.mReadySend.peek();
+
+                                        /**一个数据包已经被转发完成，此时把它的回复包写入本地*/
+                                        if (buffer == null) {
                                             mWriteThread.write(se.packet);
                                             status.mReadySend.poll();
                                             continue;
                                         }
 
+                                        /**一个数据包的一小部分转发完成，回收并发送下一个分包(如果未完成的话)*/
                                         if (buffer.position() == buffer.limit()) {
                                             se.mReadySend.poll();
                                             mBufferPool.recycle(buffer);
                                             continue;
                                         }
 
-                                        try
-                                        {
-                                            int start=buffer.position();
+                                        try {
+                                            /**实际转发*/
                                             channel.write(buffer);
-                                            if (true)
-                                            {
+                                            if (true) {
                                                 //Log.e("written :",new String(buffer.array(),start,buffer.position()));
                                             }
-                                        }catch (Exception e)
-                                        {
-                                            Log.e("xx","when write:"+e.toString());
+                                        } catch (Exception e) {
+                                            Log.e("xx", "when write:" + e.toString());
                                             key.cancel();
                                         }
                                         break;
                                     }
-                                }else
-                                {
-                                    //Log.e("xx", "key write no data"+status.mPacketList.mInfo.appName);
-                                    key.interestOps((key.interestOps()|SelectionKey.OP_READ)&~SelectionKey.OP_WRITE);
-                                    //channel.register(mSelector,SelectionKey.OP_READ,status);
+                                } else {
+                                    /**转发队列为空，说明有转发任务已经完成,把OP_WRITE去掉，不然key会保留*/
+                                    key.interestOps((key.interestOps() | SelectionKey.OP_READ) & ~SelectionKey.OP_WRITE);
                                 }
                             }
-                            if (key.isValid()&&key.isReadable()) {
+                            if (key.isValid() && key.isReadable()) {
                                 //Log.e("xx", "key read"+((IPPacket)status.mPacketList.getLast()).getDestIp());
                                 mBuffer.clear();
-                                try
-                                {
-                                    if (status.closed||channel.read(mBuffer)<0)
-                                    {
-                                        Log.e("xx","closed by remote");
+                                try {
+                                    if (status.closed || channel.read(mBuffer) < 0) {
+                                        Log.e("xx", "closed by remote");
                                         status.reset();
                                         key.cancel();
-                                    }else {
+                                    } else {
                                         mBuffer.flip();
                                         status.ack(mBuffer);
-                                        key.interestOps(key.interestOps()|SelectionKey.OP_READ);
+                                        key.interestOps(key.interestOps() | SelectionKey.OP_READ);
                                         //channel.register(mSelector,SelectionKey.OP_READ,status);
                                     }
-                                }catch (Exception e)
-                                {
-                                    Log.e("xx","when write:"+e.toString());
+                                } catch (Exception e) {
+                                    Log.e("xx", "when write:" + e.toString());
                                     key.cancel();
                                 }
                             }
-                        }catch (CancelledKeyException e)
-                        {}
+                        } catch (CancelledKeyException e) {
+                        }
                     }
                 }
 
@@ -666,61 +625,53 @@ public class ServerService extends Service {
         }
     }
 
-    public static class PacketList
-    {
+    public static class PacketList {
         AppPortList.AppInfo mInfo;
-        public int mSPort,mDPort;
+        public int mSPort, mDPort;
         private String ip;
         private ArrayList<TCPPacket> packets;
 
-        PacketList(TCPPacket init)
-        {
-            packets=new ArrayList<>();
+        PacketList(TCPPacket init) {
+            packets = new ArrayList<>();
             add(init);
-            mSPort =init.getSourcePort();
-            mDPort=init.getPort();
-            ip=init.getDestIp();
-            mInfo=mPortList.getAppInfo(mSPort);
-            if (mInfo!=null)
-            Log.e("xx","find app:"+mInfo.info.packageName);
+            mSPort = init.getSourcePort();
+            mDPort = init.getPort();
+            ip = init.getDestIp();
+            mInfo = mPortList.getAppInfo(mSPort);
+            if (mInfo != null)
+                Log.e("xx", "find app:" + mInfo.info.packageName);
         }
 
-        public int size()
-        {
+        public int size() {
             return packets.size();
         }
 
-        void add(TCPPacket p)
-        {
+        void add(TCPPacket p) {
             packets.add(p);
         }
 
-        public TCPPacket get(int i){
+        public TCPPacket get(int i) {
             return packets.get(i);
         }
 
-        public int port()
-        {
+        public int port() {
             return mDPort;
         }
 
-        public String ip()
-        {
+        public String ip() {
             return ip;
         }
 
-        public AppPortList.AppInfo info()
-        {
+        public AppPortList.AppInfo info() {
             return mInfo;
         }
 
         TCPPacket getLast() {
-            return packets.get(packets.size()-1);
+            return packets.get(packets.size() - 1);
         }
     }
 
-    static class ListenerInfo
-    {
+    static class ListenerInfo {
         private ClientService.OnPacketAddListener mOnPacketAddListener;
         private ClientService.OnPacketsAddListener mOnPacketsAddListener;
     }
