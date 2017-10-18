@@ -277,7 +277,7 @@ public class TCPPacket extends Packet {
 
             /**tcp*/
             int ack=0;
-            if (type==ACK) {
+            if (true) {
                 ack = packet.sn + packet.dataLen;
                 if (packet.syn) ack++;
                 if (packet.fin) ack++;
