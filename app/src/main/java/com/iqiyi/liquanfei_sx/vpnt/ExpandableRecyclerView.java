@@ -139,6 +139,7 @@ public class ExpandableRecyclerView extends RecyclerView implements View.OnClick
     public void setAdapter(Adapter adapter) {
         mAdapter=adapter;
         mAdapter.registerAdapterDataObserver(mObserver);
+        mAdapter.notifyDataSetChanged();
         mIsExpandView.clear();
         for (int i=0;i<mAdapter.getItemCount();i++)
         {
