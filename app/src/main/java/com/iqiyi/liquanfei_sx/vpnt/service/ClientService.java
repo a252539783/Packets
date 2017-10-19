@@ -116,13 +116,16 @@ public class ClientService extends VpnService{
         return super.onStartCommand(intent, flags, startId);
     }
 
-    public void write(Packet packet)
+    public boolean write(Packet packet)
     {
         try {
             os.write(packet.getRawData());
         } catch (IOException e) {
             Log.e("xx","when write to tunnel:"+e.toString());
+            return false;
         }
+
+        return true;
     }
 
     public void setOnServerConnectedListener(OnServerConnectedListener l)

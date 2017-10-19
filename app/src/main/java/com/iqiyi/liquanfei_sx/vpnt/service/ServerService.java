@@ -22,6 +22,7 @@ import java.io.UnsupportedEncodingException;
 import java.net.InetSocketAddress;
 import java.nio.ByteBuffer;
 import java.nio.channels.CancelledKeyException;
+import java.nio.channels.ClosedChannelException;
 import java.nio.channels.SelectionKey;
 import java.nio.channels.Selector;
 import java.nio.channels.SocketChannel;
@@ -286,7 +287,8 @@ public class ServerService extends Service {
 
                 if (p == null)
                     continue;
-                mLocal.write(p);
+
+                while (!mLocal.write(p));
             }
         }
 
@@ -501,7 +503,6 @@ public class ServerService extends Service {
         @Override
         public void run() {
             super.run();
-            try {
                 while (true) {
                     while (!prepareRegister.isEmpty()) {
                         Key key;
@@ -514,6 +515,8 @@ public class ServerService extends Service {
                             key.channel.register(mSelector, key.op, key.status);
                         } catch (CancelledKeyException e) {
 
+                        } catch (ClosedChannelException e) {
+
                         }
                     }
 
@@ -522,6 +525,9 @@ public class ServerService extends Service {
                             continue;
                     } catch (CancelledKeyException e) {
 
+                    } catch (IOException e) {
+                        Log.e("xx","selector is Stop!!!!!!!!!!!!!!!!!!!!!!!!!");
+                        stopDaemon();
                     }
                     Iterator<SelectionKey> keys = mSelector.selectedKeys().iterator();
                     while (keys.hasNext()) {
@@ -531,17 +537,21 @@ public class ServerService extends Service {
                         TCPStatus status = (TCPStatus) key.attachment();
                         try {
                             if (key.isConnectable()) {
-                                //Log.e("xx", "key connect");
+                                Log.e("xx", "key connect");
                                 if (channel.isConnectionPending()) {
-                                    if (channel.finishConnect()) {
-                                        //prepareRegister.add(new Key(channel,SelectionKey.OP_READ,status));
-                                        //channel.register(mSelector,SelectionKey.OP_READ,status);
-                                        key.interestOps(key.interestOps() | SelectionKey.OP_READ);
-                                        status.ack(new SendEntry(status.mPacketList.get(0)));
-                                        //prepareRegister.add(new Key(channel,SelectionKey.OP_CONNECT,status));
-                                        //mSelector.wakeup();
-                                        if (status.mPacketList.mInfo != null)
-                                            Log.e("xx", "real connect:" + status.mPacketList.mInfo.appName + ":" + status.mPacketList.port() + ":" + status.mPacketList.ip());
+                                    try {
+                                        if (channel.finishConnect()) {
+                                            //prepareRegister.add(new Key(channel,SelectionKey.OP_READ,status));
+                                            //channel.register(mSelector,SelectionKey.OP_READ,status);
+                                            key.interestOps(key.interestOps() | SelectionKey.OP_READ);
+                                            status.ack(new SendEntry(status.mPacketList.get(0)));
+                                            //prepareRegister.add(new Key(channel,SelectionKey.OP_CONNECT,status));
+                                            //mSelector.wakeup();
+                                            if (status.mPacketList.mInfo != null)
+                                                Log.e("xx", "real connect:" + status.mPacketList.mInfo.appName + ":" + status.mPacketList.port() + ":" + status.mPacketList.ip());
+                                        }
+                                    } catch (IOException e) {
+                                        Log.e("xx","finishConnect error!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!");
                                     }
                                 }
                             }
@@ -608,7 +618,7 @@ public class ServerService extends Service {
                                         //channel.register(mSelector,SelectionKey.OP_READ,status);
                                     }
                                 } catch (Exception e) {
-                                    Log.e("xx", "when write:" + e.toString());
+                                    Log.e("xx", "when read:" + e.toString());
                                     key.cancel();
                                 }
                             }
@@ -616,11 +626,6 @@ public class ServerService extends Service {
                         }
                     }
                 }
-
-
-            } catch (IOException e) {
-                Log.e("xx", e.toString());
-            }
 
         }
     }
