@@ -24,6 +24,7 @@ public class MainActivity extends AppCompatActivity implements View.OnClickListe
     MFloatingWindow window;
     ExpandableRecyclerView rv;
     PacketsAdapter pa;
+    ServiceConnection sc;
 
     @Override
     protected void onCreate(Bundle savedInstanceState) {
@@ -48,6 +49,14 @@ public class MainActivity extends AppCompatActivity implements View.OnClickListe
         button.setOnClickListener(this);
 
         rv=(ExpandableRecyclerView)findViewById(R.id.rv);
+
+        rv.postDelayed(new Runnable() {
+            @Override
+            public void run() {
+                //pa.setFilterKey("UC",PacketsAdapter.FILTER_APP);
+                //pa.freshFilter();
+            }
+        },10000);
     }
 
     @Override
@@ -72,7 +81,7 @@ public class MainActivity extends AppCompatActivity implements View.OnClickListe
         super.onActivityResult(requestCode, resultCode, data);
         startService(new Intent(this,ServerService.class));
         startService(new Intent(this,ClientService.class));
-        bindService(new Intent(this, ClientService.class), new ServiceConnection() {
+        bindService(new Intent(this, ClientService.class),sc= new ServiceConnection() {
             @Override
             public void onServiceConnected(ComponentName name, IBinder service) {
                 mServer=((ClientService.MB)service).get();
@@ -101,16 +110,30 @@ public class MainActivity extends AppCompatActivity implements View.OnClickListe
         rv.post(new Runnable() {
             @Override
             public void run() {
-
-                pa.notifyItemInserted(position);
+                //Log.e("xx","in ui  add");
+                pa.notifyDataInserted(position);
             }
         });
     }
 
     @Override
     public void onConnected() {
-        pa=new PacketsAdapter(mServer.getPackets(),MainActivity.this);
-        rv.setAdapter(pa);
-        mServer.setOnPacketsAddListener(this);
+        rv.postDelayed(new Runnable() {
+            @Override
+            public void run() {
+
+                pa=new PacketsAdapter(mServer.getPackets(),MainActivity.this);
+                rv.setAdapter(pa);
+                mServer.setOnPacketsAddListener(MainActivity.this);
+            }
+        },0);
+    }
+
+    @Override
+    protected void onDestroy() {
+        super.onDestroy();
+        mServer.removeOnPacketsAddListener();
+        mServer.removeOnServerConnectedListener();
+        unbindService(sc);
     }
 }
