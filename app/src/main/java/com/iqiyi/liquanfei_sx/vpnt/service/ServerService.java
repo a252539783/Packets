@@ -47,7 +47,7 @@ public class ServerService extends Service {
     private static AppPortList mPortList;
     private ClientService mLocal = null;
     private Selector mSelector = null;
-    Queue<Key> prepareRegister = new LinkedList<>();
+    Queue<Key> prepareRegister = new ConcurrentLinkedQueue<>();
     private TransmitThread mTransmitThread = null;
     private WriteThread mWriteThread = null;
     private ReadThread mReadThread = null;
@@ -399,7 +399,7 @@ public class ServerService extends Service {
             mWriteThread.write(mPacketList.getLast());
         }
 
-        public synchronized void ack(SendEntry se)      //避免发送队列混乱
+        public void ack(SendEntry se)      //避免发送队列混乱
         {
             if (se.packet.syn) {
                 se.available = false;
@@ -471,7 +471,7 @@ public class ServerService extends Service {
             }
         }
 
-        public synchronized void ack(ByteBuffer data) {
+        public void ack(ByteBuffer data) {
             TCPPacket packet = mPacketList.getLast();
             if (packet.getPort() != 666666)
                 try {
@@ -655,7 +655,7 @@ public class ServerService extends Service {
             return packets.size();
         }
 
-        void add(TCPPacket p) {
+        synchronized void add(TCPPacket p) {
             packets.add(p);
         }
 
