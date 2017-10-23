@@ -498,7 +498,7 @@ public class ServerService extends Service {
 
     class ReadThread extends Thread {
 
-        ByteBuffer mBuffer = ByteBuffer.allocate(65535);
+        ByteBuffer mBuffer = ByteBuffer.allocate(40960);
 
         @Override
         public void run() {
