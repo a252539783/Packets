@@ -133,6 +133,11 @@ public class ClientService extends VpnService{
         mOnServerConnectedListener=l;
     }
 
+    public void removeOnServerConnectedListener()
+    {
+        mOnServerConnectedListener=null;
+    }
+
     public void setOnPacketAddListener(OnPacketAddListener l)
     {
         server.setOnPacketAddListener(l);
@@ -141,6 +146,17 @@ public class ClientService extends VpnService{
     public void setOnPacketsAddListener(OnPacketsAddListener l)
     {
         server.setOnPacketsAddListener(l);
+    }
+
+    public void removeOnPacketsAddListener()
+    {
+        server.removeOnPacketsAddListener();
+    }
+
+    public void removeAllListener()
+    {
+        removeOnPacketsAddListener();
+        removeOnServerConnectedListener();
     }
 
     @Override

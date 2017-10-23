@@ -124,6 +124,10 @@ public class ServerService extends Service {
         mListenerInfo.mOnPacketsAddListener = l;
     }
 
+    void removeOnPacketsAddListener() {
+        mListenerInfo.mOnPacketsAddListener = null;
+    }
+
     public boolean transmit(Packet packet) {
         //Log.e("xx","add");
         mTransmitThread.mPackets.add(packet);
