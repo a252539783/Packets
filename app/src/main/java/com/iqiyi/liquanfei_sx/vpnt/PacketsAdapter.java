@@ -71,7 +71,7 @@ public class PacketsAdapter extends ExpandableRecyclerView.Adapter<PacketsAdapte
     public PacketsAdapter(ArrayList<ServerService.PacketList> packets,Context c)
     {
         mPacketLists =packets;
-        filterAll();
+        freshFilter();
         mLf=LayoutInflater.from(c);
         //registerAdapterDataObserver(mObserver);
     }
@@ -84,25 +84,34 @@ public class PacketsAdapter extends ExpandableRecyclerView.Adapter<PacketsAdapte
     void filterAdd(int position)
     {
         int oSize=mCurrent.size();
-        filter(position,position+1);
-        if (mCurrent.size()>oSize)
+        ServerService.PacketList pl=mPacketLists.get(mPacketLists.size()-1);
+        if (mFilterType==FILTER_NO) {
+            mCurrent.add(mPacketLists.size() - 1);
             notifyItemInserted(mCurrent.size()-1);
+        }
+        else
+        {
+            if (((mFilterType&FILTER_APP)!=0&&pl.info().appName.contains(mAppFilterKey))||
+                    ((mFilterType&FILTER_PORT)!=0&&pl.port()==mPortFilterKey)||
+                    ((mFilterType&FILTER_IP)!=0&&pl.ip().contains(mIpFilterKey))||
+                    ((mFilterType&FILTER_PKG)!=0&&pl.info().info.packageName.contains(mPkgFilterKey)))
+            {
+                mCurrent.add(mPacketLists.size()-1);
+                notifyItemInserted(mCurrent.size()-1);
+            }
+        }
     }
 
     private void filter(int start,int end)
     {
-        if (mCurrent!=mNo)
+        if (mCurrent.size()!=mPacketLists.size())
         {
-            if (mFilterType!=FILTER_NO)
+            mNo.clear();
+            for (int i=0;i<mPacketLists.size();i++)
             {
-                mNo.clear();
-                for (int i=0;i<mPacketLists.size();i++)
-                {
-                    mNo.add(i);
-                }
+                mNo.add(i);
             }
         }
-
         mCurrent=mNo;
 
         if ((mFilterType&FILTER_IP)!=0)
