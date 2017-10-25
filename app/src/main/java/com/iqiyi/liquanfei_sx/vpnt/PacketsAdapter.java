@@ -199,7 +199,7 @@ public class PacketsAdapter extends ExpandableRecyclerView.Adapter<PacketsAdapte
         }
     }
 
-    public void setFilterKey(String key,int type)
+    public void setFilterKey(int type,String key)
     {
         mFilterType=(mFilterType|type);
         switch (type)
@@ -319,7 +319,7 @@ public class PacketsAdapter extends ExpandableRecyclerView.Adapter<PacketsAdapte
         @Override
         public void onBindViewHolder(H2 holder, int position) {
             TCPPacket packet=mPacketLists.get(mCurrent.get(mPosition)).get(position);
-            holder.text.setText(mPacketLists.get(mPosition).get(position).getIpInfo().getHeader());//+new String(mPacketLists.get(mPosition).get(position).getRawData(),mPacketLists.get(mPosition).get(position).mOffset,mPacketLists.get(mPosition).get(position).getDataLength()
+            holder.text.setText(mPacketLists.get(mCurrent.get(mPosition)).get(position).getIpInfo().getHeader());//+new String(mPacketLists.get(mPosition).get(position).getRawData(),mPacketLists.get(mPosition).get(position).mOffset,mPacketLists.get(mPosition).get(position).getDataLength()
         }
 
         @Override
