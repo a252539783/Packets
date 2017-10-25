@@ -68,9 +68,12 @@ public class ServerService extends Service {
     @Override
     public int onStartCommand(Intent intent, int flags, int startId) {
         Log.e("xx", "server started");
-        mWriteThread = new WriteThread();
-        mTransmitThread = new TransmitThread();
-        mReadThread = new ReadThread();
+        if (mWriteThread==null)
+        {
+            mWriteThread = new WriteThread();
+            mTransmitThread = new TransmitThread();
+            mReadThread = new ReadThread();
+        }
         return super.onStartCommand(intent, flags, startId);
     }
 
@@ -158,6 +161,7 @@ public class ServerService extends Service {
             mSockets = new SparseArray<>();
             mPackets = new LinkedBlockingQueue<>();
             mThreadPool = Executors.newCachedThreadPool();
+            setPriority(MAX_PRIORITY);
         }
 
         @Override
@@ -279,6 +283,7 @@ public class ServerService extends Service {
 
         @Override
         public void run() {
+            setPriority(MAX_PRIORITY);
             super.run();
             mPause = false;
             while (!mPause) {
@@ -293,6 +298,7 @@ public class ServerService extends Service {
                     continue;
 
                 while (!mLocal.write(p));
+
             }
         }
 
@@ -378,7 +384,7 @@ public class ServerService extends Service {
         void reset() {
             try {
                 rst();
-                if (closed) {
+                if (true) {
                     mChannel.close();
                     Log.e("xx", "local reset");
                     mTransmitThread.remove(this);
@@ -390,13 +396,13 @@ public class ServerService extends Service {
         }
 
         void fin() {
-            mPacketList.add((TCPPacket) mBuilder.build(mPacketList.getLast(), null, TCPPacket.FIN).getData());
-            mWriteThread.write(mPacketList.getLast());
+            mPacketList.add((TCPPacket) mBuilder.build(mPacketList.getLast(), null, TCPPacket.FIN).getData(),false);
+            mWriteThread.write(mPacketList.get(mPacketList.size()-1));
         }
 
         void rst() {
-            mPacketList.add((TCPPacket) mBuilder.build(mPacketList.getLast(), null, TCPPacket.RST).getData());
-            mWriteThread.write(mPacketList.getLast());
+            mPacketList.add((TCPPacket) mBuilder.build(mPacketList.getLast(), null, TCPPacket.RST).getData(),false);
+            mWriteThread.write(mPacketList.get(mPacketList.size()-1));
         }
 
         public void ack(SendEntry se)      //避免发送队列混乱
@@ -407,15 +413,15 @@ public class ServerService extends Service {
                 return;
             }
 
-            mPacketList.add(se.packet);
+            mPacketList.add(se.packet,true);
             if (mListenerInfo.mOnPacketAddListener != null) {
                 mListenerInfo.mOnPacketAddListener.onPacketAdd(mPosition, mPacketList.size() - 1);
             }
 
             if (se.packet.fin || se.packet.rst) {
                 se.available = false;
-                mPacketList.add((TCPPacket) mBuilder.build(se.packet).getData());
-                mWriteThread.write(mPacketList.getLast());
+                mPacketList.add((TCPPacket) mBuilder.build(se.packet).getData(),false);
+                mWriteThread.write(mPacketList.get(mPacketList.size()-1));
             }
 
             if (!se.packet.syn && se.packet.getDataLength() == 0 && !se.packet.fin && !se.packet.rst) {
@@ -480,8 +486,8 @@ public class ServerService extends Service {
                     e.printStackTrace();
                 }
 
-            mPacketList.add((TCPPacket) mBuilder.build(packet, data).getData());
-            mWriteThread.write(mPacketList.getLast());
+            mPacketList.add((TCPPacket) mBuilder.build(packet, data).getData(),false);
+            mWriteThread.write(mPacketList.get(mPacketList.size()-1));
             if (mListenerInfo.mOnPacketAddListener != null) {
                 mListenerInfo.mOnPacketAddListener.onPacketAdd(mPosition, mPacketList.size() - 1);
             }
@@ -502,10 +508,11 @@ public class ServerService extends Service {
 
     class ReadThread extends Thread {
 
-        ByteBuffer mBuffer = ByteBuffer.allocate(40960);
+        ByteBuffer mBuffer = ByteBuffer.allocate(4096);
 
         @Override
         public void run() {
+            setPriority(MAX_PRIORITY);
             super.run();
                 while (true) {
                     while (!prepareRegister.isEmpty()) {
@@ -579,6 +586,7 @@ public class ServerService extends Service {
                                         /**一个数据包已经被转发完成，此时把它的回复包写入本地*/
                                         if (buffer == null) {
                                             mWriteThread.write(se.packet);
+                                            status.mPacketList.add(se.packet,false);
                                             status.mReadySend.poll();
                                             continue;
                                         }
@@ -599,6 +607,7 @@ public class ServerService extends Service {
                                         } catch (Exception e) {
                                             Log.e("xx", "when write:" + e.toString());
                                             key.cancel();
+                                            status.reset();
                                         }
                                         break;
                                     }
@@ -624,6 +633,7 @@ public class ServerService extends Service {
                                 } catch (Exception e) {
                                     Log.e("xx", "when read:" + e.toString());
                                     key.cancel();
+                                    //status.reset();
                                 }
                             }
                         } catch (CancelledKeyException e) {
@@ -640,9 +650,11 @@ public class ServerService extends Service {
         private String ip;
         private ArrayList<TCPPacket> packets;
 
+        private int mLast=0;
+
         PacketList(TCPPacket init) {
             packets = new ArrayList<>();
-            add(init);
+            add(init,true);
             mSPort = init.getSourcePort();
             mDPort = init.getPort();
             ip = init.getDestIp();
@@ -655,8 +667,12 @@ public class ServerService extends Service {
             return packets.size();
         }
 
-        synchronized void add(TCPPacket p) {
+        synchronized void add(TCPPacket p,boolean local) {
             packets.add(p);
+            if (local)
+            {
+                mLast=packets.size()-1;
+            }
         }
 
         public TCPPacket get(int i) {
@@ -676,7 +692,7 @@ public class ServerService extends Service {
         }
 
         TCPPacket getLast() {
-            return packets.get(packets.size() - 1);
+            return packets.get(mLast);
         }
     }
 
