@@ -48,6 +48,9 @@ public class ClientService extends VpnService{
     public int onStartCommand(Intent intent, int flags, int startId) {
         Log.e("xx","client started");
 
+        if (server!=null)
+            return super.onStartCommand(intent, flags, startId);
+
         bindService(new Intent(this,ServerService.class),new ServiceConnection(){
 
             @Override
@@ -71,44 +74,41 @@ public class ClientService extends VpnService{
             @Override
             public void run() {
                 super.run();
+                setPriority(MAX_PRIORITY);
 
                 while (server==null);
                 server.startDaemon();
                 build();
 
-                new Thread() {
-                    public void run() {
-                        // Packets to be sent are queued in this input stream.
-                        FileInputStream in = new FileInputStream(
-                                mInterface.getFileDescriptor());
-                        os=new FileOutputStream(mInterface.getFileDescriptor());
-                        // Allocate the mBuffer for a single packet.
-                        ByteBuffer packet = ByteBuffer.allocate(32767);
-                        int length;
-                        try {
-                            while (true) {
-                                length = in.read(packet.array());
-                                if (length > 0) {
-                                    // while ((length = in.read(packet.array())) > 0) {
-                                    // Write the outgoing packet to the tunnel.
-                                    //Log.e("xx","tun read-write"+new String(packet.array()));
-                                    packet.limit(length);
-                                    //debugPacket(packet); // Packet size, Protocol,
-                                    byte []b=new byte[length];
-                                    System.arraycopy(packet.array(),0,b,0,length);
-                                    server.transmit(new IPPacket(b));
-                                    // source, destination
-                                    packet.clear();
-                                    //mTunnel.write(packet);
-                                    //out.write(packet.array(),0,length);
-                                }
-                            }
-                        } catch (IOException e) {
-                            Log.e("xx",e.toString());
-                        }
 
+                // Packets to be sent are queued in this input stream.
+                FileInputStream in = new FileInputStream(
+                        mInterface.getFileDescriptor());
+                os=new FileOutputStream(mInterface.getFileDescriptor());
+                // Allocate the mBuffer for a single packet.
+                ByteBuffer packet = ByteBuffer.allocate(32767);
+                int length;
+                try {
+                    while (true) {
+                        length = in.read(packet.array());
+                        if (length > 0) {
+                            // while ((length = in.read(packet.array())) > 0) {
+                            // Write the outgoing packet to the tunnel.
+                            //Log.e("xx","tun read-write"+new String(packet.array()));
+                            packet.limit(length);
+                            //debugPacket(packet); // Packet size, Protocol,
+                            byte []b=new byte[length];
+                            System.arraycopy(packet.array(),0,b,0,length);
+                            server.transmit(new IPPacket(b));
+                            // source, destination
+                            packet.clear();
+                            //mTunnel.write(packet);
+                            //out.write(packet.array(),0,length);
+                        }
                     }
-                }.start();
+                } catch (IOException e) {
+                    Log.e("xx",e.toString());
+                }
             }
         }.start();
 
@@ -131,6 +131,8 @@ public class ClientService extends VpnService{
     public void setOnServerConnectedListener(OnServerConnectedListener l)
     {
         mOnServerConnectedListener=l;
+        if (server!=null)
+            l.onConnected();
     }
 
     public void removeOnServerConnectedListener()

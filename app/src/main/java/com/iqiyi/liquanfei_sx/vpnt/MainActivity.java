@@ -25,6 +25,7 @@ public class MainActivity extends AppCompatActivity implements View.OnClickListe
     ExpandableRecyclerView rv;
     PacketsAdapter pa;
     ServiceConnection sc;
+    private boolean foreground=true;
 
     @Override
     protected void onCreate(Bundle savedInstanceState) {
@@ -34,29 +35,12 @@ public class MainActivity extends AppCompatActivity implements View.OnClickListe
         // Example of a call to a native method
         //TextView tv = (TextView) findViewById(R.id.sample_text);
         //tv.setText(stringFromJNI());
-        final Intent i= VpnService.prepare(this);
 
-        if (i==null)
-        {
-            Log.e("xx","success");
-            onActivityResult(1,1,null);
-        }else
-        {
-            startActivityForResult(i,1);
-        }
 
         button=(Button)findViewById(R.id.b_test);
         button.setOnClickListener(this);
 
         rv=(ExpandableRecyclerView)findViewById(R.id.rv);
-
-        rv.postDelayed(new Runnable() {
-            @Override
-            public void run() {
-                //pa.setFilterKey("UC",PacketsAdapter.FILTER_APP);
-                //pa.freshFilter();
-            }
-        },10000);
     }
 
     @Override
@@ -95,6 +79,29 @@ public class MainActivity extends AppCompatActivity implements View.OnClickListe
         },BIND_AUTO_CREATE);
     }
 
+    @Override
+    protected void onResume() {
+        super.onResume();
+        if (pa!=null)
+        {
+            pa.freshFilter();
+            mServer.setOnPacketsAddListener(this);
+        }else
+        {
+
+            final Intent i= VpnService.prepare(this);
+
+            if (i==null)
+            {
+                Log.e("xx","success");
+                onActivityResult(1,1,null);
+            }else
+            {
+                startActivityForResult(i,1);
+            }
+        }
+    }
+
     void fresh()
     {
         rv.post(new Runnable() {
@@ -118,15 +125,16 @@ public class MainActivity extends AppCompatActivity implements View.OnClickListe
 
     @Override
     public void onConnected() {
-        rv.postDelayed(new Runnable() {
+        rv.post(new Runnable() {
             @Override
             public void run() {
 
                 pa=new PacketsAdapter(mServer.getPackets(),MainActivity.this);
                 rv.setAdapter(pa);
+                //pa.setFilterKey(PacketsAdapter.FILTER_IP,"180.149.136.228");
                 mServer.setOnPacketsAddListener(MainActivity.this);
             }
-        },0);
+        });
     }
 
     @Override
@@ -135,5 +143,14 @@ public class MainActivity extends AppCompatActivity implements View.OnClickListe
         mServer.removeOnPacketsAddListener();
         mServer.removeOnServerConnectedListener();
         unbindService(sc);
+    }
+
+    @Override
+    protected void onPause() {
+        super.onPause();
+        if (pa!=null)
+        {
+            mServer.removeOnPacketsAddListener();
+        }
     }
 }
