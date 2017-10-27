@@ -7,13 +7,12 @@ import android.net.VpnService;
 import android.os.IBinder;
 import android.support.v7.app.AppCompatActivity;
 import android.os.Bundle;
-import android.support.v7.widget.RecyclerView;
 import android.util.Log;
-import android.view.LayoutInflater;
 import android.view.View;
-import android.view.ViewGroup;
 import android.widget.Button;
+import android.widget.TextView;
 
+import com.iqiyi.liquanfei_sx.vpnt.floating.MFloatingWindow;
 import com.iqiyi.liquanfei_sx.vpnt.service.ClientService;
 import com.iqiyi.liquanfei_sx.vpnt.service.ServerService;
 
@@ -26,6 +25,9 @@ public class MainActivity extends AppCompatActivity implements View.OnClickListe
     PacketsAdapter pa;
     ServiceConnection sc;
     private boolean foreground=true;
+    StringBuilder builder=new StringBuilder("textTTTTTTTTTTTTTTTTTTTTTTTTTTTTTTTTTTTTTTTTTTTTTTTTTTTT");
+    TextView tv;
+    String ss;
 
     @Override
     protected void onCreate(Bundle savedInstanceState) {
@@ -33,12 +35,11 @@ public class MainActivity extends AppCompatActivity implements View.OnClickListe
         setContentView(R.layout.activity_main);
         //window=new MFloatingWindow(this);
         // Example of a call to a native method
-        //TextView tv = (TextView) findViewById(R.id.sample_text);
-        //tv.setText(stringFromJNI());
-
+        tv = (TextView) findViewById(R.id.test_text);
 
         button=(Button)findViewById(R.id.b_test);
         button.setOnClickListener(this);
+        tv.setText(builder);
 
         rv=(ExpandableRecyclerView)findViewById(R.id.rv);
     }
@@ -46,6 +47,11 @@ public class MainActivity extends AppCompatActivity implements View.OnClickListe
     @Override
     public void onClick(View v) {
         //window.remove();
+
+        if (builder.length()<=200000)
+            ss=builder.append(builder).toString();
+        Log.e("xx",tv.getTransformationMethod()+""+tv.getLayout().getClass().getName());
+        tv.setText(ss);
 
         //pa.notifyDataSetChanged();
     }
@@ -94,10 +100,10 @@ public class MainActivity extends AppCompatActivity implements View.OnClickListe
             if (i==null)
             {
                 Log.e("xx","success");
-                onActivityResult(1,1,null);
+                //onActivityResult(1,1,null);
             }else
             {
-                startActivityForResult(i,1);
+                //startActivityForResult(i,1);
             }
         }
     }
