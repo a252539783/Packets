@@ -5,16 +5,21 @@ import android.content.Intent;
 import android.content.ServiceConnection;
 import android.net.VpnService;
 import android.os.IBinder;
+import android.support.v4.widget.TextViewCompat;
 import android.support.v7.app.AppCompatActivity;
 import android.os.Bundle;
+import android.support.v7.widget.AppCompatTextView;
+import android.text.Layout;
 import android.util.Log;
 import android.view.View;
 import android.widget.Button;
+import android.widget.EditText;
 import android.widget.TextView;
 
 import com.iqiyi.liquanfei_sx.vpnt.floating.MFloatingWindow;
 import com.iqiyi.liquanfei_sx.vpnt.service.ClientService;
 import com.iqiyi.liquanfei_sx.vpnt.service.ServerService;
+import com.iqiyi.liquanfei_sx.vpnt.view.FixedWidthTextView;
 
 public class MainActivity extends AppCompatActivity implements View.OnClickListener,ClientService.OnPacketsAddListener,ClientService.OnServerConnectedListener{
 
@@ -25,8 +30,8 @@ public class MainActivity extends AppCompatActivity implements View.OnClickListe
     PacketsAdapter pa;
     ServiceConnection sc;
     private boolean foreground=true;
-    StringBuilder builder=new StringBuilder("textTTTTTTTTTTTTTTTTTTTTTTTTTTTTTTTTTTTTTTTTTTTTTTTTTTTT");
-    TextView tv;
+    StringBuilder builder=new StringBuilder("abcdefg");
+    FixedWidthTextView tv;
     String ss;
 
     @Override
@@ -35,7 +40,7 @@ public class MainActivity extends AppCompatActivity implements View.OnClickListe
         setContentView(R.layout.activity_main);
         //window=new MFloatingWindow(this);
         // Example of a call to a native method
-        tv = (TextView) findViewById(R.id.test_text);
+        tv = (FixedWidthTextView) findViewById(R.id.test_text);
 
         button=(Button)findViewById(R.id.b_test);
         button.setOnClickListener(this);
@@ -47,12 +52,21 @@ public class MainActivity extends AppCompatActivity implements View.OnClickListe
     @Override
     public void onClick(View v) {
         //window.remove();
-
-        if (builder.length()<=200000)
-            ss=builder.append(builder).toString();
-        Log.e("xx",tv.getTransformationMethod()+""+tv.getLayout().getClass().getName());
-        tv.setText(ss);
-
+        new Thread(){
+            @Override
+            public void run() {
+                super.run();
+                if (builder.length()<=200000)
+                    ss=builder.append(builder).toString();
+                tv.post(new Runnable() {
+                    @Override
+                    public void run() {
+                        tv.setText(ss);
+                        tv.invalidate();
+                    }
+                });
+            }
+        }.start();
         //pa.notifyDataSetChanged();
     }
 
