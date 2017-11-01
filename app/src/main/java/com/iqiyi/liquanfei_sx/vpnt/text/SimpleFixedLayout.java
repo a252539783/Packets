@@ -29,6 +29,8 @@ public class SimpleFixedLayout extends Layout{
 
     private int mSelectedStart=40,mSelectedEnd=90;
 
+    private boolean mSelecting=false,mStartSelected=false;
+
     private static boolean sInited=false;
 
     private static Directions DIRS_ALL_LEFT_TO_RIGHT;
@@ -73,12 +75,17 @@ public class SimpleFixedLayout extends Layout{
             init(paint);
         }
 
-        mOneHeight= (int)(paint.getFontMetrics().descent-paint.getFontMetrics().ascent);
+        mOneHeight= (int)(paint.getFontMetrics().bottom-paint.getFontMetrics().top);
         sSelectedText.setTextSize(paint.getTextSize());
         sSSelectedBg.setTextSize(paint.getTextSize());
         sSelectedBg.setTextSize(paint.getTextSize());
         mTextDesc=paint.getFontMetrics().descent;
         mTextSc=paint.getFontMetrics().ascent;
+    }
+
+    public int getOneHeight()
+    {
+        return mOneHeight;
     }
 
     public void setOne(int w,int h)
@@ -91,21 +98,67 @@ public class SimpleFixedLayout extends Layout{
         mLineCount=getText().length()/mColumns+1;
     }
 
-    public void selected(int index)
+    public void select(int index)
     {
-        if (mSelectedEnd<index)
+        if (index<0||index>getCharCount())
+            return ;
+
+        if (mSelecting)
         {
-            mSelectedEnd=index;
-        }else if (mSelectedStart>index)
+            if (mStartSelected)
+            {
+                if (index>mSelectedEnd)
+                {
+                    mStartSelected=false;
+                    mSelectedStart=mSelectedEnd;
+                }else
+                {
+                    mSelectedStart=index;
+                }
+
+            }else
+            {
+                if (index<mSelectedStart)
+                {
+                    mStartSelected=true;
+                    mSelectedEnd=mSelectedStart;
+                }else {
+                    mSelectedEnd = index;
+                }
+            }
+        }else
         {
-            mSelectedStart=index;
-        }else if (mSelectedStart<index&&mSelectedEnd>index)
-        {
-            if (index-mSelectedStart>mSelectedEnd-index)
-                mSelectedEnd=index;
-            else
-                mSelectedStart=index;
+            mSelecting=true;
+            if (mSelectedStart<index&&mSelectedEnd>index)
+            {
+                if (index-mSelectedStart>mSelectedEnd-index){
+                    mSelectedEnd=index;
+                    mStartSelected=false;
+                }
+                else {
+                    mSelectedStart = index;
+                    mStartSelected=true;
+                }
+            }else
+            {
+                mSelectedStart=mSelectedEnd=index;
+            }
         }
+    }
+
+    public void resetSelect()
+    {
+        mSelectedStart=mSelectedEnd=-1;
+    }
+
+    public boolean isSelect(int index)
+    {
+        return index>=mSelectedStart&&index<=mSelectedEnd;
+    }
+
+    public void stopSelect()
+    {
+        mSelecting=false;
     }
 
     public void drawText(Canvas canvas, int firstLine, int lastLine) {
@@ -126,16 +179,21 @@ public class SimpleFixedLayout extends Layout{
                     break;
                 if (index>=mSelectedStart&&index<mSelectedEnd)
                 {
-                    canvas.drawRect(x,drawY+mTextSc,x+mOneWidth,drawY+mOneHeight+mTextSc,sSelectedBg);
-                    canvas.drawText(((String)getText()),index++,index,x,drawY,sSelectedText);
+                    canvas.drawRect(x,drawY-mOneHeight,x+mOneWidth,drawY,sSelectedBg);
+                    canvas.drawText(((String)getText()),index++,index,x,drawY-mTextDesc,sSelectedText);
                 }else
                 {
-                    canvas.drawText(((String)getText()),index++,index,x,drawY,getPaint());
+                    canvas.drawText(((String)getText()),index++,index,x,drawY-mTextDesc,getPaint());
                 }
                 x+=mOneWidth;
             }
             drawY+=mOneHeight;
         }
+    }
+
+    public int getCharCount()
+    {
+        return getText().length();
     }
 
     @Override
