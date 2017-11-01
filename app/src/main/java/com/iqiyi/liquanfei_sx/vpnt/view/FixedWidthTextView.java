@@ -30,6 +30,7 @@ public class FixedWidthTextView extends View {
     private TextPaint mPaint;
 
     private float mLastScrollY=0,mScrollY=0,mMaxScrollY;
+    private float mScrollStartY=0;
     private float mScrollVelocity=0;
     private float mTapY=0;
     private float mLastMoveY=Float.MIN_VALUE;
@@ -39,7 +40,9 @@ public class FixedWidthTextView extends View {
     private Rect mCurrentRect=new Rect();
 
     private long mTimeLastUp=0,mTimeLastMove=0;
+
     private boolean mDoubleTap=false;
+    private boolean mEditMode=false;
 
     private float mAutoScrollSpeed=0;
     private Runnable mSmoothAutoScrollRunnable=new Runnable() {
@@ -110,11 +113,10 @@ public class FixedWidthTextView extends View {
         setClickable(true);
         mPaint=new TextPaint(Paint.ANTI_ALIAS_FLAG);
         mPaint.setTypeface(Typeface.MONOSPACE);
-        mPaint.setTextSize(30);
+        mPaint.setTextSize(60);
         mPaint.setColor(Color.BLACK);
         mPaint.density=getResources().getDisplayMetrics().density;
 
-        mOneHeight=31;
         mOneWidth=30;
     }
 
@@ -122,9 +124,10 @@ public class FixedWidthTextView extends View {
     {
         mText=text;
         mLayout=new SimpleFixedLayout(mText,mPaint,getWidth(), Layout.Alignment.ALIGN_NORMAL,0,0);
-        mLayout.setOne(mOneWidth,mOneHeight);
-        Paint.FontMetrics fm=mPaint.getFontMetrics();
-        Log.e("xx","desc:"+fm.descent+" sc:"+fm.ascent+" top:"+fm.top+" bottom:"+fm.bottom+ " lead:"+fm.leading);
+        mLayout.setOne(mOneWidth,-1);
+       // Paint.FontMetrics fm=mPaint.getFontMetrics();
+        mOneHeight=mLayout.getOneHeight();
+        //Log.e("xx","desc:"+fm.descent+" sc:"+fm.ascent+" top:"+fm.top+" bottom:"+fm.bottom+ " lead:"+fm.leading);
         requestLayout();
     }
 
@@ -143,22 +146,34 @@ public class FixedWidthTextView extends View {
     public boolean onTouchEvent(MotionEvent event) {
 
         Log.e("xx",event.getAction()+":"+event.getX());
+
+        int selectIndex=((int)(mScrollY+event.getY())/mOneHeight*(getMeasuredWidth()/mOneWidth)+(int)event.getX()/mOneWidth);
+
         if (event.getAction()==MotionEvent.ACTION_DOWN)
         {
             stopNaturalScroll();
-            if (!mDoubleTap&&(SystemClock.uptimeMillis()-mTimeLastUp)<= ViewConfiguration.getDoubleTapTimeout())  //double tap
+            if ((!mDoubleTap&&(SystemClock.uptimeMillis()-mTimeLastUp)<= ViewConfiguration.getDoubleTapTimeout()))     //double tap
             {
                 mDoubleTap=true;
+                mEditMode=true;
             }else
             {
+                if (mLayout.isSelect(selectIndex))
+                {
+                    mEditMode=true;
+                }
                 mDoubleTap=false;
                 mTapY=event.getY();
+                mScrollStartY=mTapY;
             }
         }
         else if (event.getAction()==MotionEvent.ACTION_UP)
         {
             if (mLastScrollY==mScrollY)
                 mTimeLastUp= SystemClock.uptimeMillis();
+
+            mLayout.stopSelect();
+            mEditMode=false;
 
             if (!mDoubleTap&&mScrollVelocity!=0)
             {
@@ -170,27 +185,19 @@ public class FixedWidthTextView extends View {
             stopAutoScroll();
         }else if (event.getAction()==MotionEvent.ACTION_MOVE)
         {
-            if (mDoubleTap)
+            if (mDoubleTap||mEditMode)
             {
-                mLayout.selected(((int)(mScrollY+event.getY())/mOneHeight*(getMeasuredWidth()/mOneWidth)+(int)event.getX()/mOneWidth));
 
-                if (event.getY()<0)
-                {
-                    autoScroll(event.getY());
-                }else if (event.getY()>getMeasuredHeight())
-                {
-                    autoScroll((event.getY()-getMeasuredHeight()));
-                }else
-                {
-                    stopAutoScroll();
-                }
-                invalidate();
             }else
             {
-                float dy=(mTapY-event.getY());
+                float dy=(mScrollStartY-event.getY());
                 if (canScroll(dy)) {
                     mScrollY=mLastScrollY+dy;
                     checkFixScroll();
+                }else
+                {
+                    mScrollStartY=event.getY();
+                    mLastScrollY=mScrollY;
                 }
 
                 if (mLastMoveY!=Float.MIN_VALUE)
@@ -200,6 +207,23 @@ public class FixedWidthTextView extends View {
             }
 
             mLastMoveY=event.getY();
+        }
+
+        if (mEditMode)
+        {
+            mLayout.select(selectIndex);
+
+            if (event.getY()<0)
+            {
+                autoScroll(event.getY());
+            }else if (event.getY()>getMeasuredHeight())
+            {
+                autoScroll((event.getY()-getMeasuredHeight()));
+            }else
+            {
+                stopAutoScroll();
+            }
+            invalidate();
         }
 
         return super.onTouchEvent(event);
