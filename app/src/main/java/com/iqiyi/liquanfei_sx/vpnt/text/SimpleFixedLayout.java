@@ -28,6 +28,7 @@ public class SimpleFixedLayout extends Layout{
     private int mLineCount;
 
     private int mSelectedStart=40,mSelectedEnd=90;
+    private int mCursorLength=3;
 
     private boolean mSelecting=false,mStartSelected=false;
 
@@ -179,10 +180,14 @@ public class SimpleFixedLayout extends Layout{
                     break;
                 if (index>=mSelectedStart&&index<mSelectedEnd)
                 {
-                    canvas.drawRect(x,drawY-mOneHeight,x+mOneWidth,drawY,sSelectedBg);
-                    canvas.drawText(((String)getText()),index++,index,x,drawY-mTextDesc,sSelectedText);
+                        canvas.drawRect(x,drawY-mOneHeight,x+mOneWidth,drawY,sSelectedBg);
+                        canvas.drawText(((String)getText()),index++,index,x,drawY-mTextDesc,sSelectedText);
                 }else
                 {
+                    if (index==mSelectedStart)
+                    {
+                        canvas.drawRect(x,drawY-mOneHeight,x+3,drawY,sSelectedBg);
+                    }
                     canvas.drawText(((String)getText()),index++,index,x,drawY-mTextDesc,getPaint());
                 }
                 x+=mOneWidth;

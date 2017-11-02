@@ -161,6 +161,9 @@ public class FixedWidthTextView extends View {
                 if (mLayout.isSelect(selectIndex))
                 {
                     mEditMode=true;
+                }else
+                {
+                    mLayout.resetSelect();
                 }
                 mDoubleTap=false;
                 mTapY=event.getY();
