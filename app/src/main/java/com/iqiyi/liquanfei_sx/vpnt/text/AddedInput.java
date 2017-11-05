@@ -34,6 +34,11 @@ public class AddedInput {
             int difference=last.difference();
             current=current+ii.mOffset-last.mOffset+difference;
 
+            while (current+difference>=offset)
+            {
+
+            }
+
             if (current>=offset)
             {
             }
