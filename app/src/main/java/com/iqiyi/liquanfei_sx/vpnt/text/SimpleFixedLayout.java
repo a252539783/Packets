@@ -21,7 +21,9 @@ import android.util.Log;
  */
 
 public class SimpleFixedLayout extends Layout{
+    public static final int ENCODE_HEX=1;
 
+    private int mEncode=-1;
     private int mOneWidth,mOneHeight;
     private float mTextDesc,mTextSc;
     private int mColumns;
@@ -29,6 +31,10 @@ public class SimpleFixedLayout extends Layout{
 
     private int mSelectedStart=40,mSelectedEnd=90;
     private int mCursorLength=3;
+
+    private byte[] mSource=null;
+
+    private AddedInput mInputs=null;
 
     private boolean mSelecting=false,mStartSelected=false;
 
@@ -43,15 +49,34 @@ public class SimpleFixedLayout extends Layout{
         DIRS_ALL_LEFT_TO_RIGHT = null;
     }
 
-    private static void init(TextPaint p)
+    private static void sInit(TextPaint p)
     {
-        sSelectedBg=new Paint(p);
-        sSelectedText=new Paint(p);
-        sSSelectedBg=new Paint(p);
 
-        sSelectedText.setColor(Color.WHITE);
-        sSelectedBg.setColor(Color.parseColor("#2196F3"));
-        sSSelectedBg.setColor(Color.BLUE);
+        if (!sInited)
+        {
+            sInited=true;
+            sSelectedBg=new Paint(p);
+            sSelectedText=new Paint(p);
+            sSSelectedBg=new Paint(p);
+
+            sSelectedText.setColor(Color.WHITE);
+            sSelectedBg.setColor(Color.parseColor("#2196F3"));
+            sSSelectedBg.setColor(Color.BLUE);
+
+            ByteConstants.initHex();
+        }
+
+
+    }
+
+    private void init(TextPaint paint)
+    {
+        mOneHeight= (int)(paint.getFontMetrics().bottom-paint.getFontMetrics().top);
+        sSelectedText.setTextSize(paint.getTextSize());
+        sSSelectedBg.setTextSize(paint.getTextSize());
+        sSelectedBg.setTextSize(paint.getTextSize());
+        mTextDesc=paint.getFontMetrics().descent;
+        mTextSc=paint.getFontMetrics().ascent;
     }
 
     /**
@@ -70,18 +95,19 @@ public class SimpleFixedLayout extends Layout{
      */
     public SimpleFixedLayout(CharSequence text, TextPaint paint, int width, Alignment align, float spacingMult, float spacingAdd) {
         super(text, paint, width, align, spacingMult, spacingAdd);
-        if (!sInited)
-        {
-            sInited=true;
-            init(paint);
-        }
+        mEncode=-1;
+        sInit(paint);
+        init(paint);
+    }
 
-        mOneHeight= (int)(paint.getFontMetrics().bottom-paint.getFontMetrics().top);
-        sSelectedText.setTextSize(paint.getTextSize());
-        sSSelectedBg.setTextSize(paint.getTextSize());
-        sSelectedBg.setTextSize(paint.getTextSize());
-        mTextDesc=paint.getFontMetrics().descent;
-        mTextSc=paint.getFontMetrics().ascent;
+    public SimpleFixedLayout(byte[] src, TextPaint paint, int width, Alignment align, float spacingMult, float spacingAdd) {
+        super("aaaaa", paint, width, align, spacingMult, spacingAdd);
+        mEncode=ENCODE_HEX;
+        mSource=src;
+        sInit(paint);
+        init(paint);
+
+        mInputs=new AddedInput(src);
     }
 
     public int getOneHeight()
@@ -96,7 +122,12 @@ public class SimpleFixedLayout extends Layout{
             mOneHeight=h;
         mColumns=(int)(getWidth()/ mOneWidth);
         if (mColumns!=0)
-        mLineCount=getText().length()/mColumns+1;
+        {
+            if (mEncode==ENCODE_HEX)
+                mLineCount=mSource.length/mColumns+1;
+            else
+                mLineCount=getText().length()/mColumns+1;
+        }
     }
 
     public void select(int index)
@@ -171,34 +202,62 @@ public class SimpleFixedLayout extends Layout{
 
         int index=mColumns*firstLine;
         float drawY=(firstLine+1)*mOneHeight;
-        for (int i=firstLine;i<lastLine;i++)
+        if (mEncode==ENCODE_HEX)
         {
-            int x=0;
-            for (int j=getLineStart(i);j<mColumns;j++)
+            for (int i=firstLine;i<lastLine;i++)
             {
-                if (index==getText().length())
-                    break;
-                if (index>=mSelectedStart&&index<mSelectedEnd)
+                int x=0;
+                for (int j=getLineStart(i);j<mColumns;j++)
                 {
+                    if (index==mInputs.getCharCount())
+                        break;
+                    if (index>=mSelectedStart&&index<mSelectedEnd)
+                    {
+                        canvas.drawRect(x,drawY-mOneHeight,x+mOneWidth,drawY,sSelectedBg);
+                        canvas.drawText(ByteConstants.HEX[mInputs.getByte(index++)&0xff],0,2,x,drawY-mTextDesc,sSelectedText);
+                    }else
+                    {
+                        if (index==mSelectedStart)
+                        {
+                            canvas.drawRect(x,drawY-mOneHeight,x+3,drawY,sSelectedBg);
+                        }
+                        canvas.drawText(ByteConstants.HEX[mInputs.getByte(index++)&0xff],0,2,x,drawY-mTextDesc,getPaint());
+                    }
+                    x+=mOneWidth;
+                }
+                drawY+=mOneHeight;
+            }
+        }else
+        {
+            for (int i=firstLine;i<lastLine;i++)
+            {
+                int x=0;
+                for (int j=getLineStart(i);j<mColumns;j++)
+                {
+                    if (index==getText().length())
+                        break;
+                    if (index>=mSelectedStart&&index<mSelectedEnd)
+                    {
                         canvas.drawRect(x,drawY-mOneHeight,x+mOneWidth,drawY,sSelectedBg);
                         canvas.drawText(((String)getText()),index++,index,x,drawY-mTextDesc,sSelectedText);
-                }else
-                {
-                    if (index==mSelectedStart)
+                    }else
                     {
-                        canvas.drawRect(x,drawY-mOneHeight,x+3,drawY,sSelectedBg);
+                        if (index==mSelectedStart)
+                        {
+                            canvas.drawRect(x,drawY-mOneHeight,x+3,drawY,sSelectedBg);
+                        }
+                        canvas.drawText(((String)getText()),index++,index,x,drawY-mTextDesc,getPaint());
                     }
-                    canvas.drawText(((String)getText()),index++,index,x,drawY-mTextDesc,getPaint());
+                    x+=mOneWidth;
                 }
-                x+=mOneWidth;
+                drawY+=mOneHeight;
             }
-            drawY+=mOneHeight;
         }
     }
 
     public int getCharCount()
     {
-        return getText().length();
+        return mInputs.getCharCount();
     }
 
     @Override

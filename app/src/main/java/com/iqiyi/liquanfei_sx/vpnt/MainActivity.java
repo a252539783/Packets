@@ -44,7 +44,13 @@ public class MainActivity extends AppCompatActivity implements View.OnClickListe
 
         button=(Button)findViewById(R.id.b_test);
         button.setOnClickListener(this);
-        tv.setText(builder);
+        //tv.setText(builder);
+        byte []b=new byte[1000];
+        for (int i=0;i<1000;i++)
+        {
+            b[i]=(byte)(i%0xff);
+        }
+        tv.setBytes(b);
 
         rv=(ExpandableRecyclerView)findViewById(R.id.rv);
     }
@@ -61,8 +67,15 @@ public class MainActivity extends AppCompatActivity implements View.OnClickListe
                 tv.post(new Runnable() {
                     @Override
                     public void run() {
-                        tv.setText(ss);
-                        tv.invalidate();
+                        //tv.setText(ss);
+                        byte []b=new byte[1000];
+                        for (int i=0;i<1000;i++)
+                        {
+                            b[i]=(byte)(i%0xff);
+                        }
+                        tv.setBytes(b);
+
+                        //tv.invalidate();
                     }
                 });
             }

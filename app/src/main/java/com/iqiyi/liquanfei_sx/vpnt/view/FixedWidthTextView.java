@@ -113,11 +113,11 @@ public class FixedWidthTextView extends View {
         setClickable(true);
         mPaint=new TextPaint(Paint.ANTI_ALIAS_FLAG);
         mPaint.setTypeface(Typeface.MONOSPACE);
-        mPaint.setTextSize(60);
+        mPaint.setTextSize(40);
         mPaint.setColor(Color.BLACK);
         mPaint.density=getResources().getDisplayMetrics().density;
 
-        mOneWidth=30;
+        mOneWidth=70;
     }
 
     public void setText(CharSequence text)
@@ -125,9 +125,15 @@ public class FixedWidthTextView extends View {
         mText=text;
         mLayout=new SimpleFixedLayout(mText,mPaint,getWidth(), Layout.Alignment.ALIGN_NORMAL,0,0);
         mLayout.setOne(mOneWidth,-1);
-       // Paint.FontMetrics fm=mPaint.getFontMetrics();
         mOneHeight=mLayout.getOneHeight();
-        //Log.e("xx","desc:"+fm.descent+" sc:"+fm.ascent+" top:"+fm.top+" bottom:"+fm.bottom+ " lead:"+fm.leading);
+        requestLayout();
+    }
+
+    public void setBytes(byte[] src)
+    {
+        mLayout=new SimpleFixedLayout(src,mPaint,getWidth(), Layout.Alignment.ALIGN_NORMAL,0,0);
+        mLayout.setOne(mOneWidth,-1);
+        mOneHeight=mLayout.getOneHeight();
         requestLayout();
     }
 
@@ -296,5 +302,7 @@ public class FixedWidthTextView extends View {
 
         getLocalVisibleRect(mCurrentRect);
         mMaxScrollY=mLayout.getLineCount()*mOneHeight-getMeasuredHeight();
+        mLayout.increaseWidthTo(getMeasuredWidth());
+        mLayout.setOne(mOneWidth,-1);
     }
 }

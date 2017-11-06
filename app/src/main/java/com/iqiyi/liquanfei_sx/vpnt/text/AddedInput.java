@@ -8,77 +8,95 @@ import java.util.TreeSet;
 
 /**
  * Created by Administrator on 2017/11/1.
+ * 表示一个文件中的所有更改
  */
 
 public class AddedInput {
-
-    private List<InputItem> mAllModify=new LinkedList<>();
-    private Set<InputItem> mAllResult=new TreeSet<>();
     private byte[] mSource=null;
+    private String mSSource=null;
+
+    private int segmentLength=1000;
+
+    private InputItem mRoot;
+    private int[] mCurrentIndex=new int[2];
+    private InputItem mStart,mCurrent;
+
+    private int mCharCount=0;
 
     public AddedInput(byte[] src){
-        mSource=src;
-    }
-
-    public void edit(int type,int offset,int length)
-    {
-        Iterator<InputItem> it=mAllResult.iterator();
-
-        InputItem ii,last=it.next();
-        int current=last.mOffset;
-        int result=offset;
-
-        while (it.hasNext())
+        int i,l;
+        InputItem item=mRoot=new InputItem(src,0,src.length<=segmentLength?src.length:segmentLength);
+        for (i=1;i<src.length/segmentLength;i++)
         {
-            ii=it.next();
-            int difference=last.difference();
-            current=current+ii.mOffset-last.mOffset+difference;
-
-            while (current+difference>=offset)
-            {
-
-            }
-
-            if (current>=offset)
-            {
-            }
-
-            result-=difference;
+            item.mNext=new InputItem(src,i*segmentLength,segmentLength);
+            item.mNext.mPrevious=item;
+            item=item.mNext;
         }
 
-    }
-
-    int realOffset(int offset)
-    {
-        if (mAllResult.isEmpty())
-            return offset;
-
-        Iterator<InputItem> it=mAllResult.iterator();
-
-        InputItem ii,last=it.next();
-        int current=last.mOffset;
-        int result=offset;
-
-        while (it.hasNext())
+        if ((l=src.length%segmentLength)!=0)
         {
-            ii=it.next();
-            int difference=last.difference();
-            current=current+ii.mOffset-last.mOffset+difference;
-
-            if (current>=offset)
-            {
-                return result;
-            }
-
-            result-=difference;
+            item.mNext=new InputItem(src,i*segmentLength,l);
+            item.mNext.mPrevious=item;
         }
 
-        return result;
+        mCurrent=mRoot;
+        mCharCount=src.length;
     }
 
+    public void delete(int offset,int length)
+    {
+
+    }
+
+    public int getCharCount()
+    {
+        return mCharCount;
+    }
+
+    private void select(int id,int offset)
+    {
+        mCurrentIndex[id]=offset;
+
+        if (id==0) {
+            if (offset >= mCurrent.mOffset) {
+                while (mCurrent.mOffset + mCurrent.mLength < offset) {
+                    mCurrent = mCurrent.mNext;
+                }
+            } else if (offset < mCurrent.mOffset) {
+                while (mCurrent.mOffset + mCurrent.mLength > offset) {
+                    mCurrent = mCurrent.mPrevious;
+                }
+            }
+        }
+    }
+
+    public byte getByte(int index)
+    {
+        /*if  (index>=mCurrent.mOffset)
+        {
+            while (true)
+            if (index<mCurrent.mOffset+mCurrent.mLength)
+            {
+                return mCurrent.mResult[index-mCurrent.mOffset];
+            }else
+            {
+                mCurrent=
+            }
+        }*/
+        select(0,index);
+
+        return mCurrent.mResult[index-mCurrent.mOffset];
+    }
+
+
+    /**
+     * 表示一个片段中的所有更改
+     */
     static class InputItem
     {
         static int DEFAULT_SIZE=16;
+
+        private InputItem mNext,mPrevious;
 
         int mOffset =0;
         int mOverride=0;
@@ -86,12 +104,6 @@ public class AddedInput {
         byte [] mResult;
 
         List<InputHistory> mHistory=new LinkedList<>();
-
-        InputItem(int offset)
-        {
-            mOffset =offset;
-            mResult =new byte[DEFAULT_SIZE];
-        }
 
         InputItem(byte []src,int offset,int length)
         {
@@ -102,12 +114,9 @@ public class AddedInput {
             System.arraycopy(src,offset, mResult,0,length);
         }
 
-        int difference()
+        public void delete(int offset,int length)
         {
-            if (mOverride==0)
-                return mLength;
 
-            return mLength-mOverride;
         }
     }
 
