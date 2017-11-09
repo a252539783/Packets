@@ -1,21 +1,16 @@
-package com.iqiyi.liquanfei_sx.vpnt;
+package com.iqiyi.liquanfei_sx.vpnt.view;
 
 import android.content.Context;
 import android.graphics.Color;
 import android.graphics.Rect;
 import android.support.annotation.Nullable;
 import android.support.v4.util.ArrayMap;
-import android.support.v7.widget.DefaultItemAnimator;
 import android.support.v7.widget.LinearLayoutManager;
 import android.support.v7.widget.RecyclerView;
 import android.support.v7.widget.SimpleItemAnimator;
 import android.util.AttributeSet;
-import android.util.Log;
-import android.view.MotionEvent;
 import android.view.View;
 import android.view.ViewGroup;
-import android.view.animation.Animation;
-import android.widget.LinearLayout;
 
 import com.iqiyi.liquanfei_sx.vpnt.tools.Rf;
 
@@ -165,7 +160,7 @@ public class ExpandableRecyclerView extends RecyclerView implements View.OnClick
             return ;
         }
         Object isExpand=mIsExpandView.get(real+1);
-        if (isExpand!=null&&((Boolean)isExpand)==true)
+        if (isExpand!=null&& ((Boolean) isExpand))
         {
             mIsExpandView.remove(real+1);
             mInnerAdapter.notifyItemRemoved(real+1);
