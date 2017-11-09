@@ -1,4 +1,4 @@
-package com.iqiyi.liquanfei_sx.vpnt.service;
+package com.iqiyi.liquanfei_sx.vpnt.packet;
 
 import android.content.ComponentName;
 import android.content.Intent;
@@ -9,14 +9,10 @@ import android.os.IBinder;
 import android.os.ParcelFileDescriptor;
 import android.util.Log;
 
-import com.iqiyi.liquanfei_sx.vpnt.packet.IPPacket;
-import com.iqiyi.liquanfei_sx.vpnt.packet.Packet;
-
 import java.io.FileInputStream;
 import java.io.FileOutputStream;
 import java.io.IOException;
 import java.io.OutputStream;
-import java.net.InetSocketAddress;
 import java.nio.ByteBuffer;
 import java.nio.channels.DatagramChannel;
 import java.util.ArrayList;
@@ -178,7 +174,7 @@ public class ClientService extends VpnService{
         }
     }
 
-    public ArrayList<ServerService.PacketList> getPackets()
+    public ArrayList<LocalPackets.PacketList> getPackets()
     {
         return ServerService.mPackets;
     }

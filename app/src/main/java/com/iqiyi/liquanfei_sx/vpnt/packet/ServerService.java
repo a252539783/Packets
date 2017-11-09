@@ -1,10 +1,9 @@
-package com.iqiyi.liquanfei_sx.vpnt.service;
+package com.iqiyi.liquanfei_sx.vpnt.packet;
 
 import android.app.Service;
 import android.content.ComponentName;
 import android.content.Intent;
 import android.content.ServiceConnection;
-import android.content.pm.PackageInfo;
 import android.os.Binder;
 import android.os.IBinder;
 import android.support.annotation.Nullable;
@@ -13,9 +12,6 @@ import android.util.SparseArray;
 
 import com.iqiyi.liquanfei_sx.vpnt.tools.AppPortList;
 import com.iqiyi.liquanfei_sx.vpnt.tools.ByteBufferPool;
-import com.iqiyi.liquanfei_sx.vpnt.packet.IPPacket;
-import com.iqiyi.liquanfei_sx.vpnt.packet.Packet;
-import com.iqiyi.liquanfei_sx.vpnt.packet.TCPPacket;
 
 import java.io.IOException;
 import java.io.UnsupportedEncodingException;
@@ -34,7 +30,6 @@ import java.util.Queue;
 import java.util.concurrent.ConcurrentLinkedQueue;
 import java.util.concurrent.ExecutorService;
 import java.util.concurrent.Executors;
-import java.util.concurrent.LinkedBlockingQueue;
 import java.util.concurrent.ThreadPoolExecutor;
 
 /**
@@ -44,7 +39,6 @@ import java.util.concurrent.ThreadPoolExecutor;
 public class ServerService extends Service {
 
     private MB mB = new MB();
-    private static AppPortList mPortList;
     private ClientService mLocal = null;
     private Selector mSelector = null;
     Queue<Key> prepareRegister = new ConcurrentLinkedQueue<>();
@@ -52,9 +46,12 @@ public class ServerService extends Service {
     private WriteThread mWriteThread = null;
     private ReadThread mReadThread = null;
 
+    private int mPacketIndex=1000000000;
     private ListenerInfo mListenerInfo = new ListenerInfo();
 
-    public static ArrayList<PacketList> mPackets = new ArrayList<>();
+    private LocalPackets.LocalPacketsMgr mLocalMgr=null;
+
+    public static ArrayList<LocalPackets.PacketList> mPackets = new ArrayList<>();
 
     private ByteBufferPool mBufferPool = ByteBufferPool.getDefault();
 
@@ -70,9 +67,11 @@ public class ServerService extends Service {
         Log.e("xx", "server started");
         if (mWriteThread==null)
         {
+            mPacketIndex=1000000000;
             mWriteThread = new WriteThread();
             mTransmitThread = new TransmitThread();
             mReadThread = new ReadThread();
+            mLocalMgr=LocalPackets.mgr();
         }
         return super.onStartCommand(intent, flags, startId);
     }
@@ -96,23 +95,16 @@ public class ServerService extends Service {
     }
 
     public void startDaemon() {
-        new Thread() {
-            @Override
-            public void run() {
-                mPortList = AppPortList.get(ServerService.this);
-                try {
-                    mSelector = Selector.open();
-                } catch (IOException e) {
-                    e.printStackTrace();
-                }
-                super.run();
-                while (mLocal == null) ;
-                mReadThread.start();
-                mTransmitThread.start();
-                mWriteThread.start();
-            }
-        }.start();
-
+        try {
+            mSelector = Selector.open();
+        } catch (IOException e) {
+            e.printStackTrace();
+        }
+        while (mLocal == null) ;
+        LocalPackets.get().newHistory(System.nanoTime());
+        mReadThread.start();
+        mTransmitThread.start();
+        mWriteThread.start();
     }
 
     public void stopDaemon() {
@@ -151,7 +143,7 @@ public class ServerService extends Service {
     }
 
     private class TransmitThread extends Thread {
-        LinkedBlockingQueue<Packet> mPackets;
+        ConcurrentLinkedQueue<Packet> mPackets;
         SparseArray<TCPStatus> mSockets;
         private ExecutorService mThreadPool;
 
@@ -159,7 +151,7 @@ public class ServerService extends Service {
 
         TransmitThread() {
             mSockets = new SparseArray<>();
-            mPackets = new LinkedBlockingQueue<>();
+            mPackets = new ConcurrentLinkedQueue<>();
             mThreadPool = Executors.newCachedThreadPool();
             setPriority(MAX_PRIORITY);
         }
@@ -171,7 +163,8 @@ public class ServerService extends Service {
             Log.e("xx", "daemon started");
             while (!mPause || !mPackets.isEmpty()) {
                 Packet packet = mPackets.poll();
-                doTransmit(packet);
+                if (packet!=null)
+                    doTransmit(packet);
             }
             Log.e("xx", "daemon ended");
         }
@@ -337,7 +330,7 @@ public class ServerService extends Service {
 //        OutputStream os;
         SocketChannel mChannel;
         boolean closed = false;
-        PacketList mPacketList;
+        LocalPackets.PacketList mPacketList;
         Queue<SendEntry> mReadySend = new LinkedList<>();
         int mPosition = 0;
 
@@ -345,7 +338,7 @@ public class ServerService extends Service {
 
         public TCPStatus(TCPPacket packet) throws IOException {
 
-            mPacketList = new PacketList(packet);
+            mPacketList = new LocalPackets.PacketList(packet,mPacketIndex++);
             if (mPacketList.mInfo != null) {
                 mPackets.add(mPacketList);
                 mPosition = mPackets.size() - 1;
@@ -397,12 +390,12 @@ public class ServerService extends Service {
 
         void fin() {
             mPacketList.add((TCPPacket) mBuilder.build(mPacketList.getLast(), null, TCPPacket.FIN).getData(),false);
-            mWriteThread.write(mPacketList.get(mPacketList.size()-1));
+            mWriteThread.write(mPacketList.get(mPacketList.size()-1).mPacket);
         }
 
         void rst() {
             mPacketList.add((TCPPacket) mBuilder.build(mPacketList.getLast(), null, TCPPacket.RST).getData(),false);
-            mWriteThread.write(mPacketList.get(mPacketList.size()-1));
+            mWriteThread.write(mPacketList.get(mPacketList.size()-1).mPacket);
         }
 
         public void ack(SendEntry se)      //避免发送队列混乱
@@ -421,7 +414,7 @@ public class ServerService extends Service {
             if (se.packet.fin || se.packet.rst) {
                 se.available = false;
                 mPacketList.add((TCPPacket) mBuilder.build(se.packet).getData(),false);
-                mWriteThread.write(mPacketList.get(mPacketList.size()-1));
+                mWriteThread.write(mPacketList.get(mPacketList.size()-1).mPacket);
             }
 
             if (!se.packet.syn && se.packet.getDataLength() == 0 && !se.packet.fin && !se.packet.rst) {
@@ -487,7 +480,7 @@ public class ServerService extends Service {
                 }
 
             mPacketList.add((TCPPacket) mBuilder.build(packet, data).getData(),false);
-            mWriteThread.write(mPacketList.get(mPacketList.size()-1));
+            mWriteThread.write(mPacketList.get(mPacketList.size()-1).mPacket);
             if (mListenerInfo.mOnPacketAddListener != null) {
                 mListenerInfo.mOnPacketAddListener.onPacketAdd(mPosition, mPacketList.size() - 1);
             }
@@ -555,7 +548,7 @@ public class ServerService extends Service {
                                             //prepareRegister.add(new Key(channel,SelectionKey.OP_READ,status));
                                             //channel.register(mSelector,SelectionKey.OP_READ,status);
                                             key.interestOps(key.interestOps() | SelectionKey.OP_READ);
-                                            status.ack(new SendEntry(status.mPacketList.get(0)));
+                                            status.ack(new SendEntry(status.mPacketList.get(0).mPacket));
                                             //prepareRegister.add(new Key(channel,SelectionKey.OP_CONNECT,status));
                                             //mSelector.wakeup();
                                             if (status.mPacketList.mInfo != null)
@@ -601,9 +594,6 @@ public class ServerService extends Service {
                                         try {
                                             /**实际转发*/
                                             channel.write(buffer);
-                                            if (true) {
-                                                //Log.e("written :",new String(buffer.array(),start,buffer.position()));
-                                            }
                                         } catch (Exception e) {
                                             Log.e("xx", "when write:" + e.toString());
                                             key.cancel();
@@ -644,57 +634,7 @@ public class ServerService extends Service {
         }
     }
 
-    public static class PacketList {
-        AppPortList.AppInfo mInfo;
-        public int mSPort, mDPort;
-        private String ip;
-        private ArrayList<TCPPacket> packets;
 
-        private int mLast=0;
-
-        PacketList(TCPPacket init) {
-            packets = new ArrayList<>();
-            add(init,true);
-            mSPort = init.getSourcePort();
-            mDPort = init.getPort();
-            ip = init.getDestIp();
-            mInfo = mPortList.getAppInfo(mSPort);
-            if (mInfo != null)
-                Log.e("xx", "find app:" + mInfo.info.packageName);
-        }
-
-        public int size() {
-            return packets.size();
-        }
-
-        synchronized void add(TCPPacket p,boolean local) {
-            packets.add(p);
-            if (local)
-            {
-                mLast=packets.size()-1;
-            }
-        }
-
-        public TCPPacket get(int i) {
-            return packets.get(i);
-        }
-
-        public int port() {
-            return mDPort;
-        }
-
-        public String ip() {
-            return ip;
-        }
-
-        public AppPortList.AppInfo info() {
-            return mInfo;
-        }
-
-        TCPPacket getLast() {
-            return packets.get(mLast);
-        }
-    }
 
     static class ListenerInfo {
         private ClientService.OnPacketAddListener mOnPacketAddListener;
