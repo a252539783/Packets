@@ -2,8 +2,6 @@ package com.iqiyi.liquanfei_sx.vpnt.packet;
 
 import android.util.Log;
 
-import com.iqiyi.liquanfei_sx.vpnt.service.ServerService;
-
 import java.nio.ByteBuffer;
 
 /**
