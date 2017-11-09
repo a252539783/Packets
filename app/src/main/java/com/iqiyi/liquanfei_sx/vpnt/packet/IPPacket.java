@@ -10,7 +10,7 @@ public class IPPacket extends Packet{
 
     private byte[] mSourceIp,mDestIp;
     private byte mHeaderLength,mVersion,mTos,mProtocol,mTTL;
-    int length;
+    public int length;
 
     private Packet mData;
 
@@ -89,6 +89,11 @@ public class IPPacket extends Packet{
                 .append(mSourceIp[1]&0xff).append('.')
                 .append(mSourceIp[2]&0xff).append('.')
                 .append(mSourceIp[3]&0xff).toString();
+    }
+
+    public int getHeaderLength()
+    {
+        return mHeaderLength;
     }
 
     public String getHeader()
