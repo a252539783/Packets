@@ -10,9 +10,19 @@ import com.iqiyi.liquanfei_sx.vpnt.tools.AppPortList;
  */
 
 public class MApp extends Application {
+
+    private static Application mInstance;
+
     @Override
     public void onCreate() {
         super.onCreate();
-        //AppPortList.init(this);
+        mInstance=this;
+        Constants.init(this);
+        AppPortList.init();
+    }
+
+    public static Application get()
+    {
+        return mInstance;
     }
 }
