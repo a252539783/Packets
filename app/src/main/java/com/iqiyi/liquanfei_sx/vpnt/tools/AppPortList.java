@@ -3,9 +3,13 @@ package com.iqiyi.liquanfei_sx.vpnt.tools;
 import android.content.Context;
 import android.content.pm.PackageInfo;
 import android.content.pm.PackageManager;
+import android.graphics.BitmapFactory;
+import android.graphics.drawable.BitmapDrawable;
 import android.graphics.drawable.Drawable;
 import android.util.Log;
 import android.util.SparseArray;
+
+import com.iqiyi.liquanfei_sx.vpnt.MApp;
 
 import java.io.BufferedReader;
 import java.io.File;
@@ -43,7 +47,7 @@ public class AppPortList {
         List<PackageInfo> infos=mPm.getInstalledPackages(PackageManager.GET_GIDS);
         for (int i=0;i<infos.size();i++)
         {
-            mPkgList.put(infos.get(i).applicationInfo.uid,new AppInfo(infos.get(i),mPm));
+            mPkgList.put(infos.get(i).applicationInfo.uid,new AppInfo(infos.get(i)));
         }
     }
 
@@ -97,18 +101,21 @@ public class AppPortList {
     public AppInfo getAppInfo(int port)
     {
         freshPort();
-        return mPortList.get(port);
+        return mPortList.get(port).loadIcon();
     }
 
-    public static void init(Context c)
+    public AppInfo getAppByUid(int uid)
     {
-        instance=new AppPortList(c);
+        return mPkgList.get(uid).loadIcon();
     }
 
-    public static AppPortList get(Context c)
+    public static void init()
     {
-        if (instance==null)
-            init(c);
+        instance=new AppPortList(MApp.get());
+    }
+
+    public static AppPortList get()
+    {
         return instance;
     }
 
@@ -122,17 +129,25 @@ public class AppPortList {
         return instance.mPkgList.get(uid).appName;
     }
 
-    public static class AppInfo
+    public class AppInfo
     {
         public PackageInfo info;
         public String appName;
         public Drawable icon;
 
-        private AppInfo(PackageInfo info,PackageManager pm)
+        private AppInfo(PackageInfo info)
         {
             this.info=info;
-            icon=info.applicationInfo.loadIcon(pm);
-            appName=info.applicationInfo.loadLabel(pm).toString();
+            appName=info.applicationInfo.loadLabel(mPm).toString();
+        }
+
+        public AppInfo loadIcon()
+        {
+            if (icon!=null)
+                return this;
+
+            icon=info.applicationInfo.loadIcon(mPm);
+            return this;
         }
     }
 
