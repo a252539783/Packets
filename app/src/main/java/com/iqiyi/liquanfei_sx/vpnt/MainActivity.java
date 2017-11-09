@@ -5,20 +5,18 @@ import android.content.Intent;
 import android.content.ServiceConnection;
 import android.net.VpnService;
 import android.os.IBinder;
-import android.support.v4.widget.TextViewCompat;
+import android.os.PersistableBundle;
 import android.support.v7.app.AppCompatActivity;
 import android.os.Bundle;
-import android.support.v7.widget.AppCompatTextView;
-import android.text.Layout;
 import android.util.Log;
 import android.view.View;
 import android.widget.Button;
-import android.widget.EditText;
-import android.widget.TextView;
 
 import com.iqiyi.liquanfei_sx.vpnt.floating.MFloatingWindow;
-import com.iqiyi.liquanfei_sx.vpnt.service.ClientService;
-import com.iqiyi.liquanfei_sx.vpnt.service.ServerService;
+import com.iqiyi.liquanfei_sx.vpnt.history.HistoryAdapter;
+import com.iqiyi.liquanfei_sx.vpnt.packet.ClientService;
+import com.iqiyi.liquanfei_sx.vpnt.packet.ServerService;
+import com.iqiyi.liquanfei_sx.vpnt.view.ExpandableRecyclerView;
 import com.iqiyi.liquanfei_sx.vpnt.view.FixedWidthTextView;
 
 public class MainActivity extends AppCompatActivity implements View.OnClickListener,ClientService.OnPacketsAddListener,ClientService.OnServerConnectedListener{
@@ -27,7 +25,7 @@ public class MainActivity extends AppCompatActivity implements View.OnClickListe
     private Button button;
     MFloatingWindow window;
     ExpandableRecyclerView rv;
-    PacketsAdapter pa;
+    HistoryAdapter.PacketsAdapter pa;
     ServiceConnection sc;
     private boolean foreground=true;
     StringBuilder builder=new StringBuilder("abcdefg");
@@ -40,46 +38,24 @@ public class MainActivity extends AppCompatActivity implements View.OnClickListe
         setContentView(R.layout.activity_main);
         //window=new MFloatingWindow(this);
         // Example of a call to a native method
-        tv = (FixedWidthTextView) findViewById(R.id.test_text);
+        //tv = (FixedWidthTextView) findViewById(R.id.test_text);
 
-        button=(Button)findViewById(R.id.b_test);
-        button.setOnClickListener(this);
-        //tv.setText(builder);
-        byte []b=new byte[1000];
-        for (int i=0;i<1000;i++)
-        {
-            b[i]=(byte)(i%0xff);
-        }
-        tv.setBytes(b);
+        //button=(Button)findViewById(R.id.b_test);
+        //button.setOnClickListener(this);
 
-        rv=(ExpandableRecyclerView)findViewById(R.id.rv);
+        //rv=(ExpandableRecyclerView)findViewById(R.id.erv_history);
+
+        new MainPresenter(this).bindView(findViewById(R.id.drawer_main));
+    }
+
+    @Override
+    public void onSaveInstanceState(Bundle outState, PersistableBundle outPersistentState) {
+        super.onSaveInstanceState(outState, outPersistentState);
     }
 
     @Override
     public void onClick(View v) {
         //window.remove();
-        new Thread(){
-            @Override
-            public void run() {
-                super.run();
-                if (builder.length()<=200000)
-                    ss=builder.append(builder).toString();
-                tv.post(new Runnable() {
-                    @Override
-                    public void run() {
-                        //tv.setText(ss);
-                        byte []b=new byte[1000];
-                        for (int i=0;i<1000;i++)
-                        {
-                            b[i]=(byte)(i%0xff);
-                        }
-                        tv.setBytes(b);
-
-                        //tv.invalidate();
-                    }
-                });
-            }
-        }.start();
         //pa.notifyDataSetChanged();
     }
 
@@ -115,24 +91,24 @@ public class MainActivity extends AppCompatActivity implements View.OnClickListe
     @Override
     protected void onResume() {
         super.onResume();
-        if (pa!=null)
-        {
-            pa.freshFilter();
-            mServer.setOnPacketsAddListener(this);
-        }else
-        {
-
-            final Intent i= VpnService.prepare(this);
-
-            if (i==null)
-            {
-                Log.e("xx","success");
-                //onActivityResult(1,1,null);
-            }else
-            {
-                //startActivityForResult(i,1);
-            }
-        }
+//        if (pa!=null)
+//        {
+//            pa.freshFilter();
+//            mServer.setOnPacketsAddListener(this);
+//        }else
+//        {
+//
+//            final Intent i= VpnService.prepare(this);
+//
+//            if (i==null)
+//            {
+//                Log.e("xx","success");
+//                onActivityResult(1,1,null);
+//            }else
+//            {
+//                startActivityForResult(i,1);
+//            }
+//        }
     }
 
     void fresh()
@@ -162,7 +138,7 @@ public class MainActivity extends AppCompatActivity implements View.OnClickListe
             @Override
             public void run() {
 
-                pa=new PacketsAdapter(mServer.getPackets(),MainActivity.this);
+                //pa=new HistoryAdapter.PacketsAdapter(mServer.getPackets(),MainActivity.this);
                 rv.setAdapter(pa);
                 //pa.setFilterKey(PacketsAdapter.FILTER_IP,"180.149.136.228");
                 mServer.setOnPacketsAddListener(MainActivity.this);
@@ -173,9 +149,9 @@ public class MainActivity extends AppCompatActivity implements View.OnClickListe
     @Override
     protected void onDestroy() {
         super.onDestroy();
-        mServer.removeOnPacketsAddListener();
-        mServer.removeOnServerConnectedListener();
-        unbindService(sc);
+//        mServer.removeOnPacketsAddListener();
+//        mServer.removeOnServerConnectedListener();
+//        unbindService(sc);
     }
 
     @Override

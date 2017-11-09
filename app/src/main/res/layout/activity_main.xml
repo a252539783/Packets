@@ -4,10 +4,11 @@
     xmlns:tools="http://schemas.android.com/tools"
     android:layout_width="match_parent"
     android:layout_height="match_parent"
+    android:id="@+id/drawer_main"
     tools:context="com.iqiyi.liquanfei_sx.vpnt.MainActivity">
 
     <include
-        layout="@layout/list_packets"/>
+        layout="@layout/content_main"/>
 
     <ViewStub
         android:id="@+id/nav_view"

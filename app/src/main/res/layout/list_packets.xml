@@ -6,20 +6,16 @@
         android:layout_width="match_parent"
         android:layout_height="wrap_content"
         android:orientation="vertical">
-        <com.iqiyi.liquanfei_sx.vpnt.ExpandableRecyclerView
+        <com.iqiyi.liquanfei_sx.vpnt.view.ExpandableRecyclerView
             android:layout_width="match_parent"
             android:layout_height="wrap_content"
-            android:id="@+id/rv">
+            android:id="@+id/erv_history">
 
-        </com.iqiyi.liquanfei_sx.vpnt.ExpandableRecyclerView>
+        </com.iqiyi.liquanfei_sx.vpnt.view.ExpandableRecyclerView>
         <Button
             android:layout_width="wrap_content"
             android:layout_height="wrap_content"
             android:id="@+id/b_test"/>
-        <com.iqiyi.liquanfei_sx.vpnt.view.FixedWidthTextView
-            android:layout_width="match_parent"
-            android:layout_height="300dp"
-            android:id="@+id/test_text"/>
 
     </LinearLayout>
 
