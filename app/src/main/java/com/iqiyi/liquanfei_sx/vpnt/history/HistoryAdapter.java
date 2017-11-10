@@ -25,15 +25,17 @@ import java.util.List;
  */
 
 
-public class HistoryAdapter extends ExpandableRecyclerView.Adapter<HistoryAdapter.H1>
+public class HistoryAdapter extends ExpandableRecyclerView.Adapter<HistoryAdapter.H1> implements LocalPackets.OnHistoryChangeListener
 {
     private List<LocalPackets.CaptureInfo> mAllHistory=null;
     private H mh=new H();
+    private LayoutInflater mLf;
 
-    private SparseArray<ExpandableRecyclerView.Adapter> mAdapters;
+    //private SparseArray<ExpandableRecyclerView.Adapter> mAdapters;
 
-    public HistoryAdapter()
+    public HistoryAdapter(Context c)
     {
+        mLf=LayoutInflater.from(c);
     }
 
     void setHistorySource(List<LocalPackets.CaptureInfo> src)
@@ -43,27 +45,14 @@ public class HistoryAdapter extends ExpandableRecyclerView.Adapter<HistoryAdapte
 
     @Override
     public void onBindExpandView(ExpandableRecyclerView view, int position) {
-        if (mAdapters==null)
-            mAdapters=new SparseArray<>();
+//        if (mAdapters==null)
+//            mAdapters=new SparseArray<>();
 
-        final ExpandableRecyclerView.Adapter adapter=new PacketsAdapter(mAllHistory.get(position).mPackets,view.getContext());
-        mAdapters.put(position,adapter);
+        final PacketsAdapter adapter=new PacketsAdapter(position);
+        //mAdapters.put(position,adapter);
         view.setAdapter(adapter);
-
-//        LocalPackets.mgr().addRequest(PersistRequest.newReadRequest(new PersistRequest.OnLoadHistoryListener() {
-//            @Override
-//            public void loadOne(int index) {
-//                Message msg=new Message();
-//                msg.what=H.NOTIFY_PACKETS;
-//                msg.arg1=index;
-//                msg.obj=adapter;
-//                mh.sendMessage(msg);
-//            }
-//
-//            @Override
-//            public void loadStart(List<LocalPackets.CaptureInfo> all) {
-//            }
-//        }, position));
+        LocalPackets.get().addPacketsChangeListener(adapter);
+        LocalPackets.mgr().addRequest(PersistRequest.newReadRequest(position));
     }
 
     @Override
@@ -86,7 +75,12 @@ public class HistoryAdapter extends ExpandableRecyclerView.Adapter<HistoryAdapte
         return mAllHistory==null?0:mAllHistory.size();
     }
 
-    public class PacketsAdapter extends ExpandableRecyclerView.Adapter<H2> {
+    @Override
+    public void onChange() {
+        notifyDataSetChanged();
+    }
+
+    public class PacketsAdapter extends ExpandableRecyclerView.Adapter<H2> implements LocalPackets.OnPacketsChangeListener{
 
         public static final int FILTER_NO=0;
         public static final int FILTER_IP=0x1;
@@ -95,18 +89,18 @@ public class HistoryAdapter extends ExpandableRecyclerView.Adapter<HistoryAdapte
         public static final int FILTER_PKG=0x8;
 
         private List<LocalPackets.PacketList> mPacketLists =null;
-        private LayoutInflater mLf=null;
 
         private List<Integer> mNo=new ArrayList<>(),mIpFilter,mPortFilter,mAppFilter,mPkgFilter,mCurrent=mNo;
         private int mFilterType=FILTER_NO;
         private String mIpFilterKey,mAppFilterKey,mPkgFilterKey;
         private int mPortFilterKey;
+        private int mTime;
 
-        public PacketsAdapter(List<LocalPackets.PacketList> packets,Context c)
+        public PacketsAdapter(int time)
         {
-            mPacketLists =packets;
+            mPacketLists =mAllHistory.get(time).mPackets;
             freshFilter();
-            mLf=LayoutInflater.from(c);
+            mTime=time;
             //registerAdapterDataObserver(mObserver);
         }
 
@@ -274,7 +268,8 @@ public class HistoryAdapter extends ExpandableRecyclerView.Adapter<HistoryAdapte
 
         @Override
         public void onBindExpandView(ExpandableRecyclerView view, int position) {
-            view.setAdapter(new ChildAdapter(position));
+            ChildAdapter ca=new ChildAdapter(position);
+            view.setAdapter(ca);
         }
 
         @Override
@@ -303,8 +298,25 @@ public class HistoryAdapter extends ExpandableRecyclerView.Adapter<HistoryAdapte
             return mCurrent.size();
         }
 
-        private class ChildAdapter extends ExpandableRecyclerView.Adapter<H3>
+
+        /**TODO
+         * 改到主线程
+         */
+        @Override
+        public void onChange(int time) {
+            if (time==mTime)
+                freshFilter();
+        }
+
+        @Override
+        public void onAdd(int time, int index) {
+            if (time==mTime)
+                notifyDataInserted(index);
+        }
+
+        private class ChildAdapter extends ExpandableRecyclerView.Adapter<H3> implements LocalPackets.OnPacketChangeListener
         {
+
             int mPosition;
 
             ChildAdapter(int position)
@@ -336,6 +348,18 @@ public class HistoryAdapter extends ExpandableRecyclerView.Adapter<HistoryAdapte
             @Override
             public int getItemCount() {
                 return mPacketLists.get(mCurrent.get(mPosition)).size();
+            }
+
+            @Override
+            public void onChange(int time, int index) {
+                if (time==mTime&&index==mPosition)
+                    notifyDataSetChanged();
+            }
+
+            @Override
+            public void onAdd(int time, int listIndex, int index) {
+                if (time==mTime&&listIndex==mPosition)
+                    notifyDataSetChanged();
             }
         }
     }

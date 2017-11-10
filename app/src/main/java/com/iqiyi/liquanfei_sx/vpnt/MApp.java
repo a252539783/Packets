@@ -3,6 +3,7 @@ package com.iqiyi.liquanfei_sx.vpnt;
 import android.app.Application;
 import android.content.Intent;
 
+import com.iqiyi.liquanfei_sx.vpnt.packet.LocalPackets;
 import com.iqiyi.liquanfei_sx.vpnt.tools.AppPortList;
 
 /**
@@ -18,7 +19,8 @@ public class MApp extends Application {
         super.onCreate();
         mInstance=this;
         Constants.init(this);
-        AppPortList.init();
+        LocalPackets.mgr();
+        //AppPortList.init();
     }
 
     public static Application get()

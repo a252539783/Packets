@@ -46,10 +46,8 @@ public class ServerService extends Service {
     private WriteThread mWriteThread = null;
     private ReadThread mReadThread = null;
 
-    private int mPacketIndex=1000000000;
+    private int mPacketIndex=0;
     private ListenerInfo mListenerInfo = new ListenerInfo();
-
-    private LocalPackets.LocalPacketsMgr mLocalMgr=null;
 
     public static ArrayList<LocalPackets.PacketList> mPackets = new ArrayList<>();
 
@@ -67,11 +65,11 @@ public class ServerService extends Service {
         Log.e("xx", "server started");
         if (mWriteThread==null)
         {
-            mPacketIndex=1000000000;
+            mPacketIndex=0;
             mWriteThread = new WriteThread();
             mTransmitThread = new TransmitThread();
             mReadThread = new ReadThread();
-            mLocalMgr=LocalPackets.mgr();
+            LocalPackets.mgr();
         }
         return super.onStartCommand(intent, flags, startId);
     }
@@ -338,7 +336,7 @@ public class ServerService extends Service {
 
         public TCPStatus(TCPPacket packet) throws IOException {
 
-            mPacketList = new LocalPackets.PacketList(packet,mPacketIndex++);
+            mPacketList = LocalPackets.get().initPackets(packet,mPacketIndex++);
             if (mPacketList.mInfo != null) {
                 mPackets.add(mPacketList);
                 mPosition = mPackets.size() - 1;
@@ -389,12 +387,12 @@ public class ServerService extends Service {
         }
 
         void fin() {
-            mPacketList.add((TCPPacket) mBuilder.build(mPacketList.getLast(), null, TCPPacket.FIN).getData(),false);
+            LocalPackets.get().addPacket(mPacketList.mIndex,(TCPPacket) mBuilder.build(mPacketList.getLast(), null, TCPPacket.FIN).getData(),false);
             mWriteThread.write(mPacketList.get(mPacketList.size()-1).mPacket);
         }
 
         void rst() {
-            mPacketList.add((TCPPacket) mBuilder.build(mPacketList.getLast(), null, TCPPacket.RST).getData(),false);
+            LocalPackets.get().addPacket(mPacketList.mIndex,(TCPPacket) mBuilder.build(mPacketList.getLast(), null, TCPPacket.RST).getData(),false);
             mWriteThread.write(mPacketList.get(mPacketList.size()-1).mPacket);
         }
 
@@ -406,14 +404,14 @@ public class ServerService extends Service {
                 return;
             }
 
-            mPacketList.add(se.packet,true);
+            LocalPackets.get().addPacket(mPacketList.mIndex,se.packet,true);
             if (mListenerInfo.mOnPacketAddListener != null) {
                 mListenerInfo.mOnPacketAddListener.onPacketAdd(mPosition, mPacketList.size() - 1);
             }
 
             if (se.packet.fin || se.packet.rst) {
                 se.available = false;
-                mPacketList.add((TCPPacket) mBuilder.build(se.packet).getData(),false);
+                LocalPackets.get().addPacket(mPacketList.mIndex,(TCPPacket) mBuilder.build(se.packet).getData(),false);
                 mWriteThread.write(mPacketList.get(mPacketList.size()-1).mPacket);
             }
 
@@ -479,7 +477,7 @@ public class ServerService extends Service {
                     e.printStackTrace();
                 }
 
-            mPacketList.add((TCPPacket) mBuilder.build(packet, data).getData(),false);
+            LocalPackets.get().addPacket(mPacketList.mIndex,(TCPPacket) mBuilder.build(packet, data).getData(),false);
             mWriteThread.write(mPacketList.get(mPacketList.size()-1).mPacket);
             if (mListenerInfo.mOnPacketAddListener != null) {
                 mListenerInfo.mOnPacketAddListener.onPacketAdd(mPosition, mPacketList.size() - 1);
@@ -579,7 +577,7 @@ public class ServerService extends Service {
                                         /**一个数据包已经被转发完成，此时把它的回复包写入本地*/
                                         if (buffer == null) {
                                             mWriteThread.write(se.packet);
-                                            status.mPacketList.add(se.packet,false);
+                                            LocalPackets.get().addPacket(status.mPacketList.mIndex,se.packet,false);
                                             status.mReadySend.poll();
                                             continue;
                                         }

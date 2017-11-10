@@ -79,7 +79,7 @@ public abstract class PersistRequest {
         @Override
         String doRequest(String folder) {
             try {
-                FileOutputStream fos=new FileOutputStream(folder+ mList.mIndex+'_'+mList.mInfo.info.applicationInfo.uid,true);
+                FileOutputStream fos=new FileOutputStream(folder+ (mList.mIndex+1000000000)+'_'+mList.mInfo.info.applicationInfo.uid,true);
                 fos.write(ByteConvert.getLong(mTime));
                 fos.write(mPacket.getRawData());
                 fos.close();
@@ -136,7 +136,7 @@ public abstract class PersistRequest {
                 try {
                     LocalPackets.CaptureInfo ci=LocalPackets.get().mAllPackets.get(mTimeIndex);
                     FileInputStream fis=new FileInputStream(new File(Constants.PrivateFileLocation.HISTORY+File.separator+
-                            ci.mTime+File.separator+ci.mPackets.get(mIndex).get(0).mTime));
+                            ci.mTime+File.separator+(ci.mPackets.get(mIndex).mIndex+1000000000)));
 
                     if (ci.mPackets.get(mIndex).size()>1)
                         return null;
@@ -196,11 +196,12 @@ public abstract class PersistRequest {
                 }
             }else if (mTimeIndex !=-1)
             {
-                String []names=new File(Constants.PrivateFileLocation.HISTORY+File.separator+ LocalPackets.get().mAllPackets.get(mTimeIndex).mTime).list();
+                File base=new File(Constants.PrivateFileLocation.HISTORY+File.separator+ LocalPackets.get().mAllPackets.get(mTimeIndex).mTime);
+                String []names=base.list();
                 File []files=new File[names.length];
                 for (int i=0;i<files.length;i++)
                 {
-                    files[i]=new File(names[i]);
+                    files[i]=new File(base,names[i]);
 
                     String ss[]=names[i].split(File.separator);
                     names[i]=ss[ss.length-1];
@@ -218,6 +219,9 @@ public abstract class PersistRequest {
                     int l=0;
                     try {
                         fis=new FileInputStream(files[i]);
+                        /** TODO
+                         * 跳过了时间
+                         */
                         fis.skip(8);
                         while ((l+=fis.read(src,l,40-l))!=40);
                     } catch (IOException e) {
@@ -230,7 +234,7 @@ public abstract class PersistRequest {
                         packets[i] = (TCPPacket) ip.getData();
 
                         String []ss=names[i].split("_");
-                        int listIndex=Integer.parseInt(ss[0]);
+                        int listIndex=Integer.parseInt(ss[0])-1000000000;
                         int uid=Integer.parseInt(ss[1]);
 
                         LocalPackets.get().initPackets(mTimeIndex,packets[i],listIndex,uid);

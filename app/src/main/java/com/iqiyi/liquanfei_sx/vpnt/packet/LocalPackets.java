@@ -29,7 +29,7 @@ public class LocalPackets {
     private List<WeakReference<OnPacketsChangeListener>> mPacketsChangeListeners;
     private List<WeakReference<OnPacketChangeListener>> mPacketChangeListeners;
 
-    List<CaptureInfo> mAllPackets=null;
+    public List<CaptureInfo> mAllPackets=null;
     private AppPortList mPortList;
 
     private LocalPackets()
@@ -95,7 +95,7 @@ public class LocalPackets {
         callHistoryChange();
     }
 
-    void initPackets(int history,TCPPacket packet,int listIndex,int uid)
+    synchronized void initPackets(int history,TCPPacket packet,int listIndex,int uid)
     {
         CaptureInfo ci=mAllPackets.get(history);
 
@@ -103,20 +103,47 @@ public class LocalPackets {
         {
             ci.mPackets.add(new PacketList(packet,listIndex,uid));
         }
-        callPacketChange(history,listIndex,ci.mPackets.size()-1);
+        callPacketsChange(history,listIndex);
     }
 
-    void initPacketList(int history,int index,TCPPacket packet,boolean local)
+    synchronized PacketList initPackets(TCPPacket packet,int listIndex)
+    {
+        CaptureInfo ci=mAllPackets.get(0);
+        PacketList pl=null;
+
+        if (packet!=null)
+        {
+            pl=new PacketList(packet,listIndex);
+            ci.mPackets.add(pl);
+            callPacketsChange(0,listIndex);
+        }
+
+        return pl;
+    }
+
+    synchronized void initPacketList(int history,int index,TCPPacket packet,boolean local)
     {
         if (packet!=null)
         {
             mAllPackets.get(history).mPackets.get(index).add(packet,local);
         }
-        callPacketsChange(history,index);
+        callPacketChange(history,index,mAllPackets.get(history).mPackets.get(index).size()-1);
+    }
+
+    synchronized void addPacket(int index,TCPPacket packet,boolean local)
+    {
+        if (packet!=null)
+        {
+            mAllPackets.get(0).mPackets.get(index).add(packet,local);
+        }
+        callPacketChange(0,index,mAllPackets.get(0).mPackets.get(index).size()-1);
     }
 
     private void callHistoryChange()
     {
+        if (mHistoryChangeListeners==null)
+            return;
+
         Iterator<WeakReference<OnHistoryChangeListener>> it=mHistoryChangeListeners.listIterator();
 
 
@@ -132,6 +159,9 @@ public class LocalPackets {
 
     private void callPacketsChange(int time,int listIndex)
     {
+        if (mPacketsChangeListeners==null)
+            return ;
+
         Iterator<WeakReference<OnPacketsChangeListener>> it=mPacketsChangeListeners.listIterator();
 
 
@@ -154,6 +184,9 @@ public class LocalPackets {
 
     private void callPacketChange(int time,int listIndex,int index)
     {
+        if (mPacketChangeListeners==null)
+            return ;
+
         Iterator<WeakReference<OnPacketChangeListener>> it=mPacketChangeListeners.listIterator();
 
 

@@ -111,7 +111,6 @@ public class ExpandableRecyclerView extends RecyclerView implements View.OnClick
         getItemAnimator().setAddDuration(0);
         setNestedScrollingEnabled(false);
         mInnerAdapter=new MAdapter();
-        setBackgroundColor(Color.GRAY);
         addItemDecoration(new ItemDecoration() {
             @Override
             public void getItemOffsets(Rect outRect, View view, RecyclerView parent, RecyclerView.State state) {
@@ -132,14 +131,17 @@ public class ExpandableRecyclerView extends RecyclerView implements View.OnClick
     }
 
     public void setAdapter(Adapter adapter) {
-        mAdapter=adapter;
-        mAdapter.registerAdapterDataObserver(mObserver);
-        mAdapter.notifyDataSetChanged();
+        if (mAdapter==null||mAdapter!=adapter) {
+            mAdapter = adapter;
+            mAdapter.registerAdapterDataObserver(mObserver);
+        }
+        //mAdapter.notifyDataSetChanged();
         mIsExpandView.clear();
         for (int i=0;i<mAdapter.getItemCount();i++)
         {
             mIsExpandView.add(false);
         }
+        super.setAdapter(mInnerAdapter);
     }
 
     MAdapter innerAdapter()

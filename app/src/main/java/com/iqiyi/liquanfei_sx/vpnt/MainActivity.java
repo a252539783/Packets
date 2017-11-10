@@ -32,6 +32,8 @@ public class MainActivity extends AppCompatActivity implements View.OnClickListe
     FixedWidthTextView tv;
     String ss;
 
+    MainPresenter mp;
+
     @Override
     protected void onCreate(Bundle savedInstanceState) {
         super.onCreate(savedInstanceState);
@@ -45,7 +47,19 @@ public class MainActivity extends AppCompatActivity implements View.OnClickListe
 
         //rv=(ExpandableRecyclerView)findViewById(R.id.erv_history);
 
-        new MainPresenter(this).bindView(findViewById(R.id.drawer_main));
+        mp=new MainPresenter(this);
+        mp.bindView(findViewById(R.id.drawer_main));
+
+        final Intent i= VpnService.prepare(this);
+
+//        if (i==null)
+//        {
+//            Log.e("xx","success");
+//            onActivityResult(1,1,null);
+//        }else
+//        {
+//            startActivityForResult(i,1);
+//        }
     }
 
     @Override
@@ -59,16 +73,6 @@ public class MainActivity extends AppCompatActivity implements View.OnClickListe
         //pa.notifyDataSetChanged();
     }
 
-    /**
-     * A native method that is implemented by the 'native-lib' native library,
-     * which is packaged with this application.
-     */
-
-    // Used to load the 'native-lib' library on application startup.
-//    static {
-//        System.loadLibrary("native-lib");
-//    }
-
     @Override
     protected void onActivityResult(int requestCode, int resultCode, Intent data) {
         super.onActivityResult(requestCode, resultCode, data);
@@ -78,7 +82,7 @@ public class MainActivity extends AppCompatActivity implements View.OnClickListe
             @Override
             public void onServiceConnected(ComponentName name, IBinder service) {
                 mServer=((ClientService.MB)service).get();
-                mServer.setOnServerConnectedListener(MainActivity.this);
+                //mServer.setOnServerConnectedListener(MainActivity.this);
             }
 
             @Override
@@ -91,24 +95,10 @@ public class MainActivity extends AppCompatActivity implements View.OnClickListe
     @Override
     protected void onResume() {
         super.onResume();
-//        if (pa!=null)
-//        {
-//            pa.freshFilter();
-//            mServer.setOnPacketsAddListener(this);
-//        }else
-//        {
-//
-//            final Intent i= VpnService.prepare(this);
-//
-//            if (i==null)
-//            {
-//                Log.e("xx","success");
-//                onActivityResult(1,1,null);
-//            }else
-//            {
-//                startActivityForResult(i,1);
-//            }
-//        }
+        {
+
+
+        }
     }
 
     void fresh()
@@ -157,9 +147,9 @@ public class MainActivity extends AppCompatActivity implements View.OnClickListe
     @Override
     protected void onPause() {
         super.onPause();
-        if (pa!=null)
-        {
-            mServer.removeOnPacketsAddListener();
-        }
+//        if (pa!=null)
+//        {
+//            mServer.removeOnPacketsAddListener();
+//        }
     }
 }
