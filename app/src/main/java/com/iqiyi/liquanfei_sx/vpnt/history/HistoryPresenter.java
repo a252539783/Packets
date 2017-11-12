@@ -11,7 +11,6 @@ import com.iqiyi.liquanfei_sx.vpnt.packet.PersistRequest;
 import com.iqiyi.liquanfei_sx.vpnt.view.ExpandableRecyclerView;
 
 import java.lang.ref.WeakReference;
-import java.util.List;
 
 /**
  * Created by Administrator on 2017/11/6.
