@@ -2,6 +2,7 @@ package com.iqiyi.liquanfei_sx.vpnt;
 
 import android.app.Application;
 import android.content.Intent;
+import android.os.Handler;
 
 import com.iqiyi.liquanfei_sx.vpnt.packet.LocalPackets;
 import com.iqiyi.liquanfei_sx.vpnt.tools.AppPortList;
@@ -12,7 +13,8 @@ import com.iqiyi.liquanfei_sx.vpnt.tools.AppPortList;
 
 public class MApp extends Application {
 
-    private static Application mInstance;
+    private static MApp mInstance;
+    private Handler mH=new Handler();
 
     @Override
     public void onCreate() {
@@ -23,8 +25,13 @@ public class MApp extends Application {
         //AppPortList.init();
     }
 
-    public static Application get()
+    public static MApp get()
     {
         return mInstance;
+    }
+
+    public void postMain(Runnable r)
+    {
+        mH.post(r);
     }
 }
