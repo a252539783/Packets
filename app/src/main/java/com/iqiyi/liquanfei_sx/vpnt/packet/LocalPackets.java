@@ -3,6 +3,7 @@ package com.iqiyi.liquanfei_sx.vpnt.packet;
 import android.util.Log;
 
 import com.iqiyi.liquanfei_sx.vpnt.Constants;
+import com.iqiyi.liquanfei_sx.vpnt.MApp;
 import com.iqiyi.liquanfei_sx.vpnt.tools.AppPortList;
 import com.iqiyi.liquanfei_sx.vpnt.tools.ByteBufferPool;
 
@@ -95,13 +96,13 @@ public class LocalPackets {
         callHistoryChange();
     }
 
-    synchronized void initPackets(int history,TCPPacket packet,int listIndex,int uid)
+    synchronized void initPackets(int history,long time,TCPPacket packet,int listIndex,int uid)
     {
         CaptureInfo ci=mAllPackets.get(history);
 
         if (packet!=null)
         {
-            ci.mPackets.add(new PacketList(packet,listIndex,uid));
+            ci.mPackets.add(new PacketList(packet,listIndex,time,uid));
         }
         callPacketsChange(history,listIndex);
     }
@@ -121,11 +122,11 @@ public class LocalPackets {
         return pl;
     }
 
-    synchronized void initPacketList(int history,int index,TCPPacket packet,boolean local)
+    synchronized void initPacketList(int history,int index,long time,TCPPacket packet,boolean local)
     {
         if (packet!=null)
         {
-            mAllPackets.get(history).mPackets.get(index).add(packet,local);
+            mAllPackets.get(history).mPackets.get(index).add(packet,time);
         }
         callPacketChange(history,index,mAllPackets.get(history).mPackets.get(index).size()-1);
     }
@@ -153,7 +154,8 @@ public class LocalPackets {
             if (l.get()==null)
                 it.remove();
             else
-                l.get().onChange();
+                MApp.get().postMain(new OnChangeRunnable(l));
+                //l.get().onChange();
         }
     }
 
@@ -173,10 +175,12 @@ public class LocalPackets {
             else{
                 if (listIndex==-1)
                 {
-                    l.get().onChange(time);
+                    MApp.get().postMain(new OnChangeRunnable(l,time));
+                    //l.get().onChange(time);
                 }else
                 {
-                    l.get().onAdd(time,listIndex);
+                    MApp.get().postMain(new OnAddRunnable(l,time,listIndex));
+                    //l.get().onAdd(time,listIndex);
                 }
             }
         }
@@ -198,10 +202,12 @@ public class LocalPackets {
             else{
                 if (listIndex==-1)
                 {
-                    l.get().onChange(time,listIndex);
+                    MApp.get().postMain(new OnChangeRunnable(l,time,listIndex));
+                    //l.get().onChange(time,listIndex);
                 }else
                 {
-                    l.get().onAdd(time,listIndex,index);
+                    MApp.get().postMain(new OnAddRunnable(l,time,listIndex,index));
+                    //l.get().onAdd(time,listIndex,index);
                 }
             }
         }
@@ -334,7 +340,7 @@ public class LocalPackets {
                 Log.e("xx", "find app:" + mInfo.info.packageName);
         }
 
-        PacketList(TCPPacket init,int index,int uid)
+        PacketList(TCPPacket init,int index,long time,int uid)
         {
             mIndex=index;
             packets = new ArrayList<>();
@@ -342,7 +348,7 @@ public class LocalPackets {
             mDPort = init.getPort();
             ip = init.getDestIp();
             mInfo = AppPortList.get().getAppByUid(uid);
-            add(init,true);
+            add(init,time);
             if (mInfo != null)
                 Log.e("xx", "find app:" + mInfo.info.packageName);
         }
@@ -351,15 +357,25 @@ public class LocalPackets {
             return packets.size();
         }
 
-        synchronized void add(TCPPacket p,boolean local) {
+        synchronized PacketItem add(TCPPacket p,boolean local) {
             PacketItem item=new PacketItem(System.nanoTime(),p);
             packets.add(item);
-
             LocalPackets.mgr().addRequest(PersistRequest.newWriteRequest(item.mTime,this,p));
+
             if (local)
             {
                 mLast=packets.size()-1;
             }
+
+            return item;
+        }
+
+        private PacketItem add(TCPPacket p,long time)
+        {
+            PacketItem item=new PacketItem(System.nanoTime(),p);
+            packets.add(item);
+
+            return item;
         }
 
         public PacketItem get(int i) {
@@ -400,5 +416,87 @@ public class LocalPackets {
         void onChange(int time,int index);
 
         void onAdd(int time,int listIndex,int index);
+    }
+
+    private class OnAddRunnable implements Runnable
+    {
+        private int mTime=-1,mListIndex=-1,mIndex=-1;
+        private WeakReference mListener;
+
+        OnAddRunnable(WeakReference l,int time,int listIndex)
+        {
+            mListener=l;
+            mTime=time;
+            mListIndex=listIndex;
+        }
+
+        OnAddRunnable(WeakReference l,int time,int listIndex,int index)
+        {
+            this(l,time, listIndex);
+            mIndex=index;
+        }
+
+        @Override
+        public void run() {
+            if (mIndex==-1)
+            {
+                OnPacketsChangeListener l= (OnPacketsChangeListener) mListener.get();
+                if (l!=null)
+                    l.onAdd(mTime,mListIndex);
+            }else
+            {
+                OnPacketChangeListener l= (OnPacketChangeListener) mListener.get();
+                if (l!=null)
+                    l.onAdd(mTime,mListIndex,mIndex);
+            }
+        }
+    }
+
+    private class OnChangeRunnable implements Runnable
+    {
+        private int mTime=-1,mListIndex=-1;
+        private WeakReference mListener;
+
+        OnChangeRunnable(WeakReference l)
+        {
+            mListener=l;
+        }
+
+        OnChangeRunnable(WeakReference l,int time)
+        {
+            this(l);
+            mTime=time;
+        }
+
+        OnChangeRunnable(WeakReference l,int time,int listIndex)
+        {
+            this(l,time);
+            mListIndex=listIndex;
+        }
+
+        @Override
+        public void run() {
+            if (mListIndex!=-1)
+            {
+                OnPacketsChangeListener l= (OnPacketsChangeListener) mListener.get();
+                if (l!=null)
+                    l.onChange(mTime);
+
+                return ;
+            }
+
+            if (mTime!=-1)
+            {
+                OnPacketChangeListener l= (OnPacketChangeListener) mListener.get();
+                if (l!=null)
+                    l.onChange(mTime,mListIndex);
+
+                return;
+            }
+
+            OnHistoryChangeListener l= (OnHistoryChangeListener) mListener.get();
+            if (l!=null)
+                l.onChange();
+        }
     }
 }
