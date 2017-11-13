@@ -9,9 +9,9 @@ import com.iqiyi.liquanfei_sx.vpnt.tools.IOUtil;
 import java.io.BufferedInputStream;
 import java.io.File;
 import java.io.FileInputStream;
-import java.io.FileNotFoundException;
 import java.io.FileOutputStream;
 import java.io.IOException;
+import java.util.Arrays;
 import java.util.List;
 
 /**
@@ -180,6 +180,7 @@ public abstract class PersistRequest {
                     String ss[]=names[i].split(File.separator);
                     names[i]=ss[ss.length-1];
                 }
+                Arrays.sort(names);
 
                 //File []files=new File(Constants.PrivateFileLocation.HISTORY+File.separator+ LocalPackets.get().mAllPackets.get(mTimeIndex).mTime).listFiles();
                 FileInputStream fis;
