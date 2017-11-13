@@ -2,6 +2,8 @@ package com.iqiyi.liquanfei_sx.vpnt.packet;
 
 import android.util.Log;
 
+import com.iqiyi.liquanfei_sx.vpnt.tools.ByteConvert;
+
 /**
  * Created by liquanfei_sx on 2017/8/15.
  */
@@ -21,7 +23,7 @@ public class IPPacket extends Packet{
         mHeaderLength = (byte)(data[0] & 0x0F);
         mHeaderLength *= 4;
 
-        length =(0xFFFF&data[2])<<8|(data[3]&0xff);
+        length = ByteConvert.parseInt(data,2,2);
 
         mTTL=data[8];
         mProtocol=data[9];// Protocol  1表示为ICMP协议， 2表示为IGMP协议， 6表示为TCP协议， 1 7表示为UDP协议
@@ -47,19 +49,19 @@ public class IPPacket extends Packet{
             mData=new Packet(data,mHeaderLength);
         }
 
-        int checksum=0;
-        for (int i=0;i<10;i++)
-        {
-            checksum+=(((data[i*2]&0xff)<<8|(data[i*2+1]&0xff)));
-        }
-        checksum=(checksum>>>16)+checksum&0xffff;
-        checksum=(checksum>>>16)+checksum&0xffff;
-        checksum=(~checksum)&0xffff;
+//        int checksum=0;
+//        for (int i=0;i<10;i++)
+//        {
+//            checksum+=(((data[i*2]&0xff)<<8|(data[i*2+1]&0xff)));
+//        }
+//        checksum=(checksum>>>16)+checksum&0xffff;
+//        checksum=(checksum>>>16)+checksum&0xffff;
+//        checksum=(~checksum)&0xffff;
 
 
 //        if (getDestIp().equals("123.207.152.184")||getSourceIp().equals("123.207.152.184")) {
 //            Log.e("xx", "Header Length:" + mHeaderLength);
-//            Log.e("xx", "Total Length:" + length);
+            Log.e("xx", "protocol:" + mProtocol);
 //            Log.e("xx", "ttl:" + mTTL);
 //            Log.e("xx", "check:"+checksum+"  ident:" + (((data[4] & 0xff) << 8) | ((data[5] & 0xff))));
 //        }
