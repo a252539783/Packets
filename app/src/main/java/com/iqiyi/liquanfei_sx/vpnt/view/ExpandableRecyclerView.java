@@ -202,7 +202,24 @@ public class ExpandableRecyclerView extends RecyclerView implements View.OnClick
 
     private void itemInserted(int position,int len)
     {
+        if (position>mAdapter.getItemCount())
+            return ;
+
         ListIterator<Boolean> it=mIsExpandView.listIterator();
+        Iterator<Boolean> it2=mIsExpandView.iterator();
+
+        /**
+         * 无意义的添加操作
+         */
+        int size=0;
+        while (it2.hasNext())
+        {
+            if (!it2.next())
+                size++;
+        }
+        if (size==mAdapter.getItemCount()||size<position)
+            return ;
+
         while (it.hasNext())
         {
             if (position==0)
