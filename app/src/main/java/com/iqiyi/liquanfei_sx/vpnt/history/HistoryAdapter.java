@@ -28,7 +28,6 @@ import java.util.List;
 public class HistoryAdapter extends ExpandableRecyclerView.Adapter<HistoryAdapter.H1> implements LocalPackets.OnHistoryChangeListener
 {
     private List<LocalPackets.CaptureInfo> mAllHistory=null;
-    private H mh=new H();
     private LayoutInflater mLf;
 
     //private SparseArray<ExpandableRecyclerView.Adapter> mAdapters;
@@ -111,11 +110,10 @@ public class HistoryAdapter extends ExpandableRecyclerView.Adapter<HistoryAdapte
 
         void filterAdd(int position)
         {
-            int oSize=mCurrent.size();
-            LocalPackets.PacketList pl=mPacketLists.get(mPacketLists.size()-1);
+            LocalPackets.PacketList pl=mPacketLists.get(position);
             if (mFilterType==FILTER_NO) {
-                mCurrent.add(mPacketLists.size() - 1);
-                notifyItemInserted(mCurrent.size()-1);
+                mCurrent.add(position);
+                notifyItemInserted(position);
             }
             else
             {
@@ -124,8 +122,8 @@ public class HistoryAdapter extends ExpandableRecyclerView.Adapter<HistoryAdapte
                         ((mFilterType&FILTER_IP)!=0&&pl.ip().contains(mIpFilterKey))||
                         ((mFilterType&FILTER_PKG)!=0&&pl.info().info.packageName.contains(mPkgFilterKey)))
                 {
-                    mCurrent.add(mPacketLists.size()-1);
-                    notifyItemInserted(mCurrent.size()-1);
+                    mCurrent.add(position);
+                    notifyItemInserted(position);
                 }
             }
         }
@@ -270,6 +268,8 @@ public class HistoryAdapter extends ExpandableRecyclerView.Adapter<HistoryAdapte
         public void onBindExpandView(ExpandableRecyclerView view, int position) {
             ChildAdapter ca=new ChildAdapter(position);
             view.setAdapter(ca);
+            LocalPackets.get().addPacketChangeListener(ca);
+            LocalPackets.mgr().addRequest(PersistRequest.newReadRequest(mTime,position));
         }
 
         @Override
@@ -299,9 +299,6 @@ public class HistoryAdapter extends ExpandableRecyclerView.Adapter<HistoryAdapte
         }
 
 
-        /**TODO
-         * 改到主线程
-         */
         @Override
         public void onChange(int time) {
             if (time==mTime)
@@ -399,22 +396,5 @@ public class HistoryAdapter extends ExpandableRecyclerView.Adapter<HistoryAdapte
         }
     }
 
-    static class H extends android.os.Handler
-    {
-        static final int NOTIFY_PACKETS=0;
-        static final int NOTIFY_PACKET=1;
 
-        @Override
-        public void handleMessage(Message msg) {
-            super.handleMessage(msg);
-
-            switch (msg.what)
-            {
-                case NOTIFY_PACKETS:
-                case NOTIFY_PACKET:
-                    ((PacketsAdapter)msg.obj).notifyDataInserted(msg.arg1);
-                    break;
-            }
-        }
-    }
 }
