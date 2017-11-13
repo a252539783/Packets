@@ -4,7 +4,9 @@ import android.util.Log;
 
 import com.iqiyi.liquanfei_sx.vpnt.Constants;
 import com.iqiyi.liquanfei_sx.vpnt.tools.ByteConvert;
+import com.iqiyi.liquanfei_sx.vpnt.tools.IOUtil;
 
+import java.io.BufferedInputStream;
 import java.io.File;
 import java.io.FileInputStream;
 import java.io.FileNotFoundException;
@@ -83,8 +85,6 @@ public abstract class PersistRequest {
                 fos.write(ByteConvert.getLong(mTime));
                 fos.write(mPacket.getRawData());
                 fos.close();
-            } catch (FileNotFoundException e) {
-                Log.e("xx:fileOutPut",e.toString());
             } catch (IOException e) {
                 Log.e("xx:fileOutPut",e.toString());
             }
@@ -136,67 +136,41 @@ public abstract class PersistRequest {
                 try {
                     LocalPackets.CaptureInfo ci=LocalPackets.get().mAllPackets.get(mTimeIndex);
                     FileInputStream fis=new FileInputStream(new File(Constants.PrivateFileLocation.HISTORY+File.separator+
-                            ci.mTime+File.separator+(ci.mPackets.get(mIndex).mIndex+1000000000)));
+                            ci.mTime+File.separator+(ci.mPackets.get(mIndex).mIndex+1000000000)+"_"+ci.mPackets.get(mIndex).mInfo.info.applicationInfo.uid));
 
                     if (ci.mPackets.get(mIndex).size()>1)
                         return null;
 
-                    int avai;
-                    int len=0;
-                    int bufPosition=0;
-                    int srcPosition=0;
+                    long time=0;
+                    byte []timeBuf=new byte[8];
 
-                    int index=1;
-                    fis.skip(48);       //第一个数据包已经获取过了
+                    fis.skip(60);       //第一个数据包已经获取过了
 
-                    byte[] src=null;
-                    while ((avai=fis.available())!=0)
+                    BufferedInputStream bis=new BufferedInputStream(fis);
+
+                    byte[] src;
+                    while ((bis.available())!=0)
                     {
-                        if (avai>DEFAULT_BUFL)
-                        {
-                            avai=DEFAULT_BUFL;
-                        }
+                        IOUtil.read(bis,timeBuf);
+                        time=ByteConvert.parseLong(timeBuf,0);
 
-                        len=fis.read(mBuffer,0,avai);
-                        while (len!=0)
-                        {
-                            if (src==null)
-                                src=new byte[(0xFFFF&mBuffer[bufPosition+2])<<8|(mBuffer[bufPosition+3]&0xff)];
-
-                            /*
-                            要读取的数据包较大，将buffer所有内容放入目标，移动目标标记，
-                            重置buffer标记，退出当前循环继续读取文件
-                             */
-                            if (src.length-srcPosition>len)
-                            {
-                                System.arraycopy(mBuffer,bufPosition,src,srcPosition,len);
-                                bufPosition=0;
-                                srcPosition+=len;
-                                break;
-                            }
-
-                            /*
-                             * 要读取的数据包较小，从缓冲区拿出对应大小数据后移动缓冲区标记，
-                             * 继续进行读取
-                             */
-                            if (src.length-srcPosition<=len)
-                            {
-                                System.arraycopy(mBuffer,bufPosition,src,srcPosition,src.length-srcPosition);
-                                bufPosition+=src.length;
-
-                                TCPPacket packet=(TCPPacket) new IPPacket(src).getData();
-                                LocalPackets.get().initPacketList(mTimeIndex,mIndex,packet,false);
-
-                                src=null;   //当前循环内继续读取数据
-                            }
-                        }
+                        IOUtil.read(bis,mBuffer,0,4);
+                        src=new byte[ByteConvert.parseInt(mBuffer,2,2)];
+                        IOUtil.read(bis,mBuffer,4,src.length-4);
+                        System.arraycopy(mBuffer,0,src,0,src.length);
+                        TCPPacket packet=(TCPPacket) new IPPacket(src).getData();
+                        LocalPackets.get().initPacketList(mTimeIndex,mIndex,time,packet,false);
                     }
                 } catch (IOException e) {
                     e.printStackTrace();
                 }
             }else if (mTimeIndex !=-1)
             {
-                File base=new File(Constants.PrivateFileLocation.HISTORY+File.separator+ LocalPackets.get().mAllPackets.get(mTimeIndex).mTime);
+                LocalPackets.CaptureInfo ci=LocalPackets.get().mAllPackets.get(mTimeIndex);
+                if (ci.mPackets.size()!=0)
+                    return null;
+
+                File base=new File(Constants.PrivateFileLocation.HISTORY+File.separator+ ci.mTime);
                 String []names=base.list();
                 File []files=new File[names.length];
                 for (int i=0;i<files.length;i++)
@@ -210,20 +184,20 @@ public abstract class PersistRequest {
                 //File []files=new File(Constants.PrivateFileLocation.HISTORY+File.separator+ LocalPackets.get().mAllPackets.get(mTimeIndex).mTime).listFiles();
                 FileInputStream fis;
                 TCPPacket []packets=new TCPPacket[files.length];
+                long time=0;
                 for (int i=0;i<files.length;i++)
                 {
                     /**
-                     * 每个数据包开始必然是本应用发出的SYN数据，长度40字节
+                     * 每个数据包开始必然是本应用发出的SYN数据，长度52字节
                      */
-                    byte []src=new byte[40];
+                    byte []src=new byte[52];
                     int l=0;
                     try {
                         fis=new FileInputStream(files[i]);
-                        /** TODO
-                         * 跳过了时间
-                         */
-                        fis.skip(8);
-                        while ((l+=fis.read(src,l,40-l))!=40);
+
+                        IOUtil.read(fis,src,0,8);
+                        time=ByteConvert.parseLong(src,0);
+                        IOUtil.read(fis,src);
                     } catch (IOException e) {
                         continue;
                     }
@@ -237,7 +211,7 @@ public abstract class PersistRequest {
                         int listIndex=Integer.parseInt(ss[0])-1000000000;
                         int uid=Integer.parseInt(ss[1]);
 
-                        LocalPackets.get().initPackets(mTimeIndex,packets[i],listIndex,uid);
+                        LocalPackets.get().initPackets(mTimeIndex,time,packets[i],listIndex,uid);
                     }catch (ClassCastException e)
                     {
                         continue;
