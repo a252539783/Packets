@@ -103,8 +103,8 @@ public class LocalPackets {
         if (packet!=null)
         {
             ci.mPackets.add(new PacketList(packet,listIndex,time,uid));
+            callPacketsChange(history,ci.mPackets.size()-1);
         }
-        callPacketsChange(history,listIndex);
     }
 
     synchronized PacketList initPackets(TCPPacket packet,int listIndex)
