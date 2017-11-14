@@ -331,7 +331,8 @@ public class AddedInput {
 
                         try {
                             mFile.seek(e.index*mSegmentLength);
-                            mFile.mFile.read(e.item.mResult,0,mSegmentLength);
+                            int l=mFile.length-e.index*mSegmentLength;
+                            mFile.mFile.read(e.item.mResult,0,l<mSegmentLength?l:mSegmentLength);
                         } catch (IOException e1) {
                             e1.printStackTrace();
                         }
@@ -349,7 +350,8 @@ public class AddedInput {
                      */
                     if (e.index!=e.item.mIndex)
                         continue;
-                    System.arraycopy(mSrc,e.item.mIndex*mSegmentLength,e.item.mResult,0,mSegmentLength);
+                    int l=mSrc.length-e.index;
+                    System.arraycopy(mSrc,e.item.mIndex*mSegmentLength,e.item.mResult,0,l<mSegmentLength?l:mSegmentLength);
                 }
             }
         }
