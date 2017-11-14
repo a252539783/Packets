@@ -12,6 +12,9 @@ import android.text.style.LeadingMarginSpan;
 import android.text.style.ParagraphStyle;
 import android.util.Log;
 
+import java.io.RandomAccessFile;
+import java.util.Random;
+
 /**
  * Created by Administrator on 2017/10/30.
  *
@@ -33,6 +36,8 @@ public class SimpleFixedLayout extends Layout{
     private int mCursorLength=3;
 
     private byte[] mSource=null;
+
+    private FileInfo mFile=null;
 
     private AddedInput mInputs=null;
 
@@ -110,6 +115,17 @@ public class SimpleFixedLayout extends Layout{
         mInputs=new AddedInput(src);
     }
 
+    public SimpleFixedLayout(FileInfo file, TextPaint paint, int width, Alignment align, float spacingMult, float spacingAdd)
+    {
+        super("aaaaa", paint, width, align, spacingMult, spacingAdd);
+        mEncode=ENCODE_HEX;
+        mFile=file;
+        sInit(paint);
+        init(paint);
+
+        mInputs=new AddedInput(file);
+    }
+
     public int getOneHeight()
     {
         return mOneHeight;
@@ -123,8 +139,12 @@ public class SimpleFixedLayout extends Layout{
         mColumns=(int)(getWidth()/ mOneWidth);
         if (mColumns!=0)
         {
-            if (mEncode==ENCODE_HEX)
-                mLineCount=mSource.length/mColumns+1;
+            if (mEncode==ENCODE_HEX) {
+                if (mFile!=null)
+                    mLineCount=(int)mFile.length / mColumns + 1;
+                else
+                    mLineCount = mSource.length / mColumns + 1;
+            }
             else
                 mLineCount=getText().length()/mColumns+1;
         }
@@ -201,6 +221,7 @@ public class SimpleFixedLayout extends Layout{
             lastLine++;
 
         int index=mColumns*firstLine;
+        Log.e("xx","draw "+index);
         float drawY=(firstLine+1)*mOneHeight;
         if (mEncode==ENCODE_HEX)
         {

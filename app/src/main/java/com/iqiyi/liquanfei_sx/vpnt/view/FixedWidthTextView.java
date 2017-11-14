@@ -16,6 +16,7 @@ import android.view.MotionEvent;
 import android.view.View;
 import android.view.ViewConfiguration;
 
+import com.iqiyi.liquanfei_sx.vpnt.text.FileInfo;
 import com.iqiyi.liquanfei_sx.vpnt.text.SimpleFixedLayout;
 
 /**
@@ -59,7 +60,6 @@ public class FixedWidthTextView extends View {
                 {
 
                     mScrollY+=mScrollVelocity;
-                    Log.e("xx","naturalscroll"+mScrollVelocity);
 
                     if (mScrollVelocity>0) {
                         mScrollVelocity -= mScrollVDescentRatio;
@@ -137,6 +137,14 @@ public class FixedWidthTextView extends View {
         requestLayout();
     }
 
+    public void setFile(FileInfo file)
+    {
+        mLayout=new SimpleFixedLayout(file,mPaint,getWidth(), Layout.Alignment.ALIGN_NORMAL,0,0);
+        mLayout.setOne(mOneWidth,-1);
+        mOneHeight=mLayout.getOneHeight();
+        requestLayout();
+    }
+
     @Override
     protected void onDraw(Canvas canvas) {
         super.onDraw(canvas);
@@ -150,8 +158,6 @@ public class FixedWidthTextView extends View {
 
     @Override
     public boolean onTouchEvent(MotionEvent event) {
-
-        Log.e("xx",event.getAction()+":"+event.getX());
 
         int selectIndex=((int)(mScrollY+event.getY())/mOneHeight*(getMeasuredWidth()/mOneWidth)+(int)event.getX()/mOneWidth);
 
@@ -276,7 +282,6 @@ public class FixedWidthTextView extends View {
 
     private void naturalScroll()
     {
-        Log.e("xx","execute naturalscroll");
         post(mSmoothAutoScrollRunnable);
     }
 
