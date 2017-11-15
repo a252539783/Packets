@@ -2,16 +2,17 @@
 <LinearLayout xmlns:android="http://schemas.android.com/apk/res/android"
     android:orientation="vertical" android:layout_width="match_parent"
     android:layout_height="match_parent">
+
+    <com.iqiyi.liquanfei_sx.vpnt.view.ExpandableRecyclerView
+        android:layout_width="match_parent"
+        android:layout_height="match_parent"
+        android:id="@+id/erv_history">
+
+    </com.iqiyi.liquanfei_sx.vpnt.view.ExpandableRecyclerView>
     <LinearLayout
         android:layout_width="match_parent"
         android:layout_height="wrap_content"
         android:orientation="vertical">
-        <com.iqiyi.liquanfei_sx.vpnt.view.ExpandableRecyclerView
-            android:layout_width="match_parent"
-            android:layout_height="wrap_content"
-            android:id="@+id/erv_history">
-
-        </com.iqiyi.liquanfei_sx.vpnt.view.ExpandableRecyclerView>
         <Button
             android:layout_width="wrap_content"
             android:layout_height="wrap_content"

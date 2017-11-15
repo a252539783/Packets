@@ -2,12 +2,11 @@
 <RelativeLayout xmlns:android="http://schemas.android.com/apk/res/android"
     xmlns:app="http://schemas.android.com/apk/res-auto"
     android:orientation="horizontal" android:layout_width="match_parent"
-    android:paddingBottom="8dp"
-    android:paddingTop="8dp"
-    android:paddingLeft="16dp"
-    android:background="@android:color/white"
+    android:paddingBottom="16dp"
+    android:paddingTop="16dp"
+    android:paddingLeft="24dp"
     android:paddingRight="16dp"
-    android:layout_height="56dp">
+    android:layout_height="72dp">
 
     <ImageView
         android:layout_width="40dp"
@@ -21,6 +20,7 @@
         android:layout_width="wrap_content"
         android:layout_height="wrap_content"
         android:layout_marginLeft="8dp"
+        android:textAppearance="@style/TextAppearance.AppCompat.Small"
         android:layout_alignParentTop="true"
         android:layout_toRightOf="@id/img_packets_item_icon"
         android:id="@+id/t_packets_item_app_name"
@@ -31,6 +31,7 @@
         android:layout_height="wrap_content"
         android:id="@+id/t_packets_item_ip"
         android:text="192.168.0.1:8888"
+        android:textAppearance="@style/TextAppearance.AppCompat.Small"
         android:layout_marginLeft="8dp"
         android:layout_alignParentBottom="true"
         android:layout_toRightOf="@id/img_packets_item_icon"/>
