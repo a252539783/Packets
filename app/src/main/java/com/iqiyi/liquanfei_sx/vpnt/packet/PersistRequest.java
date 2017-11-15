@@ -20,7 +20,7 @@ import java.util.List;
 
 public abstract class PersistRequest {
 
-    abstract String doRequest(String folder);
+    abstract String doRequest();
 
     public static PersistRequest newWriteRequest(long time, LocalPackets.PacketList list, Packet packet)
     {
@@ -57,8 +57,8 @@ public abstract class PersistRequest {
         }
 
         @Override
-        String doRequest(String folder) {
-            String newF=folder+mTime+File.separator;
+        String doRequest() {
+            String newF=Constants.PrivateFileLocation.HISTORY+File.separator+mTime+File.separator;
             new File(newF).mkdirs();
 
             return newF;
@@ -79,9 +79,9 @@ public abstract class PersistRequest {
         }
 
         @Override
-        String doRequest(String folder) {
+        String doRequest() {
             try {
-                FileOutputStream fos=new FileOutputStream(folder+ (mList.mIndex+1000000000)+'_'+mList.mInfo.info.applicationInfo.uid,true);
+                FileOutputStream fos=new FileOutputStream(Constants.PrivateFileLocation .HISTORY+File.separator+ (mList.mIndex+1000000000)+'_'+mList.mInfo.info.applicationInfo.uid,true);
                 fos.write(ByteConvert.getLong(mTime));
                 fos.write(mPacket.getRawData());
                 fos.close();
@@ -118,7 +118,7 @@ public abstract class PersistRequest {
         }
 
         @Override
-        String doRequest(String folder) {
+        String doRequest() {
             if (LocalPackets.get().mAllPackets==null)
             {
                 File file=new File(Constants.PrivateFileLocation.HISTORY);

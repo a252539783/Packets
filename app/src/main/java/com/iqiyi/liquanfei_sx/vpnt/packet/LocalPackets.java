@@ -258,7 +258,6 @@ public class LocalPackets {
         {
             private ByteBufferPool mBufferPool=ByteBufferPool.getDefault();
             boolean mStart=false;
-            private String mFolder;
             private Queue<PersistRequest> mWriteQueue=new ConcurrentLinkedQueue<>();
 
             @Override
@@ -269,18 +268,13 @@ public class LocalPackets {
 
             @Override
             public void run() {
-                super.run();
-
-                mFolder= Constants.PrivateFileLocation.HISTORY + File.separator;
 
                 PersistRequest p;
                 while (mStart)
                 {
                     while ((p=mWriteQueue.poll())!=null)
                     {
-                        String res=p.doRequest(mFolder);
-                        if (res!=null)
-                            mFolder=res;
+                        p.doRequest();
                     }
 
                     synchronized (instance)
