@@ -118,6 +118,8 @@ public class ExpandableRecyclerView extends RecyclerView implements View.OnClick
             }
         });
         super.setAdapter(mInnerAdapter);
+
+        setFocusableInTouchMode(false);//避免获取焦点、自动滚动
     }
 
     public void setExpandable(boolean can)
