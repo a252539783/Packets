@@ -144,7 +144,18 @@ public abstract class PersistRequest {
                     long time=0;
                     byte []timeBuf=new byte[8];
 
-                    fis.skip(60);       //第一个数据包已经获取过了
+                    LocalPackets.PacketList.PacketItem pi=ci.mPackets.get(mIndex).get(0);
+                    if (pi.mPacket.getIpInfo().length!=52)//抓包过程中出现问题
+                    {
+                        fis.skip(8);
+                        byte[] src=new byte[pi.mPacket.getIpInfo().length];
+                        IOUtil.read(fis,src);
+
+                        pi.mPacket=(TCPPacket) new IPPacket(src).getData();
+                    }else
+                    {
+                        fis.skip(60);       //第一个数据包已经获取过了
+                    }
 
                     BufferedInputStream bis=new BufferedInputStream(fis);
 
@@ -163,6 +174,9 @@ public abstract class PersistRequest {
                     }
                 } catch (IOException e) {
                     e.printStackTrace();
+                } catch (ClassCastException e)
+                {
+                    return null;        //说明不是tcp包，先忽略它们
                 }
             }else if (mTimeIndex !=-1)
             {
@@ -215,7 +229,7 @@ public abstract class PersistRequest {
                         LocalPackets.get().initPackets(mTimeIndex,time,packets[i],listIndex,uid);
                     }catch (ClassCastException e)
                     {
-                        continue;
+                        //不是tcp，先忽略它们
                     }
                 }
             }
