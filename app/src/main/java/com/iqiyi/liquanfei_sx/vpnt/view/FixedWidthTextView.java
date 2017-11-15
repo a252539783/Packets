@@ -163,20 +163,25 @@ public class FixedWidthTextView extends View {
 
         if (event.getAction()==MotionEvent.ACTION_DOWN)
         {
+            /**
+             * 按下之后立即停止滑动
+             */
             stopNaturalScroll();
+
             if ((!mDoubleTap&&(SystemClock.uptimeMillis()-mTimeLastUp)<= ViewConfiguration.getDoubleTapTimeout()))     //double tap
             {
                 mDoubleTap=true;
                 mEditMode=true;
-            }else
+            }else           //tap
             {
-                if (mLayout.isSelect(selectIndex))
+                if (mLayout.isSelect(selectIndex))      //点击了光标或者选中位置，继续进行编辑选中
                 {
                     mEditMode=true;
                 }else
                 {
                     mLayout.resetSelect();
                 }
+
                 mDoubleTap=false;
                 mTapY=event.getY();
                 mScrollStartY=mTapY;
@@ -190,13 +195,15 @@ public class FixedWidthTextView extends View {
             mLayout.stopSelect();
             mEditMode=false;
 
-            if (!mDoubleTap&&mScrollVelocity!=0)
+            if (!mDoubleTap&&mScrollVelocity!=0)    //继续滑动并持续减速
             {
                 naturalScroll();
             }
 
             mLastScrollY=mScrollY;
             mLastMoveY=Float.MIN_VALUE;
+
+            //停止触摸即停止自动滚动
             stopAutoScroll();
         }else if (event.getAction()==MotionEvent.ACTION_MOVE)
         {
@@ -205,17 +212,23 @@ public class FixedWidthTextView extends View {
 
             }else
             {
+                /**
+                 * 正常的滑动操作
+                 */
                 float dy=(mScrollStartY-event.getY());
                 if (canScroll(dy)) {
                     mScrollY=mLastScrollY+dy;
                     checkFixScroll();
                 }else
                 {
+                    /**
+                     * 如果不在滑动到顶/底时更新记录的滚动值，那么此时反向滑动将不能立即奏效
+                     */
                     mScrollStartY=event.getY();
                     mLastScrollY=mScrollY;
                 }
 
-                if (mLastMoveY!=Float.MIN_VALUE)
+                if (mLastMoveY!=Float.MIN_VALUE)//滚动速度
                 {
                     mScrollVelocity=(mLastMoveY-event.getY())*10000000/(SystemClock.uptimeMillis()-mTimeLastMove);
                 }
@@ -224,16 +237,19 @@ public class FixedWidthTextView extends View {
             mLastMoveY=event.getY();
         }
 
-        if (mEditMode)
+        if (mEditMode)      //选中操作
         {
             mLayout.select(selectIndex);
 
-            if (event.getY()<0)
+            /**
+             * 选中的时候，触摸点偏上或者偏下，就让它自己滚动
+             */
+            if (event.getY()<getMeasuredHeight()/5)
             {
-                autoScroll(event.getY());
-            }else if (event.getY()>getMeasuredHeight())
+                autoScroll(event.getY()-getMeasuredHeight()/5);
+            }else if (event.getY()>getMeasuredHeight()/5*4)
             {
-                autoScroll((event.getY()-getMeasuredHeight()));
+                autoScroll((event.getY()-getMeasuredHeight()/5*4));
             }else
             {
                 stopAutoScroll();
