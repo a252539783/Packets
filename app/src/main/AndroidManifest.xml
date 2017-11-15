@@ -32,7 +32,7 @@
         </service>
         <service android:name=".packet.ServerService"/>
 
-        <activity android:name=".EditActivity">
+        <activity android:name=".editor.EditActivity">
             <intent-filter>
                 <action android:name="android.intent.action.VIEW" />
                 <data android:mimeType="text/plain" />

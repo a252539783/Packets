@@ -32,7 +32,7 @@ public class SimpleFixedLayout extends Layout{
     private int mColumns;
     private int mLineCount;
 
-    private int mSelectedStart=40,mSelectedEnd=90;
+    private int mSelectedStart=0,mSelectedEnd=0;
     private int mCursorLength=3;
 
     private byte[] mSource=null;

@@ -1,6 +1,7 @@
 package com.iqiyi.liquanfei_sx.vpnt.history;
 
 import android.content.Context;
+import android.content.Intent;
 import android.os.Message;
 import android.support.v7.widget.RecyclerView;
 import android.util.SparseArray;
@@ -10,7 +11,10 @@ import android.view.ViewGroup;
 import android.widget.ImageView;
 import android.widget.TextView;
 
+import com.iqiyi.liquanfei_sx.vpnt.MApp;
 import com.iqiyi.liquanfei_sx.vpnt.R;
+import com.iqiyi.liquanfei_sx.vpnt.editor.EditActivity;
+import com.iqiyi.liquanfei_sx.vpnt.editor.EditPaketInfo;
 import com.iqiyi.liquanfei_sx.vpnt.packet.LocalPackets;
 import com.iqiyi.liquanfei_sx.vpnt.packet.PersistRequest;
 import com.iqiyi.liquanfei_sx.vpnt.packet.TCPPacket;
@@ -29,11 +33,13 @@ public class HistoryAdapter extends ExpandableRecyclerView.Adapter<HistoryAdapte
 {
     private List<LocalPackets.CaptureInfo> mAllHistory=null;
     private LayoutInflater mLf;
+    private Context mContext;
 
     //private SparseArray<ExpandableRecyclerView.Adapter> mAdapters;
 
     public HistoryAdapter(Context c)
     {
+        mContext=c;
         mLf=LayoutInflater.from(c);
     }
 
@@ -311,7 +317,7 @@ public class HistoryAdapter extends ExpandableRecyclerView.Adapter<HistoryAdapte
                 notifyDataInserted(index);
         }
 
-        private class ChildAdapter extends ExpandableRecyclerView.Adapter<H3> implements LocalPackets.OnPacketChangeListener
+        private class ChildAdapter extends ExpandableRecyclerView.Adapter<H3> implements LocalPackets.OnPacketChangeListener,View.OnClickListener
         {
 
             int mPosition;
@@ -333,13 +339,16 @@ public class HistoryAdapter extends ExpandableRecyclerView.Adapter<HistoryAdapte
 
             @Override
             public H3 onCreateViewHolder(ViewGroup parent, int viewType) {
-                return new H3(mLf.inflate(R.layout.item_packet,parent,false));
+                H3 h= new H3(mLf.inflate(R.layout.item_packet,parent,false));
+                h.itemView.setOnClickListener(this);
+                return h;
             }
 
             @Override
             public void onBindViewHolder(H3 holder, int position) {
                 TCPPacket packet=mPacketLists.get(mCurrent.get(mPosition)).get(position).mPacket;
-                holder.text.setText(mPacketLists.get(mCurrent.get(mPosition)).get(position).mPacket.getIpInfo().getHeader());//+new String(mPacketLists.mgr(mPosition).mgr(position).getRawData(),mPacketLists.mgr(mPosition).mgr(position).mOffset,mPacketLists.mgr(mPosition).mgr(position).getDataLength()
+                holder.text.setText(packet.getIpInfo().getHeader()+new String(packet.getRawData(),packet.mOffset,packet.getDataLength()));
+                holder.itemView.setId(position);
             }
 
             @Override
@@ -357,6 +366,11 @@ public class HistoryAdapter extends ExpandableRecyclerView.Adapter<HistoryAdapte
             public void onAdd(int time, int listIndex, int index) {
                 if (time==mTime&&listIndex==mPosition)
                     notifyDataSetChanged();
+            }
+
+            @Override
+            public void onClick(View view) {
+                edit(mTime,mPosition,view.getId());
             }
         }
     }
@@ -396,5 +410,19 @@ public class HistoryAdapter extends ExpandableRecyclerView.Adapter<HistoryAdapte
         }
     }
 
+
+    public void edit(int history,int listIndex,int index)
+    {
+        EditPaketInfo pi=new EditPaketInfo(history,listIndex,index);
+        Intent i=editIntent();
+        i.setAction(EditActivity.ACTION_OPEN_PACKET);
+        i.putExtra(EditActivity.ACTION_OPEN_PACKET,pi);
+        mContext.startActivity(i);
+    }
+
+    private Intent editIntent()
+    {
+        return new Intent(mContext,EditActivity.class);
+    }
 
 }

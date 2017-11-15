@@ -5,7 +5,6 @@ import android.content.Intent;
 import android.os.Handler;
 
 import com.iqiyi.liquanfei_sx.vpnt.packet.LocalPackets;
-import com.iqiyi.liquanfei_sx.vpnt.tools.AppPortList;
 
 /**
  * Created by liquanfei_sx on 2017/8/14.
