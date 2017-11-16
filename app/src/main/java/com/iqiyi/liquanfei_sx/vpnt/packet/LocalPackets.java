@@ -30,7 +30,8 @@ public class LocalPackets {
     private List<WeakReference<OnPacketsChangeListener>> mPacketsChangeListeners;
     private List<WeakReference<OnPacketChangeListener>> mPacketChangeListeners;
 
-    public List<CaptureInfo> mAllPackets=null;
+    public List<CaptureInfo> mAllPackets=new ArrayList<>();
+    public List<SavedInfo> mSavedPackets=new ArrayList<>();
     private AppPortList mPortList;
 
     private LocalPackets()
@@ -71,16 +72,50 @@ public class LocalPackets {
         callHistoryChange();
     }
 
-    synchronized void initHistory(String [] files)
+    synchronized void newSaved(int uid)
     {
-        if (mAllPackets!=null)
-            return ;
-
 
         if (AppPortList.get()==null)
             AppPortList.init();
 
-        mAllPackets=new ArrayList<>();
+        mSavedPackets.add(new SavedInfo(uid));
+    }
+
+    void initSavedPacket(int uid,TCPPacket packet)
+    {
+        for (int i=0;i<mSavedPackets.size();i++)
+        {
+            if (mSavedPackets.get(i).mUid==uid)
+            {
+                mSavedPackets.get(i).mPackets.add(new PacketList(packet,i,0,uid));
+                return;
+            }
+        }
+
+        SavedInfo si=new SavedInfo(uid);
+        si.mPackets.add(new PacketList(packet,0,0,uid));
+    }
+
+    void initSavedList(String[] files)
+    {
+        mSavedPackets.clear();
+
+        if (files!=null)
+        {
+            for (String file:files)
+            {
+                int uid=Integer.parseInt(file);
+                mSavedPackets.add(new SavedInfo(uid));
+            }
+        }
+    }
+
+    synchronized void initHistory(String [] files)
+    {
+        mAllPackets.clear();
+
+        if (AppPortList.get()==null)
+            AppPortList.init();
 
         if (files!=null)
         {
@@ -298,6 +333,20 @@ public class LocalPackets {
         CaptureInfo(long time)
         {
             mTime=time;
+            mPackets=new ArrayList<>();
+        }
+    }
+
+    public static class SavedInfo
+    {
+        public int mUid;
+        public AppPortList.AppInfo mInfo;
+        public List<PacketList > mPackets;
+
+        SavedInfo(int uid)
+        {
+            mUid=uid;
+            mInfo=AppPortList.get().getAppByUid(uid);
             mPackets=new ArrayList<>();
         }
     }
