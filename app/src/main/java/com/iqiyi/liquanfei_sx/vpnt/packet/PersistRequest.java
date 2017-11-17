@@ -238,6 +238,93 @@ public abstract class PersistRequest {
         }
     }
 
+    private static class LoadSavedRequest extends PersistRequest
+    {
+
+        int mUid=-1;
+
+        private LoadSavedRequest(){
+
+        }
+
+        private LoadSavedRequest(int uid)
+        {
+            mUid=uid;
+        }
+
+        @Override
+        String doRequest() {
+            if (mUid==-1)
+            {
+                File file=new File(Constants.PrivateFileLocation.SAVED);
+                if (file.exists())
+                {
+                    LocalPackets.get().initSavedList(file.list());
+                }else
+                {
+                    LocalPackets.get().initHistory(null);
+                }
+            }else
+            {
+                LocalPackets.CaptureInfo ci=LocalPackets.get().mAllPackets.get(mTimeIndex);
+                if (ci.mPackets.size()!=0)
+                    return null;
+
+                File base=new File(Constants.PrivateFileLocation.SAVED+File.separator+ mUid);
+                String []names=base.list();
+                File []files=new File[names.length];
+                for (int i=0;i<files.length;i++)
+                {
+                    files[i]=new File(base,names[i]);
+
+                    String ss[]=names[i].split(File.separator);
+                    names[i]=ss[ss.length-1];
+                }
+                Arrays.sort(names);
+
+                //File []files=new File(Constants.PrivateFileLocation.HISTORY+File.separator+ LocalPackets.get().mAllPackets.get(mTimeIndex).mTime).listFiles();
+                FileInputStream fis;
+                TCPPacket []packets=new TCPPacket[files.length];
+                long time=0;
+                for (int i=0;i<files.length;i++)
+                {
+                    /**
+                     * 每个数据包开始必然是本应用发出的SYN数据，长度52字节
+                     */
+                    byte []src=new byte[52];
+                    int l=0;
+                    try {
+                        fis=new FileInputStream(files[i]);
+
+                        IOUtil.read(fis,src,0,8);
+                        time=ByteConvert.parseLong(src,0);
+                        IOUtil.read(fis,src);
+                    } catch (IOException e) {
+                        continue;
+                    }
+
+                    try {
+                        IPPacket ip=new IPPacket(src);
+                        Log.e("xx",""+ip.length);
+                        packets[i] = (TCPPacket) ip.getData();
+
+                        String []ss=names[i].split("_");
+                        int listIndex=Integer.parseInt(ss[0])-1000000000;
+                        int uid=Integer.parseInt(ss[1]);
+
+                        LocalPackets.get().initPackets(mTimeIndex,time,packets[i],listIndex,uid);
+                    }catch (ClassCastException e)
+                    {
+                        //不是tcp，先忽略它们
+                    }
+                }
+            }
+
+
+            return null;
+        }
+    }
+
     public interface OnLoadHistoryListener
     {
         void loadOne(int index);
