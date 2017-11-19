@@ -25,4 +25,11 @@ public class Constants {
         public static final String HISTORY=PACKETS+ File.separator+"history";
     }
 
+    public static class FileType
+    {
+        public static final String PACKET="pkt";
+        public static final String PACKETS="pkts";
+        public static final String _PACKET=".pkt";
+        public static final String _PACKETS=".pkts";
+    }
 }

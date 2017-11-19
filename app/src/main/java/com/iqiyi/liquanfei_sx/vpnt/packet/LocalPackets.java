@@ -81,24 +81,32 @@ public class LocalPackets {
         mSavedPackets.add(new SavedInfo(uid));
     }
 
-    void initSavedPacket(int uid,TCPPacket packet)
+    void initSavedPacket(int uid,long time,TCPPacket packet)
     {
         for (int i=0;i<mSavedPackets.size();i++)
         {
             if (mSavedPackets.get(i).mUid==uid)
             {
-                mSavedPackets.get(i).mPackets.add(new PacketList(packet,i,0,uid));
+                //mSavedPackets.get(i).mPackets.add(new SavedItem(time,new PacketList(packet,0,time,uid),""));
+                initSavedPacket(mSavedPackets.get(i),time,packet);
                 return;
             }
         }
 
         SavedInfo si=new SavedInfo(uid);
-        si.mPackets.add(new PacketList(packet,0,0,uid));
+        //si.mPackets.add(new SavedItem(time,new PacketList(packet,0,time,uid),""));
+        initSavedPacket(si,time,packet);
+        mSavedPackets.add(si);
+    }
+
+    void initSavedPacket(SavedInfo si,long time,TCPPacket packet)
+    {
+        si.mPackets.add(new SavedItem(time,new PacketList(packet,0,time,si.mUid),""));
     }
 
     void initSavedList(String[] files)
     {
-        mSavedPackets.clear();
+        //mSavedPackets.clear();
 
         if (files!=null)
         {
@@ -112,7 +120,7 @@ public class LocalPackets {
 
     synchronized void initHistory(String [] files)
     {
-        mAllPackets.clear();
+        //mAllPackets.clear();
 
         if (AppPortList.get()==null)
             AppPortList.init();
@@ -123,8 +131,14 @@ public class LocalPackets {
             for (int i=0;i<files.length;i++)
                 times[i]=Long.parseLong(files[i]);
             Arrays.sort(times);
-            for (long time : times) {
-                mAllPackets.add(new CaptureInfo(time));
+
+            if (mAllPackets.size()!=0&&mAllPackets.get(0).mTime==times[0]) {
+                callHistoryChange();
+                return;
+            }
+
+            for (int i=0;i<times.length;i++) {
+                mAllPackets.add(i,new CaptureInfo(times[i]));
             }
         }
 
@@ -293,6 +307,7 @@ public class LocalPackets {
         {
             private ByteBufferPool mBufferPool=ByteBufferPool.getDefault();
             boolean mStart=false;
+            private String mFolder;
             private Queue<PersistRequest> mWriteQueue=new ConcurrentLinkedQueue<>();
 
             @Override
@@ -303,13 +318,18 @@ public class LocalPackets {
 
             @Override
             public void run() {
+                super.run();
+
+                mFolder= Constants.PrivateFileLocation.HISTORY + File.separator;
 
                 PersistRequest p;
                 while (mStart)
                 {
                     while ((p=mWriteQueue.poll())!=null)
                     {
-                        p.doRequest();
+                        String res=p.doRequest(mFolder);
+                        if (res!=null)
+                            mFolder=res;
                     }
 
                     synchronized (instance)
@@ -341,13 +361,27 @@ public class LocalPackets {
     {
         public int mUid;
         public AppPortList.AppInfo mInfo;
-        public List<PacketList > mPackets;
+        public List<SavedItem > mPackets;
 
         SavedInfo(int uid)
         {
             mUid=uid;
             mInfo=AppPortList.get().getAppByUid(uid);
             mPackets=new ArrayList<>();
+        }
+    }
+
+    public static class SavedItem
+    {
+        public String mDesc="";
+        public long mTime=0;
+        public PacketList mPackets;
+
+        public SavedItem(long time,PacketList list,String name)
+        {
+            mDesc=name;
+            mTime=time;
+            mPackets=list;
         }
     }
 
@@ -415,7 +449,7 @@ public class LocalPackets {
 
         private PacketItem add(TCPPacket p,long time)
         {
-            PacketItem item=new PacketItem(System.nanoTime(),p);
+            PacketItem item=new PacketItem(time,p);
             packets.add(item);
 
             return item;

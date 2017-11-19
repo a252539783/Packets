@@ -62,7 +62,7 @@ public class EditPresenter extends CommonPresenter implements Toolbar.OnMenuItem
         switch (item.getItemId())
         {
             case R.id.menu_b_save:
-
+                    mActivity.finish();
                 break;
         }
 

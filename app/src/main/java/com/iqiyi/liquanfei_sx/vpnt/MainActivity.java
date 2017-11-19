@@ -50,8 +50,8 @@ public class MainActivity extends AppCompatActivity implements View.OnClickListe
         mp=new MainPresenter(this);
         mp.bindView(findViewById(R.id.drawer_main));
 
-        final Intent i= VpnService.prepare(this);
-
+//        final Intent i= VpnService.prepare(this);
+//
 //        if (i==null)
 //        {
 //            Log.e("xx","success");
@@ -78,27 +78,23 @@ public class MainActivity extends AppCompatActivity implements View.OnClickListe
         super.onActivityResult(requestCode, resultCode, data);
         startService(new Intent(this,ServerService.class));
         startService(new Intent(this,ClientService.class));
-        bindService(new Intent(this, ClientService.class),sc= new ServiceConnection() {
-            @Override
-            public void onServiceConnected(ComponentName name, IBinder service) {
-                mServer=((ClientService.MB)service).get();
-                //mServer.setOnServerConnectedListener(MainActivity.this);
-            }
-
-            @Override
-            public void onServiceDisconnected(ComponentName name) {
-                mServer=null;
-            }
-        },BIND_AUTO_CREATE);
+//        bindService(new Intent(this, ClientService.class),sc= new ServiceConnection() {
+//            @Override
+//            public void onServiceConnected(ComponentName name, IBinder service) {
+//                mServer=((ClientService.MB)service).get();
+//                //mServer.setOnServerConnectedListener(MainActivity.this);
+//            }
+//
+//            @Override
+//            public void onServiceDisconnected(ComponentName name) {
+//                mServer=null;
+//            }
+//        },BIND_AUTO_CREATE);
     }
 
     @Override
     protected void onResume() {
         super.onResume();
-        {
-
-
-        }
     }
 
     void fresh()
@@ -117,7 +113,7 @@ public class MainActivity extends AppCompatActivity implements View.OnClickListe
             @Override
             public void run() {
                 //Log.e("xx","in ui  add");
-                pa.notifyDataInserted(position);
+                //pa.notifyDataInserted(position);
             }
         });
     }
@@ -129,9 +125,9 @@ public class MainActivity extends AppCompatActivity implements View.OnClickListe
             public void run() {
 
                 //pa=new HistoryAdapter.PacketsAdapter(mServer.getPackets(),MainActivity.this);
-                rv.setAdapter(pa);
+                //rv.setAdapter(pa);
                 //pa.setFilterKey(PacketsAdapter.FILTER_IP,"180.149.136.228");
-                mServer.setOnPacketsAddListener(MainActivity.this);
+                //mServer.setOnPacketsAddListener(MainActivity.this);
             }
         });
     }
