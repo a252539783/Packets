@@ -65,7 +65,7 @@ public class SavedAdapter extends ExpandableRecyclerView.Adapter<SavedAdapter.H1
             holder.mIcon.setImageDrawable(info.icon);
             holder.mName.setText(info.appName + ":" + info.info.applicationInfo.packageName);
         }
-        holder.mNum.setText(si.mPackets.size()+"个");
+        holder.mNum.setText(si.mNum+"个");
     }
 
     @Override

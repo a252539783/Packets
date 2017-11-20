@@ -125,7 +125,7 @@ public abstract class PersistRequest {
 
             try {
                 FileOutputStream fos=new FileOutputStream(
-                        Constants.PrivateFileLocation .SAVED+File.separator+mList.mInfo.info.applicationInfo.uid+File.separator+mName+Constants.FileType._PACKETS,true);
+                        Constants.PrivateFileLocation .SAVED+File.separator+mList.mInfo.info.applicationInfo.uid+File.separator+mName+Constants.FileType._PACKET,true);
                 fos.write(ByteConvert.getLong(mTime));
                 fos.write(mPacket.getRawData());
                 fos.close();
@@ -335,16 +335,25 @@ public abstract class PersistRequest {
             if (mUid==-1)
             {
                 File file=new File(Constants.PrivateFileLocation.SAVED);
+
                 if (file.exists())
                 {
-                    LocalPackets.get().initSavedList(file.list());
+                    String []files=file.list();
+                    int [] nums=new int[files.length];
+                    for (int i=0;i<files.length;i++)
+                    {
+                        nums[i]=new File(file,files[i]).list().length;
+                    }
+
+                    LocalPackets.get().initSavedList(file.list(),nums);
                 }else
                 {
                     LocalPackets.get().initHistory(null);
                 }
             }else
             {
-                LocalPackets.SavedInfo si=LocalPackets.get().getSavedInfo(mUid);
+                int sindex=LocalPackets.get().indexOfSaved(mUid);
+                LocalPackets.SavedInfo si=LocalPackets.get().mSavedPackets.get(sindex);
                 if (si.mPackets.size()!=0)
                     return null;
 
@@ -355,13 +364,13 @@ public abstract class PersistRequest {
                 for (int i=0;i<files.length;i++)
                 {
                     String ss[]=names[i].split(File.separator);
-                    times[i]=Long.parseLong(ss[ss.length-1].split(".")[0]);
+                    times[i]=Long.parseLong(ss[ss.length-1].substring(0,ss[ss.length-1].length()- Constants.FileType._PACKET.length()));
                 }
                 Arrays.sort(times);
 
                 for (int i=0;i<files.length;i++)
                 {
-                    files[i]=new File(base,times[i]+ Constants.FileType._PACKETS);
+                    files[i]=new File(base,times[i]+ Constants.FileType._PACKET);
                 }
 
                 //File []files=new File(Constants.PrivateFileLocation.HISTORY+File.separator+ LocalPackets.get().mAllPackets.get(mTimeIndex).mTime).listFiles();
@@ -370,14 +379,15 @@ public abstract class PersistRequest {
                 long time=0;
                 for (int i=0;i<files.length;i++)
                 {
+                    byte []src;
                     /**
                      * 只获取端口ip信息
                      */
-                    byte []src=new byte[52];
                     int l=0;
                     try {
                         fis=new FileInputStream(files[i]);
 
+                        src=new byte[fis.available()-8];
                         IOUtil.read(fis,src,0,8);
                         time=ByteConvert.parseLong(src,0);
                         IOUtil.read(fis,src);
@@ -390,7 +400,7 @@ public abstract class PersistRequest {
                         Log.e("xx",""+ip.length);
                         packets[i] = (TCPPacket) ip.getData();
 
-                        LocalPackets.get().initSavedPacketUnchecked(i,time,packets[i]);
+                        LocalPackets.get().initSavedPacketUnchecked(sindex,time,packets[i]);
                     }catch (ClassCastException e)
                     {
                         //不是tcp，先忽略它们

@@ -18,7 +18,7 @@ import java.lang.ref.WeakReference;
  * Created by Administrator on 2017/11/15.
  */
 
-public class SavedPresenter extends CommonPresenter implements LocalPackets.OnHistoryChangeListener {
+public class SavedPresenter extends CommonPresenter implements LocalPackets.OnSavedChangeListener {
 
     private ExpandableRecyclerView mHistories;
     private SavedAdapter mAdapter;
@@ -31,8 +31,8 @@ public class SavedPresenter extends CommonPresenter implements LocalPackets.OnHi
         mAdapter=new SavedAdapter(v.getContext());
         //mHistories.setAdapter(mAdapter);
 
-        LocalPackets.get().addHistoryChangeListener(this);
-        LocalPackets.mgr().addRequest(PersistRequest.newReadRequest());
+        LocalPackets.get().addSavedChangeListener(this);
+        LocalPackets.mgr().addRequest(PersistRequest.newReadSavedRequest());
     }
 
     @Override

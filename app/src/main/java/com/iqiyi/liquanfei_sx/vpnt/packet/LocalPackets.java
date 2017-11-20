@@ -62,6 +62,17 @@ public class LocalPackets {
         return null;
     }
 
+    public int indexOfSaved(int uid)
+    {
+        for (int i=0;i<mSavedPackets.size();i++)
+        {
+            if (mSavedPackets.get(i).mUid==uid)
+                return i;
+        }
+
+        return -1;
+    }
+
     public void addSavedChangeListener(OnSavedChangeListener l)
     {
         if (mSavedChangeListeners==null)
@@ -117,7 +128,7 @@ public class LocalPackets {
         if (AppPortList.get()==null)
             AppPortList.init();
 
-        mSavedPackets.add(new SavedInfo(uid));
+        mSavedPackets.add(new SavedInfo(uid,0));
         mgr().addRequest(PersistRequest.newCreateSavedRequest(uid));
         callSavedChange();
     }
@@ -134,7 +145,7 @@ public class LocalPackets {
             }
         }
 
-        SavedInfo si=new SavedInfo(uid);
+        SavedInfo si=new SavedInfo(uid,0);
         mSavedPackets.add(si);
         //si.mPackets.add(new SavedItem(time,new PacketList(packet,0,time,uid),""));
         initSavedPacketUnchecked(mSavedPackets.size()-1,time,packet);
@@ -147,17 +158,19 @@ public class LocalPackets {
         callSavedItemChange(list,si.mPackets.size()-1);
     }
 
-    void initSavedList(String[] files)
+    void initSavedList(String[] files,int []nums)
     {
         if (AppPortList.get()==null)
             AppPortList.init();
 
         if (files!=null)
         {
-            for (String file:files)
+            for (int i=0;i<files.length;i++)
             {
-                int uid=Integer.parseInt(file);
-                mSavedPackets.add(new SavedInfo(uid));
+                int uid=Integer.parseInt(files[i]);
+                if (indexOfSaved(uid)!=-1)
+                    continue;
+                mSavedPackets.add(new SavedInfo(uid,nums[i]));
             }
         }
         callSavedChange();
@@ -234,19 +247,19 @@ public class LocalPackets {
 
     private void callSavedChange()
     {
-        if (mHistoryChangeListeners==null)
+        if (mSavedChangeListeners==null)
             return;
 
-        Iterator<WeakReference<OnHistoryChangeListener>> it=mHistoryChangeListeners.listIterator();
+        Iterator<WeakReference<OnSavedChangeListener>> it=mSavedChangeListeners.listIterator();
 
 
         while (it.hasNext())
         {
-            WeakReference<OnHistoryChangeListener> l=it.next();
+            WeakReference<OnSavedChangeListener> l=it.next();
             if (l.get()==null)
                 it.remove();
             else
-                MApp.get().postMain(new OnChangeRunnable(l));
+                MApp.get().postMain(new OnSavedChangeRunnable(l));
         }
     }
 
@@ -337,7 +350,7 @@ public class LocalPackets {
             if (l.get()==null)
                 it.remove();
             else{
-                MApp.get().postMain(new OnAddRunnable(l,listIndex,index));
+                MApp.get().postMain(new OnSavedAddRunnable(l,listIndex,index));
             }
         }
     }
@@ -442,10 +455,12 @@ public class LocalPackets {
         public int mUid;
         public AppPortList.AppInfo mInfo;
         public List<SavedItem > mPackets;
+        public int mNum=0;
 
-        SavedInfo(int uid)
+        SavedInfo(int uid,int num)
         {
             mUid=uid;
+            mNum=num;
             mInfo=AppPortList.get().getAppByUid(uid);
             mPackets=new ArrayList<>();
         }
@@ -544,7 +559,7 @@ public class LocalPackets {
 
         @Override
         public void run() {
-                OnPacketsChangeListener l= (OnPacketsChangeListener) mListener.get();
+                OnSavedItemChangeListener l= (OnSavedItemChangeListener) mListener.get();
                 if (l!=null)
                     l.onAdd(mListIndex,mIndex);
         }
