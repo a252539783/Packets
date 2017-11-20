@@ -8,7 +8,6 @@ import com.iqiyi.liquanfei_sx.vpnt.tools.AppPortList;
 import com.iqiyi.liquanfei_sx.vpnt.tools.ByteBufferPool;
 
 import java.io.File;
-import java.lang.ref.PhantomReference;
 import java.lang.ref.WeakReference;
 import java.util.ArrayList;
 import java.util.Arrays;
@@ -30,6 +29,9 @@ public class LocalPackets {
     private List<WeakReference<OnPacketsChangeListener>> mPacketsChangeListeners;
     private List<WeakReference<OnPacketChangeListener>> mPacketChangeListeners;
 
+    private List<WeakReference<OnSavedChangeListener>> mSavedChangeListeners;
+    private List<WeakReference<OnSavedItemChangeListener>> mSavedItemChangeListeners;
+
     public List<CaptureInfo> mAllPackets=new ArrayList<>();
     public List<SavedInfo> mSavedPackets=new ArrayList<>();
     private AppPortList mPortList;
@@ -38,12 +40,50 @@ public class LocalPackets {
     {
     }
 
+    public boolean containSaved(int uid)
+    {
+        for (int i=0;i<mSavedPackets.size();i++)
+        {
+            if (mSavedPackets.get(i).mUid==uid)
+                return true;
+        }
+
+        return false;
+    }
+
+    public SavedInfo getSavedInfo(int uid)
+    {
+        for (int i=0;i<mSavedPackets.size();i++)
+        {
+            if (mSavedPackets.get(i).mUid==uid)
+                return mSavedPackets.get(i);
+        }
+
+        return null;
+    }
+
+    public void addSavedChangeListener(OnSavedChangeListener l)
+    {
+        if (mSavedChangeListeners==null)
+            mSavedChangeListeners=new LinkedList<>();
+
+        mSavedChangeListeners.add(new WeakReference<>(l));
+    }
+
+    public void addSavedItemChangeListener(OnSavedItemChangeListener l)
+    {
+        if (mSavedItemChangeListeners==null)
+            mSavedItemChangeListeners=new LinkedList<>();
+
+        mSavedItemChangeListeners.add(new WeakReference<>(l));
+    }
+
     public void addHistoryChangeListener(OnHistoryChangeListener l)
     {
         if (mHistoryChangeListeners==null)
             mHistoryChangeListeners=new LinkedList<>();
 
-        mHistoryChangeListeners.add(new WeakReference(l));
+        mHistoryChangeListeners.add(new WeakReference<>(l));
     }
 
     public void addPacketsChangeListener(OnPacketsChangeListener l)
@@ -51,7 +91,7 @@ public class LocalPackets {
         if (mPacketsChangeListeners==null)
             mPacketsChangeListeners=new LinkedList<>();
 
-        mPacketsChangeListeners.add(new WeakReference(l));
+        mPacketsChangeListeners.add(new WeakReference<>(l));
     }
 
     public void addPacketChangeListener(OnPacketChangeListener l)
@@ -59,7 +99,7 @@ public class LocalPackets {
         if (mPacketChangeListeners==null)
             mPacketChangeListeners=new LinkedList<>();
 
-        mPacketChangeListeners.add(new WeakReference(l));
+        mPacketChangeListeners.add(new WeakReference<>(l));
     }
 
     synchronized void newHistory(long time)
@@ -72,13 +112,14 @@ public class LocalPackets {
         callHistoryChange();
     }
 
-    synchronized void newSaved(int uid)
+    public void newSaved(int uid)
     {
-
         if (AppPortList.get()==null)
             AppPortList.init();
 
         mSavedPackets.add(new SavedInfo(uid));
+        mgr().addRequest(PersistRequest.newCreateSavedRequest(uid));
+        callSavedChange();
     }
 
     void initSavedPacket(int uid,long time,TCPPacket packet)
@@ -88,25 +129,28 @@ public class LocalPackets {
             if (mSavedPackets.get(i).mUid==uid)
             {
                 //mSavedPackets.get(i).mPackets.add(new SavedItem(time,new PacketList(packet,0,time,uid),""));
-                initSavedPacket(mSavedPackets.get(i),time,packet);
+                initSavedPacketUnchecked(i,time,packet);
                 return;
             }
         }
 
         SavedInfo si=new SavedInfo(uid);
-        //si.mPackets.add(new SavedItem(time,new PacketList(packet,0,time,uid),""));
-        initSavedPacket(si,time,packet);
         mSavedPackets.add(si);
+        //si.mPackets.add(new SavedItem(time,new PacketList(packet,0,time,uid),""));
+        initSavedPacketUnchecked(mSavedPackets.size()-1,time,packet);
     }
 
-    void initSavedPacket(SavedInfo si,long time,TCPPacket packet)
+    void initSavedPacketUnchecked(int list,long time,TCPPacket packet)
     {
+        SavedInfo si=mSavedPackets.get(list);
         si.mPackets.add(new SavedItem(time,new PacketList(packet,0,time,si.mUid),""));
+        callSavedItemChange(list,si.mPackets.size()-1);
     }
 
     void initSavedList(String[] files)
     {
-        //mSavedPackets.clear();
+        if (AppPortList.get()==null)
+            AppPortList.init();
 
         if (files!=null)
         {
@@ -116,12 +160,11 @@ public class LocalPackets {
                 mSavedPackets.add(new SavedInfo(uid));
             }
         }
+        callSavedChange();
     }
 
     synchronized void initHistory(String [] files)
     {
-        //mAllPackets.clear();
-
         if (AppPortList.get()==null)
             AppPortList.init();
 
@@ -187,6 +230,24 @@ public class LocalPackets {
             mAllPackets.get(0).mPackets.get(index).add(packet,local);
         }
         callPacketChange(0,index,mAllPackets.get(0).mPackets.get(index).size()-1);
+    }
+
+    private void callSavedChange()
+    {
+        if (mHistoryChangeListeners==null)
+            return;
+
+        Iterator<WeakReference<OnHistoryChangeListener>> it=mHistoryChangeListeners.listIterator();
+
+
+        while (it.hasNext())
+        {
+            WeakReference<OnHistoryChangeListener> l=it.next();
+            if (l.get()==null)
+                it.remove();
+            else
+                MApp.get().postMain(new OnChangeRunnable(l));
+        }
     }
 
     private void callHistoryChange()
@@ -258,6 +319,25 @@ public class LocalPackets {
                     MApp.get().postMain(new OnAddRunnable(l,time,listIndex,index));
                     //l.get().onAdd(time,listIndex,index);
                 }
+            }
+        }
+    }
+
+    private void callSavedItemChange(int listIndex,int index)
+    {
+        if (mSavedItemChangeListeners==null)
+            return ;
+
+        Iterator<WeakReference<OnSavedItemChangeListener>> it=mSavedItemChangeListeners.listIterator();
+
+
+        while (it.hasNext())
+        {
+            WeakReference<OnSavedItemChangeListener> l=it.next();
+            if (l.get()==null)
+                it.remove();
+            else{
+                MApp.get().postMain(new OnAddRunnable(l,listIndex,index));
             }
         }
     }
@@ -385,95 +465,9 @@ public class LocalPackets {
         }
     }
 
-    public static class PacketList {
-        public class PacketItem
-        {
-            public long mTime;
-            public TCPPacket mPacket;
-
-            public PacketItem(long time,TCPPacket packet){
-                mTime=time;
-                mPacket=packet;
-            }
-        }
-
-        AppPortList.AppInfo mInfo;
-        public int mSPort, mDPort;
-        private String ip;
-        private ArrayList<PacketItem> packets;
-        int mIndex=0;
-
-        private int mLast=0;
-
-        PacketList(TCPPacket init,int index) {
-            mIndex=index;
-            packets = new ArrayList<>();
-            mSPort = init.getSourcePort();
-            mDPort = init.getPort();
-            ip = init.getDestIp();
-            mInfo = AppPortList.get().getAppInfo(mSPort);
-            add(init,true);
-            if (mInfo != null)
-                Log.e("xx", "find app:" + mInfo.info.packageName);
-        }
-
-        PacketList(TCPPacket init,int index,long time,int uid)
-        {
-            mIndex=index;
-            packets = new ArrayList<>();
-            mSPort = init.getSourcePort();
-            mDPort = init.getPort();
-            ip = init.getDestIp();
-            mInfo = AppPortList.get().getAppByUid(uid);
-            add(init,time);
-            if (mInfo != null)
-                Log.e("xx", "find app:" + mInfo.info.packageName);
-        }
-
-        public int size() {
-            return packets.size();
-        }
-
-        synchronized PacketItem add(TCPPacket p,boolean local) {
-            PacketItem item=new PacketItem(System.nanoTime(),p);
-            packets.add(item);
-            LocalPackets.mgr().addRequest(PersistRequest.newWriteRequest(item.mTime,this,p));
-
-            if (local)
-            {
-                mLast=packets.size()-1;
-            }
-
-            return item;
-        }
-
-        private PacketItem add(TCPPacket p,long time)
-        {
-            PacketItem item=new PacketItem(time,p);
-            packets.add(item);
-
-            return item;
-        }
-
-        public PacketItem get(int i) {
-            return packets.get(i);
-        }
-
-        public int port() {
-            return mDPort;
-        }
-
-        public String ip() {
-            return ip;
-        }
-
-        public AppPortList.AppInfo info() {
-            return mInfo;
-        }
-
-        TCPPacket getLast() {
-            return packets.get(mLast).mPacket;
-        }
+    public interface OnSavedChangeListener
+    {
+        void onChange();
     }
 
     public interface OnHistoryChangeListener
@@ -481,11 +475,18 @@ public class LocalPackets {
         void onChange();
     }
 
-    public interface OnPacketsChangeListener
+    public interface OnSavedItemChangeListener
     {
         void onChange(int time);
 
         void onAdd(int time,int index);
+    }
+
+    public interface OnPacketsChangeListener
+    {
+        void onChange(int listIndex);
+
+        void onAdd(int listIndex,int index);
     }
 
     public interface OnPacketChangeListener
@@ -526,6 +527,26 @@ public class LocalPackets {
                 if (l!=null)
                     l.onAdd(mTime,mListIndex,mIndex);
             }
+        }
+    }
+
+    private class OnSavedAddRunnable implements Runnable
+    {
+        private int mListIndex=-1,mIndex=-1;
+        private WeakReference mListener;
+
+        OnSavedAddRunnable(WeakReference l,int listIndex,int index)
+        {
+            mListener=l;
+            mIndex=index;
+            mListIndex=listIndex;
+        }
+
+        @Override
+        public void run() {
+                OnPacketsChangeListener l= (OnPacketsChangeListener) mListener.get();
+                if (l!=null)
+                    l.onAdd(mListIndex,mIndex);
         }
     }
 
@@ -572,6 +593,23 @@ public class LocalPackets {
             }
 
             OnHistoryChangeListener l= (OnHistoryChangeListener) mListener.get();
+            if (l!=null)
+                l.onChange();
+        }
+    }
+
+    private class OnSavedChangeRunnable implements Runnable
+    {
+        private WeakReference mL;
+
+        OnSavedChangeRunnable(WeakReference l)
+        {
+            mL=l;
+        }
+
+        @Override
+        public void run() {
+            OnSavedChangeListener l= (OnSavedChangeListener) mL.get();
             if (l!=null)
                 l.onChange();
         }

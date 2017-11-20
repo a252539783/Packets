@@ -9,6 +9,9 @@ import android.view.View;
 import com.iqiyi.liquanfei_sx.vpnt.CommonPresenter;
 import com.iqiyi.liquanfei_sx.vpnt.R;
 import com.iqiyi.liquanfei_sx.vpnt.packet.LocalPackets;
+import com.iqiyi.liquanfei_sx.vpnt.packet.PacketList;
+import com.iqiyi.liquanfei_sx.vpnt.packet.PersistRequest;
+import com.iqiyi.liquanfei_sx.vpnt.packet.TCPPacket;
 import com.iqiyi.liquanfei_sx.vpnt.text.AddedInput;
 import com.iqiyi.liquanfei_sx.vpnt.text.FileInfo;
 import com.iqiyi.liquanfei_sx.vpnt.view.FixedWidthTextView;
@@ -28,6 +31,9 @@ public class EditPresenter extends CommonPresenter implements Toolbar.OnMenuItem
     EditActivity mActivity;
     Toolbar mToolbar;
 
+    private TCPPacket mPacket=null;
+    private PacketList mList=null;
+
     EditPresenter(EditActivity activity)
     {
         this.mActivity=activity;
@@ -46,7 +52,9 @@ public class EditPresenter extends CommonPresenter implements Toolbar.OnMenuItem
         if (action.equals(ACTION_OPEN_PACKET))
         {
             EditPaketInfo pi=i.getParcelableExtra(ACTION_OPEN_PACKET);
-            mTextView.setBytes(LocalPackets.get().mAllPackets.get(pi.mHistory).mPackets.get(pi.mListIndex).get(pi.mIndex).mPacket.getRawData());
+            mList=LocalPackets.get().mAllPackets.get(pi.mHistory).mPackets.get(pi.mListIndex);
+            mPacket=mList.get(pi.mIndex).mPacket;
+            mTextView.setBytes(mPacket.getRawData());
         }else if (action.equals(Intent.ACTION_VIEW))
         {
             try {
@@ -62,7 +70,15 @@ public class EditPresenter extends CommonPresenter implements Toolbar.OnMenuItem
         switch (item.getItemId())
         {
             case R.id.menu_b_save:
-                    mActivity.finish();
+                    if (mPacket!=null)
+                    {
+                        if (!LocalPackets.get().containSaved(mList.info().info.applicationInfo.uid))
+                        {
+                            LocalPackets.get().newSaved(mList.info().info.applicationInfo.uid);
+                        }
+
+                        LocalPackets.mgr().addRequest(PersistRequest.newWriteSavedRequest("",System.nanoTime(),mList,mPacket));
+                    }
                 break;
         }
 

@@ -4,6 +4,7 @@ import android.content.Context;
 import android.content.Intent;
 import android.os.Message;
 import android.support.v7.widget.RecyclerView;
+import android.util.Log;
 import android.util.SparseArray;
 import android.view.LayoutInflater;
 import android.view.View;
@@ -16,6 +17,7 @@ import com.iqiyi.liquanfei_sx.vpnt.R;
 import com.iqiyi.liquanfei_sx.vpnt.editor.EditActivity;
 import com.iqiyi.liquanfei_sx.vpnt.editor.EditPaketInfo;
 import com.iqiyi.liquanfei_sx.vpnt.packet.LocalPackets;
+import com.iqiyi.liquanfei_sx.vpnt.packet.PacketList;
 import com.iqiyi.liquanfei_sx.vpnt.packet.PersistRequest;
 import com.iqiyi.liquanfei_sx.vpnt.packet.TCPPacket;
 import com.iqiyi.liquanfei_sx.vpnt.tools.AppPortList;
@@ -93,7 +95,7 @@ public class HistoryAdapter extends ExpandableRecyclerView.Adapter<HistoryAdapte
         public static final int FILTER_APP=0x4;
         public static final int FILTER_PKG=0x8;
 
-        private List<LocalPackets.PacketList> mPacketLists =null;
+        private List<PacketList> mPacketLists =null;
 
         private List<Integer> mNo=new ArrayList<>(),mIpFilter,mPortFilter,mAppFilter,mPkgFilter,mCurrent=mNo;
         private int mFilterType=FILTER_NO;
@@ -116,7 +118,7 @@ public class HistoryAdapter extends ExpandableRecyclerView.Adapter<HistoryAdapte
 
         void filterAdd(int position)
         {
-            LocalPackets.PacketList pl=mPacketLists.get(position);
+            PacketList pl=mPacketLists.get(position);
             if (mFilterType==FILTER_NO) {
                 mCurrent.add(position);
                 notifyItemInserted(position);
@@ -290,7 +292,7 @@ public class HistoryAdapter extends ExpandableRecyclerView.Adapter<HistoryAdapte
 
         @Override
         public void onBindViewHolder(H2 holder, int position) {
-            LocalPackets.PacketList packetList= mPacketLists.get(mCurrent.get(position));
+            PacketList packetList= mPacketLists.get(mCurrent.get(position));
             AppPortList.AppInfo info=packetList.info();
             if (info!=null) {
                 holder.icon.setImageDrawable(info.icon);
@@ -341,6 +343,7 @@ public class HistoryAdapter extends ExpandableRecyclerView.Adapter<HistoryAdapte
             public H3 onCreateViewHolder(ViewGroup parent, int viewType) {
                 H3 h= new H3(mLf.inflate(R.layout.item_packet,parent,false));
                 h.itemView.setOnClickListener(this);
+                Log.e("xx","create h3");
                 return h;
             }
 
@@ -358,14 +361,14 @@ public class HistoryAdapter extends ExpandableRecyclerView.Adapter<HistoryAdapte
 
             @Override
             public void onChange(int time, int index) {
-                if (time==mTime&&index==mPosition)
-                    notifyDataSetChanged();
+//                if (time==mTime&&index==mPosition)
+//                    notifyDataSetChanged();
             }
 
             @Override
             public void onAdd(int time, int listIndex, int index) {
                 if (time==mTime&&listIndex==mPosition)
-                    notifyDataSetChanged();
+                    notifyItemInserted(index);
             }
 
             @Override

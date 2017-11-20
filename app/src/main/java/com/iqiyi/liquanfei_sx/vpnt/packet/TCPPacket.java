@@ -33,12 +33,12 @@ public class TCPPacket extends Packet {
         mSourcePort=(((data[offset]&0xff)<<8)|data[offset+1]&0xff);
         mDestPort=(((data[offset+2]&0xff)<<8)|data[offset+3]&0xff);
 
-        sn=((data[offset+4]&0xff)<<24|(data[offset+5]&0xff)<<16|(data[offset+6]&0xff)<<8|data[offset+7]&0xff)&0xffffffff;
-        cksn=((data[offset+8]&0xff)<<24|(data[offset+9]&0xff)<<16|(data[offset+10]&0xff)<<8|data[offset+11]&0xff)&0xffffffff;
+        sn= ((data[offset + 4] & 0xff) << 24 | (data[offset + 5] & 0xff) << 16 | (data[offset + 6] & 0xff) << 8 | data[offset + 7] & 0xff);
+        cksn= ((data[offset + 8] & 0xff) << 24 | (data[offset + 9] & 0xff) << 16 | (data[offset + 10] & 0xff) << 8 | data[offset + 11] & 0xff);
 
         mHeaderLength=(((data[offset+12]&0xff)>>>4))*4;
 
-        dataLen=data.length-mHeaderLength-offset;
+        dataLen=ip.length-mHeaderLength-offset;
 
         urg = (((data[offset + 13]&0xff) << 26) >>> 31 )== 1;
         ack = (((data[offset + 13]&0xff) << 27) >>> 31) == 1;
@@ -94,7 +94,7 @@ public class TCPPacket extends Packet {
 //            }
 //
 //            Log.e("xx","option "+s);
-//            Log.e("xx","data:"+new String(getRawData(),offset+mHeaderLength,dataLen));
+            Log.e("xx","data:"+mHeaderLength);
 //        }
 
     }

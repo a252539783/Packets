@@ -14,6 +14,9 @@ public class IOUtil {
     }
 
     public static void read(InputStream is,byte[] buf,int offset,int length) throws IOException {
+        if (is.available()<length)
+            length=is.available();
+
         int end=offset+length;
         while (offset!=end)
         {

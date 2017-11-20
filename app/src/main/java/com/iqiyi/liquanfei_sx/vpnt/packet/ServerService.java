@@ -49,7 +49,7 @@ public class ServerService extends Service {
     private int mPacketIndex=0;
     private ListenerInfo mListenerInfo = new ListenerInfo();
 
-    public static ArrayList<LocalPackets.PacketList> mPackets = new ArrayList<>();
+    public static ArrayList<PacketList> mPackets = new ArrayList<>();
 
     private ByteBufferPool mBufferPool = ByteBufferPool.getDefault();
 
@@ -328,7 +328,7 @@ public class ServerService extends Service {
 //        OutputStream os;
         SocketChannel mChannel;
         boolean closed = false;
-        LocalPackets.PacketList mPacketList;
+        PacketList mPacketList;
         Queue<SendEntry> mReadySend = new LinkedList<>();
         int mPosition = 0;
 

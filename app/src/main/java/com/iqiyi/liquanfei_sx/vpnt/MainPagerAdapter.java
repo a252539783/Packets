@@ -11,8 +11,7 @@ import android.support.v4.view.PagerAdapter;
 
 public class MainPagerAdapter extends FragmentPagerAdapter {
 
-    private Fragment []mFragments=new Fragment[]{
-    };
+    private Fragment []mFragments;
 
     public MainPagerAdapter(FragmentManager fm,Fragment[] fragments) {
         super(fm);

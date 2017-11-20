@@ -174,7 +174,7 @@ public class ClientService extends VpnService{
         }
     }
 
-    public ArrayList<LocalPackets.PacketList> getPackets()
+    public ArrayList<PacketList> getPackets()
     {
         return ServerService.mPackets;
     }

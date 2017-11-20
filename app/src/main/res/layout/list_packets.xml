@@ -9,18 +9,5 @@
         android:id="@+id/erv_history">
 
     </com.iqiyi.liquanfei_sx.vpnt.view.ExpandableRecyclerView>
-    <LinearLayout
-        android:layout_width="match_parent"
-        android:layout_height="wrap_content"
-        android:orientation="vertical">
-        <Button
-            android:layout_width="wrap_content"
-            android:layout_height="wrap_content"
-            android:id="@+id/b_test"/>
-
-    </LinearLayout>
-
-
-
 
 </LinearLayout>

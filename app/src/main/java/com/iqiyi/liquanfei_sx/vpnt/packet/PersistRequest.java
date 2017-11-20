@@ -22,9 +22,14 @@ public abstract class PersistRequest {
 
     abstract String doRequest(String folder);
 
-    public static PersistRequest newWriteRequest(long time, LocalPackets.PacketList list, Packet packet)
+    static PersistRequest newWriteRequest(long time, PacketList list, Packet packet)
     {
         return new WriteRequest(time, list, packet);
+    }
+
+    public static PersistRequest newWriteSavedRequest(String name,long time,PacketList list,TCPPacket packet)
+    {
+        return new SaveRequest(name,time,list,packet);
     }
 
     public static PersistRequest newReadRequest(int time,int index)
@@ -42,9 +47,24 @@ public abstract class PersistRequest {
         return new PersistRequest.LoadRequest();
     }
 
-    public static PersistRequest newCreateRequest(long time)
+    public static PersistRequest newReadSavedRequest()
+    {
+        return new LoadSavedRequest();
+    }
+
+    public static PersistRequest newReadSavedRequest(int uid)
+    {
+        return new LoadSavedRequest(uid);
+    }
+
+    static PersistRequest newCreateRequest(long time)
     {
         return new PersistRequest.CreateRequest(time);
+    }
+
+    static PersistRequest newCreateSavedRequest(int uid)
+    {
+        return new CreateSavedRequest(uid);
     }
 
     private static class CreateRequest extends PersistRequest
@@ -65,14 +85,32 @@ public abstract class PersistRequest {
         }
     }
 
+    private static class CreateSavedRequest extends PersistRequest
+    {
+        int mUid=0;
+
+        CreateSavedRequest(int uid)
+        {
+            mUid=uid;
+        }
+
+        @Override
+        String doRequest(String folder) {
+            String newF=Constants.PrivateFileLocation.SAVED+File.separator+mUid+File.separator;
+            new File(newF).mkdirs();
+
+            return newF;
+        }
+    }
+
     private static class SaveRequest extends PersistRequest
     {
         String mName="";
-        LocalPackets.PacketList mList;
+        PacketList mList;
         TCPPacket mPacket;
         long mTime;
 
-        private SaveRequest(String name,long time, LocalPackets.PacketList list, TCPPacket packet)
+        private SaveRequest(String name,long time, PacketList list, TCPPacket packet)
         {
             mPacket=packet;
             mTime=time;
@@ -104,10 +142,10 @@ public abstract class PersistRequest {
     private static class WriteRequest extends PersistRequest
     {
         Packet mPacket;
-        LocalPackets.PacketList mList;
+        PacketList mList;
         long mTime;
 
-        private WriteRequest(long time, LocalPackets.PacketList list, Packet packet)
+        private WriteRequest(long time,PacketList list, Packet packet)
         {
             mPacket=packet;
             mTime=time;
@@ -171,8 +209,8 @@ public abstract class PersistRequest {
                     long time=0;
                     byte []timeBuf=new byte[8];
 
-                    LocalPackets.PacketList.PacketItem pi=ci.mPackets.get(mIndex).get(0);
-                    if (pi.mPacket.getIpInfo().length!=52)//抓包过程中出现问题
+                    PacketList.PacketItem pi=ci.mPackets.get(mIndex).get(0);
+                    if (pi.mPacket.getIpInfo().length!=60)//抓包过程中出现问题
                     {
                         fis.skip(8);
                         byte[] src=new byte[pi.mPacket.getIpInfo().length];
@@ -181,7 +219,7 @@ public abstract class PersistRequest {
                         pi.mPacket=(TCPPacket) new IPPacket(src).getData();
                     }else
                     {
-                        fis.skip(60);       //第一个数据包已经获取过了
+                        fis.skip(68);       //第一个数据包已经获取过了
                     }
 
                     BufferedInputStream bis=new BufferedInputStream(fis);
@@ -198,8 +236,9 @@ public abstract class PersistRequest {
                         System.arraycopy(mBuffer,0,src,0,src.length);
                         TCPPacket packet=(TCPPacket) new IPPacket(src).getData();
                         LocalPackets.get().initPacketList(mTimeIndex,mIndex,time,packet,false);
+                        Thread.sleep(10);
                     }
-                } catch (IOException e) {
+                } catch (IOException | InterruptedException e) {
                     e.printStackTrace();
                 } catch (ClassCastException e)
                 {
@@ -230,9 +269,10 @@ public abstract class PersistRequest {
                 for (int i=0;i<files.length;i++)
                 {
                     /**
-                     * 每个数据包开始应该是本应用发出的SYN数据，长度52字节
+                     * 预计开始的syn包大小为60，由于这里只是要获取基本的ip信息和端口，
+                     * 所以即使实际大小不正确也无所谓，在后面读取所有数据包时会再更新一次
                      */
-                    byte []src=new byte[52];
+                    byte []src=new byte[60];
                     int l=0;
                     try {
                         fis=new FileInputStream(files[i]);
@@ -304,7 +344,7 @@ public abstract class PersistRequest {
                 }
             }else
             {
-                LocalPackets.SavedInfo si=LocalPackets.get().mSavedPackets.get(mUid);
+                LocalPackets.SavedInfo si=LocalPackets.get().getSavedInfo(mUid);
                 if (si.mPackets.size()!=0)
                     return null;
 
@@ -350,7 +390,7 @@ public abstract class PersistRequest {
                         Log.e("xx",""+ip.length);
                         packets[i] = (TCPPacket) ip.getData();
 
-                        LocalPackets.get().initSavedPacket(si,time,packets[i]);
+                        LocalPackets.get().initSavedPacketUnchecked(i,time,packets[i]);
                     }catch (ClassCastException e)
                     {
                         //不是tcp，先忽略它们
