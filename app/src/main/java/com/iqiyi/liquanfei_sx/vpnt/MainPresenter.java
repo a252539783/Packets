@@ -1,6 +1,7 @@
 package com.iqiyi.liquanfei_sx.vpnt;
 
 import android.app.Activity;
+import android.support.design.widget.TabLayout;
 import android.support.v4.app.Fragment;
 import android.support.v4.view.PagerAdapter;
 import android.support.v4.view.ViewPager;
@@ -18,6 +19,7 @@ public class MainPresenter extends CommonPresenter {
 
     private ViewPager mViewPager;
     private PagerAdapter mPagerAdapter;
+    private TabLayout mTab;
 
     private AppCompatActivity mActivity;
 
@@ -29,10 +31,17 @@ public class MainPresenter extends CommonPresenter {
     @Override
     protected void onViewBind(View v) {
         mViewPager=(ViewPager)v.findViewById(R.id.pager_main);
+        mTab=(TabLayout)v.findViewById(R.id.tab_main);
 
         mPagerAdapter=new MainPagerAdapter(mActivity.getSupportFragmentManager(),new Fragment[]{
             new SavedFragment(),new HistoryFragment()
+        },new String[]{
+                "saved",        "history"
         });
+
+//        mTab.addTab(mTab.newTab().setText("saved"));
+//        mTab.addTab(mTab.newTab().setText("history"));
         mViewPager.setAdapter(mPagerAdapter);
+        mTab.setupWithViewPager(mViewPager);
     }
 }

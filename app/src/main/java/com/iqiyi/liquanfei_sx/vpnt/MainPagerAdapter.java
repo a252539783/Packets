@@ -12,10 +12,12 @@ import android.support.v4.view.PagerAdapter;
 public class MainPagerAdapter extends FragmentPagerAdapter {
 
     private Fragment []mFragments;
+    private String[] mTitle;
 
-    public MainPagerAdapter(FragmentManager fm,Fragment[] fragments) {
+    public MainPagerAdapter(FragmentManager fm,Fragment[] fragments,String []title) {
         super(fm);
         mFragments=fragments;
+        mTitle=title;
     }
 
     @Override
@@ -26,5 +28,10 @@ public class MainPagerAdapter extends FragmentPagerAdapter {
     @Override
     public int getCount() {
         return mFragments.length;
+    }
+
+    @Override
+    public CharSequence getPageTitle(int position) {
+        return mTitle[position];
     }
 }

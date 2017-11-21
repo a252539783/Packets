@@ -118,8 +118,10 @@ public class ExpandableRecyclerView extends RecyclerView implements View.OnClick
             }
         });
         super.setAdapter(mInnerAdapter);
+        setNestedScrollingEnabled(true);
 
-        setFocusableInTouchMode(false);//避免获取焦点、自动滚动
+        //setFocusableInTouchMode(false);//避免获取焦点、自动滚动
+        //requestFocus();
     }
 
     public void setExpandable(boolean can)
@@ -425,5 +427,10 @@ public class ExpandableRecyclerView extends RecyclerView implements View.OnClick
     public boolean dispatchNestedScroll(int dxConsumed, int dyConsumed, int dxUnconsumed, int dyUnconsumed, int[] offsetInWindow) {
         return super.dispatchNestedScroll(dxConsumed, dyConsumed, dxUnconsumed, dyUnconsumed, offsetInWindow);
         //return true;
+    }
+
+    @Override
+    public boolean startNestedScroll(int axes) {
+        return super.startNestedScroll(axes);
     }
 }
