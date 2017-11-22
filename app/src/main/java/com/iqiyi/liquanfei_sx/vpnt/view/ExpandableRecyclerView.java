@@ -1,7 +1,6 @@
 package com.iqiyi.liquanfei_sx.vpnt.view;
 
 import android.content.Context;
-import android.graphics.Color;
 import android.graphics.Rect;
 import android.support.annotation.Nullable;
 import android.support.v4.util.ArrayMap;
