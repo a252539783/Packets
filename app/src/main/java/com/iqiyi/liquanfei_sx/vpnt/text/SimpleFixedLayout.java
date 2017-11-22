@@ -5,11 +5,7 @@ import android.graphics.Color;
 import android.graphics.Paint;
 import android.graphics.Path;
 import android.text.Layout;
-import android.text.Spanned;
 import android.text.TextPaint;
-import android.text.style.AlignmentSpan;
-import android.text.style.LeadingMarginSpan;
-import android.text.style.ParagraphStyle;
 import android.util.Log;
 
 import java.io.RandomAccessFile;

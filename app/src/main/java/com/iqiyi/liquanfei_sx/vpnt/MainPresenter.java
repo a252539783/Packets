@@ -1,6 +1,5 @@
 package com.iqiyi.liquanfei_sx.vpnt;
 
-import android.app.Activity;
 import android.support.design.widget.TabLayout;
 import android.support.v4.app.Fragment;
 import android.support.v4.view.PagerAdapter;

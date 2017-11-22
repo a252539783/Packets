@@ -3,11 +3,8 @@ package com.iqiyi.liquanfei_sx.vpnt.floating;
 import android.content.Context;
 import android.graphics.PixelFormat;
 import android.view.Gravity;
-import android.view.LayoutInflater;
 import android.view.View;
 import android.view.WindowManager;
-import android.widget.EditText;
-import android.widget.FrameLayout;
 
 import com.iqiyi.liquanfei_sx.vpnt.MFLoatingWindowView;
 

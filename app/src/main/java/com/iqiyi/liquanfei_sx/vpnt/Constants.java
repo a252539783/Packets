@@ -1,6 +1,5 @@
 package com.iqiyi.liquanfei_sx.vpnt;
 
-import android.app.Application;
 import android.content.Context;
 
 import java.io.File;

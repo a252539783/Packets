@@ -1,7 +1,6 @@
 package com.iqiyi.liquanfei_sx.vpnt.editor;
 
 import android.content.Intent;
-import android.os.Parcelable;
 import android.support.v7.widget.Toolbar;
 import android.view.MenuItem;
 import android.view.View;

@@ -1,7 +1,5 @@
 package com.iqiyi.liquanfei_sx.vpnt.packet;
 
-import android.util.Log;
-
 import com.iqiyi.liquanfei_sx.vpnt.Constants;
 import com.iqiyi.liquanfei_sx.vpnt.MApp;
 import com.iqiyi.liquanfei_sx.vpnt.tools.AppPortList;

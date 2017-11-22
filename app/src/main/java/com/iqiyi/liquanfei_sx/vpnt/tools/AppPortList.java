@@ -3,8 +3,6 @@ package com.iqiyi.liquanfei_sx.vpnt.tools;
 import android.content.Context;
 import android.content.pm.PackageInfo;
 import android.content.pm.PackageManager;
-import android.graphics.BitmapFactory;
-import android.graphics.drawable.BitmapDrawable;
 import android.graphics.drawable.Drawable;
 import android.util.Log;
 import android.util.SparseArray;

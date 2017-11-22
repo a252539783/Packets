@@ -6,8 +6,6 @@ import android.view.View;
 
 import com.iqiyi.liquanfei_sx.vpnt.CommonPresenter;
 import com.iqiyi.liquanfei_sx.vpnt.R;
-import com.iqiyi.liquanfei_sx.vpnt.history.HistoryAdapter;
-import com.iqiyi.liquanfei_sx.vpnt.history.HistoryPresenter;
 import com.iqiyi.liquanfei_sx.vpnt.packet.LocalPackets;
 import com.iqiyi.liquanfei_sx.vpnt.packet.PersistRequest;
 import com.iqiyi.liquanfei_sx.vpnt.view.ExpandableRecyclerView;

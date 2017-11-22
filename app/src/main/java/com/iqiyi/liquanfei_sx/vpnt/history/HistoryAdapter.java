@@ -2,17 +2,14 @@ package com.iqiyi.liquanfei_sx.vpnt.history;
 
 import android.content.Context;
 import android.content.Intent;
-import android.os.Message;
 import android.support.v7.widget.RecyclerView;
 import android.util.Log;
-import android.util.SparseArray;
 import android.view.LayoutInflater;
 import android.view.View;
 import android.view.ViewGroup;
 import android.widget.ImageView;
 import android.widget.TextView;
 
-import com.iqiyi.liquanfei_sx.vpnt.MApp;
 import com.iqiyi.liquanfei_sx.vpnt.R;
 import com.iqiyi.liquanfei_sx.vpnt.editor.EditActivity;
 import com.iqiyi.liquanfei_sx.vpnt.editor.EditPaketInfo;

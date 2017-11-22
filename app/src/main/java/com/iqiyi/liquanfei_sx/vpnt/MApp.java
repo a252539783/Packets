@@ -1,7 +1,6 @@
 package com.iqiyi.liquanfei_sx.vpnt;
 
 import android.app.Application;
-import android.content.Intent;
 import android.os.Handler;
 
 import com.iqiyi.liquanfei_sx.vpnt.packet.LocalPackets;

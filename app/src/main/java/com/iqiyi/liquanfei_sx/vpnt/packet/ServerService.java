@@ -10,7 +10,6 @@ import android.support.annotation.Nullable;
 import android.util.Log;
 import android.util.SparseArray;
 
-import com.iqiyi.liquanfei_sx.vpnt.tools.AppPortList;
 import com.iqiyi.liquanfei_sx.vpnt.tools.ByteBufferPool;
 
 import java.io.IOException;
