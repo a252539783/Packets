@@ -117,8 +117,10 @@ public class ExpandableRecyclerView extends RecyclerView implements View.OnClick
             }
         });
         super.setAdapter(mInnerAdapter);
-        setNestedScrollingEnabled(true);
 
+        /**TODO
+         * 为什么不能开启嵌套滚动呢。。。setNestedScrollingEnabled(true)
+         */
         //setFocusableInTouchMode(false);//避免获取焦点、自动滚动
         //requestFocus();
     }
