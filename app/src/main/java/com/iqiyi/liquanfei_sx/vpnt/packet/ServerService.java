@@ -45,6 +45,19 @@ public class ServerService extends Service {
     private WriteThread mWriteThread = null;
     private ReadThread mReadThread = null;
 
+    private ServiceConnection mConn=new ServiceConnection() {
+        @Override
+        public void onServiceConnected(ComponentName name, IBinder service) {
+            mLocal = ((ClientService.MB) service).get();
+            Log.e("xx", "bind to client");
+        }
+
+        @Override
+        public void onServiceDisconnected(ComponentName name) {
+
+        }
+    };
+
     private int mPacketIndex=0;
     private ListenerInfo mListenerInfo = new ListenerInfo();
 
@@ -73,21 +86,17 @@ public class ServerService extends Service {
         return super.onStartCommand(intent, flags, startId);
     }
 
+    @Override
+    public void onDestroy() {
+        unbindService(mConn);
+        Log.e("xx","client service dead");
+        super.onDestroy();
+    }
+
     @Nullable
     @Override
     public IBinder onBind(Intent intent) {
-        bindService(new Intent(ServerService.this, ClientService.class), new ServiceConnection() {
-            @Override
-            public void onServiceConnected(ComponentName name, IBinder service) {
-                mLocal = ((ClientService.MB) service).get();
-                Log.e("xx", "bind to client");
-            }
-
-            @Override
-            public void onServiceDisconnected(ComponentName name) {
-
-            }
-        }, BIND_AUTO_CREATE);
+        bindService(new Intent(ServerService.this, ClientService.class), mConn, BIND_AUTO_CREATE);
         return mB;
     }
 
@@ -108,25 +117,10 @@ public class ServerService extends Service {
         mTransmitThread.pause();
     }
 
-    void setOnPacketAddListener(ClientService.OnPacketAddListener l) {
-        mListenerInfo.mOnPacketAddListener = l;
-    }
-
-    void setOnPacketsAddListener(ClientService.OnPacketsAddListener l) {
-        mListenerInfo.mOnPacketsAddListener = l;
-    }
-
-    void removeOnPacketsAddListener() {
-        mListenerInfo.mOnPacketsAddListener = null;
-    }
-
     public boolean transmit(Packet packet) {
-        //Log.e("xx","add");
         mTransmitThread.mPackets.add(packet);
-        if (!mTransmitThread.mPause)
-            return false;
 
-        return true;
+        return mTransmitThread.mPause;
     }
 
     public void setLocal(ClientService local) {
@@ -157,13 +151,14 @@ public class ServerService extends Service {
         public void run() {
             super.run();
             mPause = false;
-            Log.e("xx", "daemon started");
-            while (!mPause || !mPackets.isEmpty()) {
+            Log.e("xx", "transmit started");
+            while (!mPause) {
                 Packet packet = mPackets.poll();
                 if (packet!=null)
                     doTransmit(packet);
             }
-            Log.e("xx", "daemon ended");
+            mReadThread.pause();
+            Log.e("xx", "transmit ended");
         }
 
         private void doTransmit(Packet packet) {
@@ -287,21 +282,28 @@ public class ServerService extends Service {
                 if (p == null)
                     continue;
 
-                while (!mLocal.write(p));
-
+                while (!mPause&&!mLocal.write(p));
             }
+
+            Log.e("xx","writeThread end");
+            stopSelf();
+            mLocal.stop();
         }
 
-        void write(Packet packet) {
+        private void write(Packet packet) {
             mReadyWrite.add(packet);
-            //mLocal.write(packet);
+        }
+
+        private void pause()
+        {
+            mPause=true;
         }
     }
 
     /**
      * 转发队列的项目
      */
-    static class SendEntry {
+    private static class SendEntry {
         SendEntry(TCPPacket p) {
             packet = p;
 
@@ -321,10 +323,7 @@ public class ServerService extends Service {
         TCPPacket packet;
     }
 
-    public class TCPStatus {
-        //Socket mSocket;
-//        InputStream is;
-//        OutputStream os;
+    private class TCPStatus {
         SocketChannel mChannel;
         boolean closed = false;
         PacketList mPacketList;
@@ -354,7 +353,6 @@ public class ServerService extends Service {
             mSelector.wakeup();
             mChannel.connect(new InetSocketAddress(packet.getDestIp(), packet.getPort()));
             registering = false;
-            //ack(packet);
         }
 
         void close() {
@@ -467,7 +465,7 @@ public class ServerService extends Service {
             }
         }
 
-        public void ack(ByteBuffer data) {
+        void ack(ByteBuffer data) {
             TCPPacket packet = mPacketList.getLast();
             if (packet.getPort() != 666666)
                 try {
@@ -484,7 +482,7 @@ public class ServerService extends Service {
         }
     }
 
-    static class Key {
+    private static class Key {
         SocketChannel channel;
         int op;
         TCPStatus status;
@@ -496,16 +494,17 @@ public class ServerService extends Service {
         }
     }
 
-    class ReadThread extends Thread {
+    private class ReadThread extends Thread {
 
         ByteBuffer mBuffer = ByteBuffer.allocate(4096);
+        private boolean mPause=false;
 
         @Override
         public void run() {
             setPriority(MAX_PRIORITY);
             super.run();
-                while (true) {
-                    while (!prepareRegister.isEmpty()) {
+                while (!mPause) {
+                    while (!mPause&&!prepareRegister.isEmpty()) {
                         Key key;
                         try {
                             key = prepareRegister.poll();
@@ -627,7 +626,14 @@ public class ServerService extends Service {
                         }
                     }
                 }
+                Log.e("xx","read thread end");
+            mWriteThread.pause();
+        }
 
+        private void pause()
+        {
+            mPause=true;
+            mSelector.wakeup();
         }
     }
 

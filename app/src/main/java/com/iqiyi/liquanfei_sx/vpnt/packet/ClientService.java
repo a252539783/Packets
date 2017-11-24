@@ -22,17 +22,36 @@ import java.util.ArrayList;
  */
 
 public class ClientService extends VpnService{
-    static final String TAG="xx";
 
     private String addr="127.0.0.1";
     private int port=4444;
     private MB mb=new MB();
     private ServerService server=null;
+    private boolean mRunning=false;
+
+    private ServiceConnection mConn=new ServiceConnection(){
+
+        @Override
+        public void onServiceConnected(ComponentName name, IBinder service) {
+            server=((ServerService.MB)service).get();
+
+            if (mOnServerConnectedListener!=null)
+            {
+                mOnServerConnectedListener.onConnected();
+            }
+        }
+
+        @Override
+        public void onServiceDisconnected(ComponentName name) {
+            server=null;
+        }
+    };
+
+    private static boolean mAlreadyRun=false;
 
     private OnServerConnectedListener mOnServerConnectedListener=null;
 
     private ParcelFileDescriptor mInterface;
-    DatagramChannel mTunnel;
     OutputStream os=null;
 
     @Override
@@ -42,34 +61,21 @@ public class ClientService extends VpnService{
 
     @Override
     public int onStartCommand(Intent intent, int flags, int startId) {
-        Log.e("xx","client started");
-
-        if (server!=null)
+        if (mAlreadyRun){
+            server.stopDaemon();
             return super.onStartCommand(intent, flags, startId);
+        }
 
-        bindService(new Intent(this,ServerService.class),new ServiceConnection(){
+        mAlreadyRun=true;
 
-            @Override
-            public void onServiceConnected(ComponentName name, IBinder service) {
-                server=((ServerService.MB)service).get();
-
-                if (mOnServerConnectedListener!=null)
-                {
-                    mOnServerConnectedListener.onConnected();
-                }
-            }
-
-            @Override
-            public void onServiceDisconnected(ComponentName name) {
-
-            }
-        },BIND_AUTO_CREATE);
+        bindService(new Intent(this,ServerService.class),mConn,BIND_AUTO_CREATE);
 
         new Thread()
         {
             @Override
             public void run() {
                 super.run();
+                mRunning=true;
                 setPriority(MAX_PRIORITY);
 
                 while (server==null);
@@ -84,32 +90,58 @@ public class ClientService extends VpnService{
                 // Allocate the mBuffer for a single packet.
                 ByteBuffer packet = ByteBuffer.allocate(32767);
                 int length;
-                try {
-                    while (true) {
-                        length = in.read(packet.array());
-                        if (length > 0) {
-                            // while ((length = in.read(packet.array())) > 0) {
-                            // Write the outgoing packet to the tunnel.
-                            //Log.e("xx","tun read-write"+new String(packet.array()));
-                            packet.limit(length);
-                            //debugPacket(packet); // Packet size, Protocol,
-                            byte []b=new byte[length];
-                            System.arraycopy(packet.array(),0,b,0,length);
-                            server.transmit(new IPPacket(b));
-                            // source, destination
-                            packet.clear();
-                            //mTunnel.write(packet);
-                            //out.write(packet.array(),0,length);
+                int errorTime=0;
+                    while (mRunning) {
+                        try {
+                            length = in.read(packet.array());
+                            if (length > 0) {
+                                packet.limit(length);
+                                byte []b=new byte[length];
+                                System.arraycopy(packet.array(),0,b,0,length);
+                                server.transmit(new IPPacket(b));
+                                packet.clear();
+                            }
+                            errorTime=0;
+                        } catch (IOException e) {
+                            if (errorTime>10) {//连续出错10次
+                                server.stopDaemon();
+                                while(mRunning);
+                            }
+                            else
+                                errorTime++;
                         }
                     }
-                } catch (IOException e) {
-                    Log.e("xx",e.toString());
-                }
+
+                    Log.e("xx","client end");
+                stopSelf();
             }
         }.start();
 
 
         return super.onStartCommand(intent, flags, startId);
+    }
+
+    void stop()
+    {
+        mRunning=false;
+        try {
+            mInterface.close();
+        } catch (IOException e) {
+            //报错不管
+        }
+    }
+
+    @Override
+    public void onDestroy() {
+        mAlreadyRun=false;
+        unbindService(mConn);
+        Log.e("xx","client service dead");
+        super.onDestroy();
+    }
+
+    public static boolean isRun()
+    {
+        return mAlreadyRun;
     }
 
     public boolean write(Packet packet)
@@ -122,39 +154,6 @@ public class ClientService extends VpnService{
         }
 
         return true;
-    }
-
-    public void setOnServerConnectedListener(OnServerConnectedListener l)
-    {
-        mOnServerConnectedListener=l;
-        if (server!=null)
-            l.onConnected();
-    }
-
-    public void removeOnServerConnectedListener()
-    {
-        mOnServerConnectedListener=null;
-    }
-
-    public void setOnPacketAddListener(OnPacketAddListener l)
-    {
-        server.setOnPacketAddListener(l);
-    }
-
-    public void setOnPacketsAddListener(OnPacketsAddListener l)
-    {
-        server.setOnPacketsAddListener(l);
-    }
-
-    public void removeOnPacketsAddListener()
-    {
-        server.removeOnPacketsAddListener();
-    }
-
-    public void removeAllListener()
-    {
-        removeOnPacketsAddListener();
-        removeOnServerConnectedListener();
     }
 
     @Override
