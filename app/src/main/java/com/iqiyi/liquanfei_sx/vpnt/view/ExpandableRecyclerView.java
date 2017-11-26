@@ -20,6 +20,13 @@ import java.util.ListIterator;
 
 /**
  * Created by Administrator on 2017/9/28.
+ * TODO
+ *
+ * RecyclerView嵌套之后，如果不处理好嵌套滚动那么将会导致
+ * 内部重用机制失效（取消嵌套滚动时必须让所有的item为自适应大小
+ * 才能正常显示，此时会一次性绘制所有元素，无法重用）
+ * 1：使用嵌套滚动
+ * 2：伪嵌套
  */
 
 public class ExpandableRecyclerView extends RecyclerView implements View.OnClickListener {
@@ -101,7 +108,7 @@ public class ExpandableRecyclerView extends RecyclerView implements View.OnClick
 
     private void init()
     {
-        setLayoutManager(new MLinearLayoutManager(getContext()));
+        setLayoutManager(new LinearLayoutManager(getContext()));
         getLayoutManager().setAutoMeasureEnabled(true);
         ((SimpleItemAnimator)getItemAnimator()).setSupportsChangeAnimations(false);
         getItemAnimator().setRemoveDuration(0);
@@ -303,7 +310,7 @@ public class ExpandableRecyclerView extends RecyclerView implements View.OnClick
         public abstract boolean canExpand(int position);
     }
 
-     class MAdapter extends RecyclerView.Adapter
+     private class MAdapter extends RecyclerView.Adapter
     {
         @Override
         public ViewHolder onCreateViewHolder(ViewGroup parent, int viewType) {
@@ -376,62 +383,5 @@ public class ExpandableRecyclerView extends RecyclerView implements View.OnClick
                 this.mMaskPosition =maskPosition;
             }
         }
-    }
-
-    private class MLinearLayoutManager extends LinearLayoutManager
-    {
-//
-//        @Override
-//        public void onMeasure(Recycler recycler, State state, int widthSpec,int heightSpec) {
-//            int measuredHeight=MeasureSpec.getSize(heightSpec);
-//            int measuredWidth = MeasureSpec.getSize(widthSpec);
-//            if (!mCanExpand)
-//            {
-//                //super.onMeasure(recycler, state, widthSpec, heightSpec);
-//                //return ;
-//            }
-//
-//            int height=0;
-//            for (int i=0;i<mInnerAdapter.getItemCount();i++)
-//            {
-//                try {
-//                    View view = recycler.getViewForPosition(0);
-//                    if (view != null) {
-//                        measureChild(view, widthSpec, heightSpec);
-//                        height += view.getMeasuredHeight();
-//                    } else {
-//                        break;
-//                    }
-//                }catch (IndexOutOfBoundsException e)
-//                {
-//                    break;
-//                }
-//            }
-//            if (height>measuredHeight)
-//            {
-//                height=measuredHeight;
-//            }
-//            setMeasuredDimension(measuredWidth, height);
-//        }
-
-        public MLinearLayoutManager(Context context) {
-            super(context);
-        }
-
-        @Override
-        public void onMeasure(Recycler recycler, State state, int widthSpec, int heightSpec) {
-            super.onMeasure(recycler, state, widthSpec, heightSpec);
-        }
-    }
-
-    @Override
-    public boolean dispatchNestedScroll(int dxConsumed, int dyConsumed, int dxUnconsumed, int dyUnconsumed, int[] offsetInWindow) {
-        return super.dispatchNestedScroll(dxConsumed, dyConsumed, dxUnconsumed, dyUnconsumed, offsetInWindow);
-        //return true;
-    }
-
-    @Override
-    public boolean startNestedScroll(int axes) {
-        return super.startNestedScroll(axes);
     }
 }
