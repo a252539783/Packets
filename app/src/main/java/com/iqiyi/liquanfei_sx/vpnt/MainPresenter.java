@@ -57,7 +57,6 @@ public class MainPresenter extends CommonPresenter implements View.OnClickListen
 
         if (i==null)
         {
-            Log.e("xx","success");
             startServiceUnCheck();
         }else
         {

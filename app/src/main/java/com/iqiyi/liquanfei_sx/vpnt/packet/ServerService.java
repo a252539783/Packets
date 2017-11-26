@@ -54,7 +54,11 @@ public class ServerService extends Service {
 
         @Override
         public void onServiceDisconnected(ComponentName name) {
-
+            if (mLocal!=null)
+            {
+                mLocal.stop();
+                mLocal=null;
+            }
         }
     };
 
@@ -88,8 +92,13 @@ public class ServerService extends Service {
 
     @Override
     public void onDestroy() {
-        unbindService(mConn);
-        Log.e("xx","client service dead");
+        if (mLocal!=null)
+        {
+            mLocal.stop();
+            mLocal=null;
+        }
+        mWriteThread=null;
+        Log.e("xx","server service dead");
         super.onDestroy();
     }
 
@@ -286,8 +295,8 @@ public class ServerService extends Service {
             }
 
             Log.e("xx","writeThread end");
+            unbindService(mConn);
             stopSelf();
-            mLocal.stop();
         }
 
         private void write(Packet packet) {

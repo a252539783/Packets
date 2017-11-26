@@ -62,6 +62,7 @@ public class ClientService extends VpnService{
     @Override
     public int onStartCommand(Intent intent, int flags, int startId) {
         if (mAlreadyRun){
+            unbindService(mConn);
             server.stopDaemon();
             return super.onStartCommand(intent, flags, startId);
         }
@@ -92,13 +93,14 @@ public class ClientService extends VpnService{
                 int length;
                 int errorTime=0;
                     while (mRunning) {
+                        if (server!=null) {//此时可能已经进入了停止阶段，等待ServerService解除绑定后停止自身
                         try {
                             length = in.read(packet.array());
                             if (length > 0) {
                                 packet.limit(length);
                                 byte []b=new byte[length];
                                 System.arraycopy(packet.array(),0,b,0,length);
-                                server.transmit(new IPPacket(b));
+                                    server.transmit(new IPPacket(b));
                                 packet.clear();
                             }
                             errorTime=0;
@@ -110,10 +112,12 @@ public class ClientService extends VpnService{
                             else
                                 errorTime++;
                         }
+                        }
                     }
 
                     Log.e("xx","client end");
                 stopSelf();
+
             }
         }.start();
 
@@ -134,7 +138,6 @@ public class ClientService extends VpnService{
     @Override
     public void onDestroy() {
         mAlreadyRun=false;
-        unbindService(mConn);
         Log.e("xx","client service dead");
         super.onDestroy();
     }
