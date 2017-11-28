@@ -286,7 +286,6 @@ public abstract class PersistRequest {
 
                     try {
                         IPPacket ip=new IPPacket(src);
-                        Log.e("xx",""+ip.length);
                         packets[i] = (TCPPacket) ip.getData();
 
                         String []ss=names[i].split("_");
@@ -411,12 +410,5 @@ public abstract class PersistRequest {
 
             return null;
         }
-    }
-
-    public interface OnLoadHistoryListener
-    {
-        void loadOne(int index);
-
-        void loadStart(List<LocalPackets.CaptureInfo> all);
     }
 }
