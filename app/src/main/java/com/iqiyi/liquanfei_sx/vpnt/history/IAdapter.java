@@ -10,4 +10,5 @@ import java.util.List;
 
 interface IAdapter {
     void setHistorySource(List<LocalPackets.CaptureInfo> src);
+    void removeListeners();
 }
