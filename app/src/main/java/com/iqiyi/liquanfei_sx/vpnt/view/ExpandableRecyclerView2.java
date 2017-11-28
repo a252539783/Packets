@@ -35,6 +35,9 @@ public class ExpandableRecyclerView2 extends RecyclerView implements View.OnClic
 
     private ExpandItemAddObserver mExpandObserver=new ExpandItemAddObserver();
 
+    /**
+     * TODO 外部notify的处理
+     */
     private AdapterDataObserver mObserver=new AdapterDataObserver() {
         @Override
         public void onChanged() {
@@ -69,9 +72,8 @@ public class ExpandableRecyclerView2 extends RecyclerView implements View.OnClic
         }
     };
 
-    private boolean mCanMultiExpandable=false;
+    private boolean mCanMultiExpandable=true;
 
-    private boolean mCanExpand =false;
     private boolean mIsExpand=false;
 
     private int mDefaultDepth=3;
@@ -136,11 +138,6 @@ public class ExpandableRecyclerView2 extends RecyclerView implements View.OnClic
          */
         //setFocusableInTouchMode(false);//避免获取焦点、自动滚动
         //requestFocus();
-    }
-
-    public void setExpandable(boolean can)
-    {
-        mCanExpand =can;
     }
 
     public Adapter getAdapter()
@@ -293,25 +290,6 @@ public class ExpandableRecyclerView2 extends RecyclerView implements View.OnClic
         }
     }
 
-//    private int getRealPosition(int position)
-//    {
-//        int realPosition=0;
-//        Iterator<Boolean> it=mIsExpandView.iterator();
-//        it.next();
-//        position--;
-//        while (position!=-1)
-//        {
-//            if (!it.next())
-//            {
-//                position--;
-//            }else
-//            {
-//            }
-//            realPosition++;
-//        }
-//        return realPosition;
-//    }
-
     private int []contentPosition(int position)
     {
         //要获取的一般都是在屏幕中显示的位置
@@ -337,6 +315,9 @@ public class ExpandableRecyclerView2 extends RecyclerView implements View.OnClic
         return contentPosition(ii,position);
     }
 
+    /**
+     * 保留计算位置时的数组
+     */
     SparseArray<Position> mCachedPosition=null;
     private int[] contentPosition(ItemInfo item,int position)
     {
@@ -370,7 +351,7 @@ public class ExpandableRecyclerView2 extends RecyclerView implements View.OnClic
     private int[]  contentPosition(ItemInfo item)
     {
         int []rposition;
-            rposition=new int[item.mDepth+1];
+        rposition=new int[item.mDepth+1];
 
         for (int i=rposition.length-1;i>=0;i--)
         {
@@ -398,14 +379,13 @@ public class ExpandableRecyclerView2 extends RecyclerView implements View.OnClic
         }else
         if (mStartPosition>position)
         {
-            /**
+            /*
              * 向前绘制，不加载新的item
              */
             if (mStart.mPrevious==null)
             {
-                /**
-                 * 一般来说前面的都绘制过的，不会出现这种情况，
-                 * 暂时忽略把
+                /*
+                 * 一般来说前面的都绘制过的，除非出bug，不会出现这种情况，
                  */
                 Log.e("ExpandableRecyclerView","Exception:load previous null  position:"+position+" start:"+mStartPosition);
             }else
@@ -486,7 +466,7 @@ public class ExpandableRecyclerView2 extends RecyclerView implements View.OnClic
     {
         private ExpandItemAddObserver mObserver;
 
-        private final void setObserver(ExpandItemAddObserver o)
+        private void setObserver(ExpandItemAddObserver o)
         {
             mObserver=o;
         }
@@ -522,6 +502,9 @@ public class ExpandableRecyclerView2 extends RecyclerView implements View.OnClic
         }
     }
 
+    /**
+     * TODO 更多的回调
+     */
     private class MAdapter extends RecyclerView.Adapter
     {
         @Override
@@ -569,7 +552,7 @@ public class ExpandableRecyclerView2 extends RecyclerView implements View.OnClic
                 MAdapter.ListenerInfo li=mChildClickListeners.get(v);
                 if (li==null)
                 {
-                    mChildClickListeners.put(v,new MAdapter.ListenerInfo(ii,l,position,holder));
+                    mChildClickListeners.put(v,new MAdapter.ListenerInfo(ii,l,holder));
                     v.setOnClickListener(ExpandableRecyclerView2.this);
                 }else
                 {
@@ -603,14 +586,12 @@ public class ExpandableRecyclerView2 extends RecyclerView implements View.OnClic
             OnClickListener mL;
             ItemInfo mii;
             ViewHolder mHolder;
-            int mPosition;
 
-            ListenerInfo(ItemInfo ii,OnClickListener l,int position,ViewHolder h)
+            ListenerInfo(ItemInfo ii,OnClickListener l,ViewHolder h)
             {
                 this.mHolder=h;
                 this.mii=ii;
                 this.mL =l;
-                this.mPosition =position;
             }
         }
     }
@@ -697,9 +678,8 @@ public class ExpandableRecyclerView2 extends RecyclerView implements View.OnClic
             ExpandInfo ei;
             if (ii.mParent==mItem)
             {
-                if (mChildren.get(ii.mIndex)!=null) {
-                    mChildren.remove(ii.mIndex);
-                    return null;
+                if ((ei=mChildren.get(ii.mIndex))!=null) {
+                    return ei;
                 }
 
                 mChildren.put(ii.mIndex,ei=new ExpandInfo(ii));
@@ -723,13 +703,17 @@ public class ExpandableRecyclerView2 extends RecyclerView implements View.OnClic
 
     private class ExpandItemAddObserver
     {
-        public void onAdd(int ...position)
+        void onAdd(int ...position)
         {
             ExpandInfo ei=mExpand;
             int i=0;
             for (;i<position.length-1;i++)
             {
                 ei=ei.get(position[i]);
+
+                //通知的条目未被展开，不管它，等展开时自然加载
+                if(ei==null)
+                    return;
             }
 
             if (ei.mEnd==null)
@@ -751,9 +735,10 @@ public class ExpandableRecyclerView2 extends RecyclerView implements View.OnClic
             }else
             if (ei.mEnd.mIndex>=position[i])
             {
-                //TODO 先忽略了中间插入
+                //TODO 先忽略了mEnd之前的插入
             }else
             {
+                //于ei.mEnd之后添加新的
                 ItemInfo next=ei.mEnd.mNext;
                 ei.mEnd.mNext=new ItemInfo(ei.mEnd.mDepth,position[i]);
                 ei.mEnd.mNext.mNext=next;
