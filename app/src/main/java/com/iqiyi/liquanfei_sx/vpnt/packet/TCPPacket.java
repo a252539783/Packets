@@ -94,7 +94,7 @@ public class TCPPacket extends Packet {
 //            }
 //
 //            Log.e("xx","option "+s);
-            Log.e("xx","data:"+mHeaderLength);
+//            Log.e("xx","data:"+mHeaderLength);
 //        }
 
     }

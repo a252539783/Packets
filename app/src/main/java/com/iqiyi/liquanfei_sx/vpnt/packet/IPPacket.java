@@ -43,7 +43,7 @@ public class IPPacket extends Packet{
         if (mProtocol==6)
         {
             mData=new TCPPacket(data,mHeaderLength,this);
-            Log.e("xx","ip header l  "+mHeaderLength);
+           // Log.e("xx","ip header l  "+mHeaderLength);
         }else
         {
             mData=new Packet(data,mHeaderLength);
@@ -61,7 +61,7 @@ public class IPPacket extends Packet{
 
 //        if (getDestIp().equals("123.207.152.184")||getSourceIp().equals("123.207.152.184")) {
 //            Log.e("xx", "Header Length:" + mHeaderLength);
-            Log.e("xx", "protocol:" + mProtocol);
+//            Log.e("xx", "protocol:" + mProtocol);
 //            Log.e("xx", "ttl:" + mTTL);
 //            Log.e("xx", "check:"+checksum+"  ident:" + (((data[4] & 0xff) << 8) | ((data[5] & 0xff))));
 //        }

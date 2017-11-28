@@ -38,8 +38,6 @@ public class PacketList {
         ip = init.getDestIp();
         mInfo = AppPortList.get().getAppInfo(mSPort);
         add(init,true);
-        if (mInfo != null)
-            Log.e("xx", "find app:" + mInfo.info.packageName);
     }
 
     PacketList(TCPPacket init,int index,long time,int uid)
@@ -51,8 +49,6 @@ public class PacketList {
         ip = init.getDestIp();
         mInfo = AppPortList.get().getAppByUid(uid);
         add(init,time);
-        if (mInfo != null)
-            Log.e("xx", "find app:" + mInfo.info.packageName);
     }
 
     public int size() {
