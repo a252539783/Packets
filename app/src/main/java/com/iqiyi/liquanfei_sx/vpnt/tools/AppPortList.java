@@ -102,9 +102,15 @@ public class AppPortList {
         return mPortList.get(port).loadIcon();
     }
 
-    public AppInfo getAppByUid(int uid)
-    {
-        return mPkgList.get(uid).loadIcon();
+    public AppInfo getAppByUid(int uid) {
+        AppInfo ai = mPkgList.get(uid);
+
+        //有可能应用被卸载了找不到
+        if (ai == null)
+            return null;
+
+        ai.loadIcon();
+        return ai;
     }
 
     public static void init()
