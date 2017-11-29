@@ -1,12 +1,7 @@
 <?xml version="1.0" encoding="utf-8"?>
-<android.support.v4.widget.NestedScrollView xmlns:android="http://schemas.android.com/apk/res/android" android:layout_width="match_parent"
-    android:layout_height="match_parent">
-
-    <com.iqiyi.liquanfei_sx.vpnt.view.ExpandableRecyclerView
+    <com.iqiyi.liquanfei_sx.vpnt.view.ExpandableRecyclerView2
         android:layout_width="match_parent"
-        android:layout_height="match_parent"
+        android:layout_height="match_parent" xmlns:android="http://schemas.android.com/apk/res/android"
         android:id="@+id/erv_history">
 
-    </com.iqiyi.liquanfei_sx.vpnt.view.ExpandableRecyclerView>
-
-</android.support.v4.widget.NestedScrollView>
+    </com.iqiyi.liquanfei_sx.vpnt.view.ExpandableRecyclerView2>
