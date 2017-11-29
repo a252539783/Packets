@@ -365,12 +365,6 @@ public class TCPPacket extends Packet {
             {
                 Log.e("IndexOOB","ttLen:"+len+"headlen:"+(ipHeadLen+tcpHeadLen)+" dataLen:"+dataBuffer.limit());
             }
-
-
-            if (packet.syn)
-            {
-                Log.e("xx","b33 :"+b[33]);
-            }
             return new IPPacket(src);
         }
 
