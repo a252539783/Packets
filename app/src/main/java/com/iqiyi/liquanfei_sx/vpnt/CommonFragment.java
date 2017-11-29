@@ -29,6 +29,24 @@ public abstract class CommonFragment extends Fragment{
         return v;
     }
 
+    @Override
+    public void onResume() {
+        super.onResume();
+        getPresenter().onResume();
+    }
+
+    @Override
+    public void onPause() {
+        super.onPause();
+        getPresenter().onPause();
+    }
+
+    @Override
+    public void onDestroy() {
+        super.onDestroy();
+        getPresenter().onDead();
+    }
+
     public abstract int getLayout();
 
     public abstract CommonPresenter getPresenter();
