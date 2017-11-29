@@ -178,7 +178,7 @@ public class ExpandableRecyclerView2 extends RecyclerView implements View.OnClic
         ExpandInfo ei=mExpand.get(ii);
         if (ei==null)
         {
-            Log.e("xx","expand "+position+":startP "+mStartPosition+":endP:"+mEndPosition);
+            //Log.e("xx","expand "+position+":startP "+mStartPosition+":endP:"+mEndPosition);
             expandItemUnchecked(ii,position);
         }else
         {
@@ -195,7 +195,7 @@ public class ExpandableRecyclerView2 extends RecyclerView implements View.OnClic
 
         int size=ei.size();
 
-        ItemInfo next=ei.mEnd.mNext;
+        ItemInfo next=ei.next();
         if (next!=null)
             next.mPrevious=ei.mItem;
         ei.mItem.mNext=next;
@@ -614,7 +614,7 @@ public class ExpandableRecyclerView2 extends RecyclerView implements View.OnClic
             ItemInfo ii=preLoad(position);
             int[] maskPosition=contentPosition(ii,position);
 
-            Log.e("xx","bind "+position+":startP "+mStartPosition+":endP:"+mEndPosition);
+            //Log.e("xx","bind "+position+":startP "+mStartPosition+":endP:"+mEndPosition);
             try {
                 mAdapter.onBindViewHolder(holder, maskPosition);
                 if (holder instanceof HistoryAdapter2.H2)
@@ -782,6 +782,21 @@ public class ExpandableRecyclerView2 extends RecyclerView implements View.OnClic
             return get(ii.mParent).get(ii);
         }
 
+        //calculate the next item which isn't mItem's child.
+        ItemInfo next()
+        {
+            //if there has some children,call them.
+            if (mChildren!=null&&mChildren.size()!=0)
+                return mChildren.valueAt(mChildren.size()-1).next();
+
+            //there is no expanded child
+            if (mEnd!=null)
+                return mEnd.mNext;
+
+            return mItem.mNext;
+        }
+
+        //remove
         void remove(ItemInfo ii)
         {
             if (ii==null)
@@ -795,6 +810,7 @@ public class ExpandableRecyclerView2 extends RecyclerView implements View.OnClic
             }
         }
 
+        //calculate the how many expanded items there are
         int size()
         {
             if (mChildren==null||mChildren.size()==0)
@@ -928,7 +944,7 @@ public class ExpandableRecyclerView2 extends RecyclerView implements View.OnClic
             }
 
             mInnerAdapter.notifyItemInserted(realPosition);
-            Log.e("xx","notifyed "+realPosition);
+            //Log.e("xx","notifyed "+realPosition);
         }
     }
 
