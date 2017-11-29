@@ -193,7 +193,7 @@ public class ExpandableRecyclerView2 extends RecyclerView implements View.OnClic
         if (ei.mEnd==null)
             return;
 
-        int size=ei.mEnd.mIndex+1;
+        int size=ei.size();
 
         ItemInfo next=ei.mEnd.mNext;
         if (next!=null)
@@ -798,9 +798,15 @@ public class ExpandableRecyclerView2 extends RecyclerView implements View.OnClic
         int size()
         {
             if (mChildren==null||mChildren.size()==0)
-                return mEnd.mIndex+1;
+                return mEnd==null?0:(mEnd.mIndex+1);
 
-            return 0;
+            int size=mEnd==null?0:(mEnd.mIndex+1);
+            for (int i=0;i<mChildren.size();i++)
+            {
+                size+=mChildren.valueAt(i).size();
+            }
+
+            return size;
         }
 
         /**
@@ -915,7 +921,7 @@ public class ExpandableRecyclerView2 extends RecyclerView implements View.OnClic
             else if (cmpEnd>0)
             {
                 //after mEnd
-            }else if (cmpEnd==0)
+            }else if (cmpEnd<=0)
             {
                 //before mEnd
                 mEndPosition++;
