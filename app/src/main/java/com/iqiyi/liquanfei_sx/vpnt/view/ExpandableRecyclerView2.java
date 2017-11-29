@@ -7,21 +7,24 @@ import android.support.annotation.Nullable;
 import android.support.v4.util.ArrayMap;
 import android.support.v7.widget.LinearLayoutManager;
 import android.support.v7.widget.RecyclerView;
+import android.support.v7.widget.SimpleItemAnimator;
 import android.util.AttributeSet;
 import android.util.Log;
 import android.util.SparseArray;
 import android.view.View;
 import android.view.ViewGroup;
 
+import com.iqiyi.liquanfei_sx.vpnt.history.HistoryAdapter2;
 import com.iqiyi.liquanfei_sx.vpnt.tools.Rf;
 
 import java.util.Iterator;
 import java.util.LinkedList;
 import java.util.List;
 import java.util.ListIterator;
+import java.util.Map;
 
 /**
- * 使用一个RecyclerView模拟出的折叠效果
+ * in fact,this only produce one RecyclerView's instance.
  */
 
 public class ExpandableRecyclerView2 extends RecyclerView implements View.OnClickListener{
@@ -29,14 +32,17 @@ public class ExpandableRecyclerView2 extends RecyclerView implements View.OnClic
     private Adapter mAdapter=null;
 
     private MAdapter mInnerAdapter=null;
+
     private ArrayMap<View,MAdapter.ListenerInfo> mChildClickListeners=new ArrayMap<>();
+
+    private ArrayMap<ItemInfo,Integer> mRealPosition=new ArrayMap<>();
 
     private ExpandInfo mExpand=new ExpandInfo(null);
 
     private ExpandItemAddObserver mExpandObserver=new ExpandItemAddObserver();
 
     /**
-     * TODO 外部notify的处理
+     * TODO when notify
      */
     private AdapterDataObserver mObserver=new AdapterDataObserver() {
         @Override
@@ -75,6 +81,8 @@ public class ExpandableRecyclerView2 extends RecyclerView implements View.OnClic
     private boolean mCanMultiExpandable=true;
 
     private boolean mIsExpand=false;
+
+    private boolean mEnableAnimation=true;
 
     private int mDefaultDepth=3;
 
@@ -115,16 +123,19 @@ public class ExpandableRecyclerView2 extends RecyclerView implements View.OnClic
     private void init()
     {
         setLayoutManager(new LinearLayoutManager(getContext()));
-        //getLayoutManager().setAutoMeasureEnabled(true);
 
-//        ((SimpleItemAnimator)getItemAnimator()).setSupportsChangeAnimations(false);
-//        getItemAnimator().setRemoveDuration(0);
-//        getItemAnimator().setMoveDuration(0);
-//        getItemAnimator().setChangeDuration(0);
-//        getItemAnimator().setAddDuration(0);
-//        setNestedScrollingEnabled(true);
+        if (!mEnableAnimation)
+        {
+            ((SimpleItemAnimator)getItemAnimator()).setSupportsChangeAnimations(false);
+            getItemAnimator().setRemoveDuration(0);
+            getItemAnimator().setMoveDuration(0);
+            getItemAnimator().setChangeDuration(0);
+            getItemAnimator().setAddDuration(0);
+        }
 
         mInnerAdapter=new MAdapter();
+
+        //TODO a item decoration
         addItemDecoration(new ItemDecoration() {
             @Override
             public void getItemOffsets(Rect outRect, View view, RecyclerView parent, RecyclerView.State state) {
@@ -132,12 +143,6 @@ public class ExpandableRecyclerView2 extends RecyclerView implements View.OnClic
             }
         });
         super.setAdapter(mInnerAdapter);
-
-        /**TODO
-         * 为什么不能开启嵌套滚动呢。。。setNestedScrollingEnabled(true)
-         */
-        //setFocusableInTouchMode(false);//避免获取焦点、自动滚动
-        //requestFocus();
     }
 
     public Adapter getAdapter()
@@ -173,16 +178,38 @@ public class ExpandableRecyclerView2 extends RecyclerView implements View.OnClic
         ExpandInfo ei=mExpand.get(ii);
         if (ei==null)
         {
+            Log.e("xx","expand "+position+":startP "+mStartPosition+":endP:"+mEndPosition);
             expandItemUnchecked(ii,position);
         }else
         {
-            collapseItemUnchecked(ii,position);
+            collapseItemUnchecked(ei,position);
         }
     }
 
-    private void collapseItemUnchecked(ItemInfo ii,int position)
+    private void collapseItemUnchecked(ExpandInfo ei,int position)
     {
+        //TODO collapse the item's all children
+        mExpand.remove(ei.mItem);
+        if (ei.mEnd==null)
+            return;
 
+        int size=ei.mEnd.mIndex+1;
+
+        ItemInfo next=ei.mEnd.mNext;
+        if (next!=null)
+            next.mPrevious=ei.mItem;
+        ei.mItem.mNext=next;
+
+        mSize-=size;
+
+        //mEndPosition-=size;
+        //mEndPosition=mStartPosition;
+        //mEnd=mStart;
+
+        //here can't ensure the position of mEnd,so make it equal to mStart simply.
+        mEnd=mStart=ei.mItem;
+        mEndPosition=mStartPosition=position;
+        mInnerAdapter.notifyItemRangeRemoved(position+1,size);
     }
 
     private void expandItemUnchecked(ItemInfo ii,int position)
@@ -192,6 +219,9 @@ public class ExpandableRecyclerView2 extends RecyclerView implements View.OnClic
         int []index=contentPosition(ii,position);
 
         int size=mAdapter.getItemCount(index);
+        freshPosition(position,size);
+        mRealPosition.put(ii,position+size);
+
         if (size!=0)
         {
             ItemInfo last=ii.mNext;
@@ -208,22 +238,29 @@ public class ExpandableRecyclerView2 extends RecyclerView implements View.OnClic
             if (last!=null) {
                 last.mPrevious = ii;
             }
-            if (parent==mEnd)
-            {
-                mEndPosition+=size;
-                mEnd=ii;
-            }else
-            {
-                mEndPosition+=size;
-            }
+            mEnd=mStart=ei.mItem;
+            mEndPosition=mStartPosition=position;
             mInnerAdapter.notifyItemRangeInserted(position+1,size);
 
             mSize+=size;
             ei.mEnd=ii;
-
         }
 
+
         mAdapter.onExpand(index);
+    }
+
+    private void freshPosition(int position,int size)
+    {
+        Iterator<Map.Entry<ItemInfo,Integer>> it=mRealPosition.entrySet().iterator();
+        while (it.hasNext())
+        {
+            Map.Entry<ItemInfo,Integer> entry=it.next();
+            if (entry.getValue()>position)
+            {
+                entry.setValue(entry.getValue()+size);
+            }
+        }
     }
 
     private void rangeChanged()
@@ -256,9 +293,6 @@ public class ExpandableRecyclerView2 extends RecyclerView implements View.OnClic
         ListIterator<Boolean> it=mIsExpandView.listIterator();
         Iterator<Boolean> it2=mIsExpandView.iterator();
 
-        /**
-         * 无意义的添加操作
-         */
         int size=0;
         while (it2.hasNext())
         {
@@ -290,9 +324,10 @@ public class ExpandableRecyclerView2 extends RecyclerView implements View.OnClic
         }
     }
 
+
+    //not used...
     private int []contentPosition(int position)
     {
-        //要获取的一般都是在屏幕中显示的位置
         ItemInfo ii;
         if (position>=mStartPosition+mEndPosition/2)
         {
@@ -304,7 +339,6 @@ public class ExpandableRecyclerView2 extends RecyclerView implements View.OnClic
             }
         }else
         {
-            //从前往后
             ii=mStart;
             for(int index=mStartPosition;index!=position;index++)
             {
@@ -315,10 +349,15 @@ public class ExpandableRecyclerView2 extends RecyclerView implements View.OnClic
         return contentPosition(ii,position);
     }
 
-    /**
-     * 保留计算位置时的数组
-     */
     SparseArray<Position> mCachedPosition=null;
+
+    /**
+     * get the item's position
+     * @param item target item
+     * @param position the real position
+     * @return a array which shows the item's position by put all
+     * parent's position and the item's position
+     */
     private int[] contentPosition(ItemInfo item,int position)
     {
         int []rposition;
@@ -339,15 +378,18 @@ public class ExpandableRecyclerView2 extends RecyclerView implements View.OnClic
 
         for (int i=rposition.length-1;i>=0;i--)
         {
-            rposition[i]=item.mIndex;
-            if (item.mParent==null)
+            if (item==null) {
+                Log.e("ExpandableRecyclerView","exception:contentPosition error position");
                 break;
+            }
+            rposition[i]=item.mIndex;
             item=item.mParent;
         }
 
         return rposition;
     }
 
+    //not cached
     private int[]  contentPosition(ItemInfo item)
     {
         int []rposition;
@@ -368,6 +410,7 @@ public class ExpandableRecyclerView2 extends RecyclerView implements View.OnClic
     {
         if (mRoot==null)
         {
+            //simply new
             mRoot=new ItemInfo(0,0);
             mStart=mEnd=mRoot;
             return mRoot;
@@ -380,73 +423,100 @@ public class ExpandableRecyclerView2 extends RecyclerView implements View.OnClic
         if (mStartPosition>position)
         {
             /*
-             * 向前绘制，不加载新的item
+             * before mStart
              */
             if (mStart.mPrevious==null)
             {
                 /*
-                 * 一般来说前面的都绘制过的，除非出bug，不会出现这种情况，
+                 * finding a not loaded item here means a bug has been produced somewhere.
                  */
                 Log.e("ExpandableRecyclerView","Exception:load previous null  position:"+position+" start:"+mStartPosition);
             }else
             {
-                mStart=mStart.mPrevious;
-                mEnd=mEnd.mPrevious;
-                mStartPosition--;
-                mEndPosition--;
+                while(mStartPosition!=position) {
+                    mStart = mStart.mPrevious;
+                    mStartPosition--;
+                }
                 return mStart;
             }
         }else if (mEndPosition>position)
         {
             /*
-              绘制的地方在开始和结束的中间，比如添加item时。
-              此时从mEnd往回走进行处理(在添加时就进行过了加载)且不变动mEnd
+              between mStart and mEnd,we make mEnd go back.
              */
-
-            ItemInfo end=mEnd;
-            for (int i=mEndPosition;i!=position;i--)
+            while(mEndPosition!=position)
             {
-                end=end.mPrevious;
+                mEnd=mEnd.mPrevious;
+                mEndPosition--;
             }
 
-            return end;
+            return mEnd;
         }else if (mEndPosition<position)
         {
-            if (mEnd.mNext==null)
+            while(mEndPosition!=position)
             {
-                //加载新的
-                int[] index=contentPosition(mEnd,mEndPosition);
-                ItemInfo parent=mEnd.mParent;
-                for (int i=1;i<=index.length;i++)
+                if (mEnd.mNext==null)
                 {
-                    //向上遍历找到下一个item的位置
-                    if (index[index.length-i]!=mAdapter.getItemCount(index,index.length-i)-1)
+                    int[] index=contentPosition(mEnd,mEndPosition);
+                    ItemInfo parent=mEnd.mParent;
+                    for (int i=1;i<=index.length;i++)
                     {
-                        mEnd.mNext=new ItemInfo(i-1,index[index.length-i]+1);
-                        mEnd.mNext.mPrevious=mEnd;
-                        mEnd.mNext.mParent=parent;
-                        break;
+                        //find the next item
+                        if (index[index.length-i]!=mAdapter.getItemCount(index,index.length-i)-1)
+                        {
+                            mEnd.mNext=new ItemInfo(i-1,index[index.length-i]+1);
+                            mEnd.mNext.mPrevious=mEnd;
+                            mEnd.mNext.mParent=parent;
+                            break;
+                        }
+                        if (parent!=null)
+                            parent=parent.mParent;
                     }
-                    if (parent!=null)
-                        parent=parent.mParent;
                 }
-            }
 
-            mEnd=mEnd.mNext;
-            mEndPosition++;
+                mEnd=mEnd.mNext;
+                mEndPosition++;
+            }
             /*
-             * 让mStart与mEnd的距离始终保持一个屏幕所能容纳item的数量
-             * （如果总数大于这个数值）
+             * make the distance between mStart and mEnd be a appropriate number
              */
-            if (getChildCount()!=0)
-            while (mEndPosition-mStartPosition>getChildCount()+2)
-            {
-                mStart=mStart.mNext;
-                mStartPosition++;
+            if (getChildCount()!=0){
+                while (mEndPosition-mStartPosition>getChildCount()+5)
+                {
+                    mStart=mStart.mNext;
+                    mStartPosition++;
+                }
+
+                while (mEndPosition-mStartPosition<(getChildCount()>mAdapter.getItemCount()?mAdapter.getItemCount()-1:getChildCount()-1))
+                {
+                    if (mStart.mPrevious!=null)
+                    {
+                        mStart=mStart.mPrevious;
+                        mStartPosition--;
+                    }
+
+                    if (mEnd.mNext!=null)
+                    {
+                        mEnd=mEnd.mNext;
+                        mEndPosition++;
+                    }
+                }
             }
         }else if (mEndPosition==position)
         {
-            //加载过的
+        }
+
+        if (mEnd==null)
+        {
+            if (mStart==null)
+            {
+                mStart=mRoot;
+                mStartPosition=0;
+            }
+            mEnd=mStart;
+            mEndPosition=mStartPosition;
+            Log.e("xx","preload error");
+            return preLoad(position);
         }
 
         return mEnd;
@@ -503,7 +573,7 @@ public class ExpandableRecyclerView2 extends RecyclerView implements View.OnClic
     }
 
     /**
-     * TODO 更多的回调
+     * TODO more callback
      */
     private class MAdapter extends RecyclerView.Adapter
     {
@@ -544,7 +614,16 @@ public class ExpandableRecyclerView2 extends RecyclerView implements View.OnClic
             ItemInfo ii=preLoad(position);
             int[] maskPosition=contentPosition(ii,position);
 
-            mAdapter.onBindViewHolder(holder,maskPosition);
+            Log.e("xx","bind "+position+":startP "+mStartPosition+":endP:"+mEndPosition);
+            try {
+                mAdapter.onBindViewHolder(holder, maskPosition);
+                if (holder instanceof HistoryAdapter2.H2)
+                {
+                }
+            }catch (Exception e)
+            {
+                Log.e("xx",e.toString());
+            }
             if (mAdapter.canExpand(maskPosition))
             {
                 View v=holder.itemView;
@@ -581,10 +660,18 @@ public class ExpandableRecyclerView2 extends RecyclerView implements View.OnClic
             return mAdapter.getItemViewType(maskPosition);
         }
 
+
         class ListenerInfo
         {
+            /**
+             * for listening the click action we must save the OnClickListener
+             * that user sets
+             */
             OnClickListener mL;
+
             ItemInfo mii;
+
+            //this ViewHolder is for purpose of getting item's real position.
             ViewHolder mHolder;
 
             ListenerInfo(ItemInfo ii,OnClickListener l,ViewHolder h)
@@ -634,9 +721,11 @@ public class ExpandableRecyclerView2 extends RecyclerView implements View.OnClic
     private static class Position
     {
         /**
-         * 此处mPosition中存放为某item的所有父节点位置以及item本身位置
+         * here mPosition puts the every item parent's position and this item's position.
          */
         int []mPosition;
+
+        //the real position in recyclerView,but currently isn't used.
         int mIntPosition;
 
         Position(int p,int[] po)
@@ -646,38 +735,95 @@ public class ExpandableRecyclerView2 extends RecyclerView implements View.OnClic
         }
     }
 
+    /**
+     * a tree show the hierarchy for our ExpandableRecyclerView
+     */
     private static class ExpandInfo
     {
-        SparseArray<ExpandInfo> mChildren;
-        ItemInfo mItem,mEnd;
+        //we make the child's position be the key
+        SparseArray<ExpandInfo> mChildren=null;
+
+        /*
+        Every ExpandInfo is combined with am ItemInfo and this ItemInfo is mItem.
+        mEnd is the last child for mItem.
+         */
+        ItemInfo mItem,mEnd=null;
 
         ExpandInfo(ItemInfo item)
         {
             mItem=item;
-            mEnd=null;
         }
 
+        /**
+         * get a child for the given child's position
+         * @param position the direct child's position
+         * @return child
+         */
         ExpandInfo get(int position)
         {
             return mChildren==null?null:mChildren.get(position);
         }
 
+        /**
+         * get the corresponding ExpandInfo for the given ItemInfo.
+         * @param ii the ItemInfo
+         * @return the corresponding ExpandInfo
+         */
         ExpandInfo get(ItemInfo ii)
         {
+            if (ii==null)
+                return null;
+
+            //for direct child,simply find and return it
             if (ii.mParent==mItem)
                 return mChildren==null?null:mChildren.get(ii.mIndex);
 
+            //otherwise find the corresponding ExpandInfo for ii's parent and call its get.
             return get(ii.mParent).get(ii);
         }
 
+        void remove(ItemInfo ii)
+        {
+            if (ii==null)
+                return;
+
+            if (ii.mParent==mItem&&mChildren!=null) {
+                mChildren.remove(ii.mIndex);
+            }else
+            {
+                get(ii.mParent).remove(ii);
+            }
+        }
+
+        int size()
+        {
+            if (mChildren==null||mChildren.size()==0)
+                return mEnd.mIndex+1;
+
+            return 0;
+        }
+
+        /**
+         * put an ItemInfo into a correct position.
+         * @param ii the ItemInfo we want add
+         * @return the corresponding ExpandInfo for the given ItemInfo.
+         */
         ExpandInfo put(ItemInfo ii)
         {
+            if (ii==null)
+                return null;
+
             if (mChildren==null)
                 mChildren=new SparseArray<>();
 
             ExpandInfo ei;
+
+            /*
+            for direct child
+             */
             if (ii.mParent==mItem)
             {
+                //for a existed child
                 if ((ei=mChildren.get(ii.mIndex))!=null) {
                     return ei;
                 }
@@ -686,17 +832,25 @@ public class ExpandableRecyclerView2 extends RecyclerView implements View.OnClic
                 return ei;
             }
 
+            /*
+            isn't a direct child,solving the child's parent first and we can add ii.
+             */
             if (ii.mParent!=null)
             {
+                //recursion
                 ei=put(ii.mParent);
             }else
             {
                 /*
-                不支持从低层ExpandInfo中添加高层ItemInfo
+                don't put an ItemInfo which isn't our child
                  */
                 return null;
             }
 
+            /*
+            ei now is the corresponding ExpandInfo for ii's parent,
+            put ite directly.
+             */
             return ei.put(ii);
         }
     }
@@ -711,14 +865,18 @@ public class ExpandableRecyclerView2 extends RecyclerView implements View.OnClic
             {
                 ei=ei.get(position[i]);
 
-                //通知的条目未被展开，不管它，等展开时自然加载
+                //unexpanded item,ignore it
                 if(ei==null)
                     return;
             }
 
+            mSize++;
+            freshPosition(mRealPosition.get(ei.mItem)-1,1);
+            int realPosition=mRealPosition.get(ei.mItem);
+
             if (ei.mEnd==null)
             {
-                ei.mEnd=new ItemInfo(ei.mItem.mDepth+1,position[i]);
+                ei.mEnd=new ItemInfo(ei.mItem.mDepth+1,0);
                 ei.mEnd.mNext=ei.mItem.mNext;
                 ei.mItem.mNext=ei.mEnd;
                 ei.mEnd.mPrevious=ei.mItem;
@@ -726,56 +884,45 @@ public class ExpandableRecyclerView2 extends RecyclerView implements View.OnClic
 
                 if (ei.mEnd.mNext!=null) {
                     ei.mEnd.mNext.mPrevious = ei.mEnd;
-                }else
-                {
-                    //如果插入到了最后(mEnd刚好是最后一个才能触发)直接移动mEnd，其后进行更新
-                    mEnd=mEnd.mNext;
-                    mEndPosition++;
                 }
             }else
             if (ei.mEnd.mIndex>=position[i])
             {
-                //TODO 先忽略了mEnd之前的插入
+                //TODO out-of-order writing
             }else
             {
-                //于ei.mEnd之后添加新的
+                //after ei.mEnd
                 ItemInfo next=ei.mEnd.mNext;
-                ei.mEnd.mNext=new ItemInfo(ei.mEnd.mDepth,position[i]);
+                ei.mEnd.mNext=new ItemInfo(ei.mEnd.mDepth,ei.mEnd.mIndex+1);
                 ei.mEnd.mNext.mNext=next;
                 ei.mEnd.mNext.mPrevious=ei.mEnd;
                 ei.mEnd=ei.mEnd.mNext;
                 ei.mEnd.mParent=ei.mItem;
-                next.mPrevious=ei.mEnd;
+
+                if (next!=null)
+                    next.mPrevious=ei.mEnd;
             }
 
-            int cmpEnd=ei.mEnd.compareTo(mEnd);
-            if (ei.mEnd.compareTo(mStart)<0)
+            int cmpEnd=realPosition-mEndPosition;//ei.mEnd.compareTo(mEnd);
+
+            //if (ei.mEnd.compareTo(mStart)<0)
+            if (realPosition<=mStartPosition)
             {
+                //before mStart
                 mStartPosition++;
                 mEndPosition++;
-                mInnerAdapter.notifyItemInserted(0);
-            }else if (cmpEnd>0)
+            }
+            else if (cmpEnd>0)
             {
-                mInnerAdapter.notifyItemInserted(mSize);
+                //after mEnd
             }else if (cmpEnd==0)
             {
-                //前面的插入到了mEnd后面
-                mInnerAdapter.notifyItemInserted(mEndPosition);
-            }else
-            {
-                //end前
-                int index=mEndPosition;
-                ItemInfo ii=mEnd;
-                while(ii!=ei.mEnd)
-                {
-                    ii=ii.mPrevious;
-                    index--;
-                }
-
-                mInnerAdapter.notifyItemInserted(index+1);
+                //before mEnd
                 mEndPosition++;
             }
-            mSize++;
+
+            mInnerAdapter.notifyItemInserted(realPosition);
+            Log.e("xx","notifyed "+realPosition);
         }
     }
 
