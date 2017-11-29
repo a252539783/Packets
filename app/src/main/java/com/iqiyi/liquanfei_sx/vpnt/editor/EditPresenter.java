@@ -50,7 +50,7 @@ public class EditPresenter extends CommonPresenter implements Toolbar.OnMenuItem
         Intent i=mActivity.getIntent();
         if (action.equals(ACTION_OPEN_PACKET))
         {
-            EditPaketInfo pi=i.getParcelableExtra(ACTION_OPEN_PACKET);
+            EditPacketInfo pi=i.getParcelableExtra(ACTION_OPEN_PACKET);
             mList=LocalPackets.get().mAllPackets.get(pi.mHistory).mPackets.get(pi.mListIndex);
             mPacket=mList.get(pi.mIndex).mPacket;
             mTextView.setBytes(mPacket.getRawData());
