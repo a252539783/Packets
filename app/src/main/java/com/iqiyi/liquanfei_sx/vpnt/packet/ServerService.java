@@ -37,6 +37,8 @@ import java.util.concurrent.ThreadPoolExecutor;
 
 public class ServerService extends Service {
 
+    static boolean debug=false;
+
     private MB mB = new MB();
     private ClientService mLocal = null;
     private Selector mSelector = null;
@@ -49,6 +51,7 @@ public class ServerService extends Service {
         @Override
         public void onServiceConnected(ComponentName name, IBinder service) {
             mLocal = ((ClientService.MB) service).get();
+            if (debug)
             Log.e("xx", "bind to client");
         }
 
@@ -78,6 +81,7 @@ public class ServerService extends Service {
 
     @Override
     public int onStartCommand(Intent intent, int flags, int startId) {
+        if (debug)
         Log.e("xx", "server started");
         if (mWriteThread==null)
         {
@@ -98,6 +102,7 @@ public class ServerService extends Service {
             mLocal=null;
         }
         mWriteThread=null;
+        if (debug)
         Log.e("xx","server service dead");
         super.onDestroy();
     }
@@ -160,6 +165,7 @@ public class ServerService extends Service {
         public void run() {
             super.run();
             mPause = false;
+            if (debug)
             Log.e("xx", "transmit started");
             while (!mPause) {
                 Packet packet = mPackets.poll();
@@ -167,6 +173,7 @@ public class ServerService extends Service {
                     doTransmit(packet);
             }
             mReadThread.pause();
+            if (debug)
             Log.e("xx", "transmit ended");
         }
 
@@ -175,13 +182,16 @@ public class ServerService extends Service {
                 IPPacket ip = (IPPacket) packet;
 
                 if (ip.getData() instanceof TCPPacket) {
+                    if (debug)
                     Log.e("xx", "transmit tcp packet:");
                     TCPPacket tcp = (TCPPacket) ip.getData();
                     if (tcp.syn) {
+                        if (debug)
                         Log.e("xx", "transmit tcp sync:");
                         mThreadPool.execute(new ConnectRunnable(tcp));
                     } else {
                         if (false && tcp.fin) {
+                            if (debug)
                             Log.e("xx", "transmit tcp fin:");
                             TCPStatus status = mSockets.get(tcp.getSourcePort());
                             if (status != null) {
@@ -208,6 +218,7 @@ public class ServerService extends Service {
                             }
                         }
                     }
+                    if (debug)
                     Log.e("xx", "thread pool size:" + ((ThreadPoolExecutor) mThreadPool).getPoolSize());
                 }
             }
@@ -294,6 +305,7 @@ public class ServerService extends Service {
                 while (!mPause&&!mLocal.write(p));
             }
 
+            if (debug)
             Log.e("xx","writeThread end");
             unbindService(mConn);
             stopSelf();
@@ -369,6 +381,7 @@ public class ServerService extends Service {
                 fin();
                 if (closed) {
                     mChannel.close();
+                    if (debug)
                     Log.e("xx", "local close");
                     mTransmitThread.remove(this);
                 }
@@ -383,6 +396,7 @@ public class ServerService extends Service {
                 rst();
                 if (true) {
                     mChannel.close();
+                    if (debug)
                     Log.e("xx", "local reset");
                     mTransmitThread.remove(this);
                 }
@@ -446,6 +460,7 @@ public class ServerService extends Service {
                 if (closed) {
                     try {
                         mChannel.close();
+                        if (debug)
                         Log.e("xx", "local close");
                     } catch (IOException e) {
                         e.printStackTrace();
@@ -462,6 +477,7 @@ public class ServerService extends Service {
                 if (closed) {
                     try {
                         mChannel.close();
+                        if (debug)
                         Log.e("xx", "local reset");
                     } catch (IOException e) {
                         e.printStackTrace();
@@ -476,13 +492,6 @@ public class ServerService extends Service {
 
         void ack(ByteBuffer data) {
             TCPPacket packet = mPacketList.getLast();
-            if (packet.getPort() != 666666)
-                try {
-                    Log.e("6666", "recv" + packet.getPort() + ":" + new String(packet.getRawData(), packet.mOffset + packet.mHeaderLength, packet.getDataLength(), "utf-8"));
-                } catch (UnsupportedEncodingException e) {
-                    e.printStackTrace();
-                }
-
             LocalPackets.get().addPacket(mPacketList.mIndex,(TCPPacket) mBuilder.build(packet, data).getData(),false);
             mWriteThread.write(mPacketList.get(mPacketList.size()-1).mPacket);
             if (mListenerInfo.mOnPacketAddListener != null) {
@@ -546,6 +555,7 @@ public class ServerService extends Service {
                         TCPStatus status = (TCPStatus) key.attachment();
                         try {
                             if (key.isConnectable()) {
+                                if (debug)
                                 Log.e("xx", "key connect");
                                 if (channel.isConnectionPending()) {
                                     try {
@@ -556,6 +566,7 @@ public class ServerService extends Service {
                                             status.ack(new SendEntry(status.mPacketList.get(0).mPacket));
                                             //prepareRegister.add(new Key(channel,SelectionKey.OP_CONNECT,status));
                                             //mSelector.wakeup();
+                                            if (debug)
                                             if (status.mPacketList.mInfo != null)
                                                 Log.e("xx", "real connect:" + status.mPacketList.mInfo.appName + ":" + status.mPacketList.port() + ":" + status.mPacketList.ip());
                                         }
@@ -616,6 +627,7 @@ public class ServerService extends Service {
                                 mBuffer.clear();
                                 try {
                                     if (status.closed || channel.read(mBuffer) < 0) {
+                                        if (debug)
                                         Log.e("xx", "closed by remote");
                                         status.reset();
                                         key.cancel();
@@ -635,6 +647,7 @@ public class ServerService extends Service {
                         }
                     }
                 }
+            if (debug)
                 Log.e("xx","read thread end");
             mWriteThread.pause();
         }
