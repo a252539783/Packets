@@ -14,7 +14,6 @@ import java.io.FileOutputStream;
 import java.io.IOException;
 import java.io.OutputStream;
 import java.nio.ByteBuffer;
-import java.nio.channels.DatagramChannel;
 import java.util.ArrayList;
 
 /**
@@ -22,6 +21,8 @@ import java.util.ArrayList;
  */
 
 public class ClientService extends VpnService{
+
+    static boolean debug=false;
 
     private String addr="127.0.0.1";
     private int port=4444;
@@ -115,6 +116,7 @@ public class ClientService extends VpnService{
                         }
                     }
 
+                    if (debug)
                     Log.e("xx","client end");
                 stopSelf();
 
@@ -138,6 +140,7 @@ public class ClientService extends VpnService{
     @Override
     public void onDestroy() {
         mAlreadyRun=false;
+        if (debug)
         Log.e("xx","client service dead");
         super.onDestroy();
     }
