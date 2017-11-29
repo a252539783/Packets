@@ -29,6 +29,8 @@ import java.util.Map;
 
 public class ExpandableRecyclerView2 extends RecyclerView implements View.OnClickListener{
 
+    private boolean mUsingDataSetChanged=true;
+
     private Adapter mAdapter=null;
 
     private MAdapter mInnerAdapter=null;
@@ -79,8 +81,6 @@ public class ExpandableRecyclerView2 extends RecyclerView implements View.OnClic
     };
 
     private boolean mCanMultiExpandable=true;
-
-    private boolean mIsExpand=false;
 
     private boolean mEnableAnimation=true;
 
@@ -209,7 +209,14 @@ public class ExpandableRecyclerView2 extends RecyclerView implements View.OnClic
         //here can't ensure the position of mEnd,so make it equal to mStart simply.
         mEnd=mStart=ei.mItem;
         mEndPosition=mStartPosition=position;
-        mInnerAdapter.notifyItemRangeRemoved(position+1,size);
+
+        if (mUsingDataSetChanged) {
+            mInnerAdapter.notifyDataSetChanged();
+        }
+        else {
+            mInnerAdapter.notifyItemRangeRemoved(position + 1, size);
+        }
+
     }
 
     private void expandItemUnchecked(ItemInfo ii,int position)
@@ -240,7 +247,13 @@ public class ExpandableRecyclerView2 extends RecyclerView implements View.OnClic
             }
             mEnd=mStart=ei.mItem;
             mEndPosition=mStartPosition=position;
-            mInnerAdapter.notifyItemRangeInserted(position+1,size);
+
+            if (mUsingDataSetChanged) {
+                mInnerAdapter.notifyDataSetChanged();
+            }
+            else {
+                mInnerAdapter.notifyItemRangeInserted(position + 1, size);
+            }
 
             mSize+=size;
             ei.mEnd=ii;
@@ -515,7 +528,7 @@ public class ExpandableRecyclerView2 extends RecyclerView implements View.OnClic
             }
             mEnd=mStart;
             mEndPosition=mStartPosition;
-            Log.e("xx","preload error");
+            Log.e("xx","preload error"+position);
             return preLoad(position);
         }
 
@@ -779,21 +792,28 @@ public class ExpandableRecyclerView2 extends RecyclerView implements View.OnClic
                 return mChildren==null?null:mChildren.get(ii.mIndex);
 
             //otherwise find the corresponding ExpandInfo for ii's parent and call its get.
-            return get(ii.mParent).get(ii);
+            ExpandInfo ei=get(ii.mParent);
+            return ei==null?null:ei.get(ii);
         }
 
         //calculate the next item which isn't mItem's child.
         ItemInfo next()
         {
-            //if there has some children,call them.
-            if (mChildren!=null&&mChildren.size()!=0)
-                return mChildren.valueAt(mChildren.size()-1).next();
+            if (mEnd==null)
+            {
+                return mItem.mNext;
+            }
+
+            //if the last of the children was expanded,call it
+            if (mChildren!=null&&mChildren.size()!=0) {
+                ExpandInfo ei=mChildren.valueAt(mChildren.size() - 1);
+
+                if (ei.mItem==mEnd)
+                    return ei.next();
+            }
 
             //there is no expanded child
-            if (mEnd!=null)
-                return mEnd.mNext;
-
-            return mItem.mNext;
+            return mEnd.mNext;
         }
 
         //remove
@@ -943,7 +963,12 @@ public class ExpandableRecyclerView2 extends RecyclerView implements View.OnClic
                 mEndPosition++;
             }
 
-            mInnerAdapter.notifyItemInserted(realPosition);
+            if (mUsingDataSetChanged) {
+                mInnerAdapter.notifyDataSetChanged();
+            }
+            else {
+                mInnerAdapter.notifyItemInserted(realPosition);
+            }
             //Log.e("xx","notifyed "+realPosition);
         }
     }
