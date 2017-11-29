@@ -76,7 +76,23 @@ public class LocalPackets {
         if (mSavedChangeListeners==null)
             mSavedChangeListeners=new LinkedList<>();
 
+        if (!contains(mSavedChangeListeners,l))
         mSavedChangeListeners.add(new WeakReference<>(l));
+    }
+
+    public void removeSavedListener(OnSavedChangeListener l)
+    {
+        if (mSavedChangeListeners==null)
+            return ;
+
+        Iterator<WeakReference<OnSavedChangeListener>> it=mSavedChangeListeners.listIterator();
+        while(it.hasNext())
+        {
+            if (it.next().get()==l)
+            {
+                it.remove();
+            }
+        }
     }
 
     public void addSavedItemChangeListener(OnSavedItemChangeListener l)
@@ -84,7 +100,23 @@ public class LocalPackets {
         if (mSavedItemChangeListeners==null)
             mSavedItemChangeListeners=new LinkedList<>();
 
+        if (!contains(mSavedItemChangeListeners,l))
         mSavedItemChangeListeners.add(new WeakReference<>(l));
+    }
+
+    public void removeSavedItemListener(OnSavedItemChangeListener l)
+    {
+        if (mSavedItemChangeListeners==null)
+            return ;
+
+        Iterator<WeakReference<OnSavedItemChangeListener>> it=mSavedItemChangeListeners.listIterator();
+        while(it.hasNext())
+        {
+            if (it.next().get()==l)
+            {
+                it.remove();
+            }
+        }
     }
 
     public void addHistoryChangeListener(OnHistoryChangeListener l)
@@ -92,7 +124,23 @@ public class LocalPackets {
         if (mHistoryChangeListeners==null)
             mHistoryChangeListeners=new LinkedList<>();
 
+        if (!contains(mHistoryChangeListeners,l))
         mHistoryChangeListeners.add(new WeakReference<>(l));
+    }
+
+    public void removeHistoryListener(OnHistoryChangeListener l)
+    {
+        if (mHistoryChangeListeners==null)
+            return ;
+
+        Iterator<WeakReference<OnHistoryChangeListener>> it=mHistoryChangeListeners.listIterator();
+        while(it.hasNext())
+        {
+            if (it.next().get()==l)
+            {
+                it.remove();
+            }
+        }
     }
 
     public void addPacketsChangeListener(OnPacketsChangeListener l)
@@ -100,7 +148,23 @@ public class LocalPackets {
         if (mPacketsChangeListeners==null)
             mPacketsChangeListeners=new LinkedList<>();
 
+        if (!contains(mPacketsChangeListeners,l))
         mPacketsChangeListeners.add(new WeakReference<>(l));
+    }
+
+    public void removePacketsListener(OnPacketsChangeListener l)
+    {
+        if (mPacketsChangeListeners==null)
+            return ;
+
+        Iterator<WeakReference<OnPacketsChangeListener>> it=mPacketsChangeListeners.listIterator();
+        while(it.hasNext())
+        {
+            if (it.next().get()==l)
+            {
+                it.remove();
+            }
+        }
     }
 
     public void addPacketChangeListener(OnPacketChangeListener l)
@@ -108,7 +172,36 @@ public class LocalPackets {
         if (mPacketChangeListeners==null)
             mPacketChangeListeners=new LinkedList<>();
 
+        if (!contains(mPacketChangeListeners,l))
         mPacketChangeListeners.add(new WeakReference<>(l));
+    }
+
+    public void removePacketListener(OnPacketChangeListener l)
+    {
+        if (mPacketChangeListeners==null)
+            return ;
+
+        Iterator<WeakReference<OnPacketChangeListener>> it=mPacketChangeListeners.listIterator();
+        while(it.hasNext())
+        {
+            if (it.next().get()==l)
+            {
+                it.remove();
+            }
+        }
+    }
+
+    static boolean contains(List ls,Object o)
+    {
+        Iterator<WeakReference> it=ls.iterator();
+
+        while(it.hasNext())
+        {
+            if (it.next().get()==o)
+                return true;
+        }
+
+        return false;
     }
 
     synchronized void newHistory(long time)
@@ -497,9 +590,9 @@ public class LocalPackets {
 
     public interface OnPacketsChangeListener
     {
-        void onChange(int listIndex);
+        void onChange(int time);
 
-        void onAdd(int listIndex,int index);
+        void onAdd(int time,int index);
     }
 
     public interface OnPacketChangeListener
