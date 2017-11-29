@@ -2,13 +2,15 @@ package com.iqiyi.liquanfei_sx.vpnt.history;
 
 import android.os.Handler;
 import android.os.Message;
+import android.support.v7.widget.RecyclerView;
 import android.view.View;
 
+import com.iqiyi.liquanfei_sx.vpnt.IAdapter;
 import com.iqiyi.liquanfei_sx.vpnt.R;
 import com.iqiyi.liquanfei_sx.vpnt.CommonPresenter;
 import com.iqiyi.liquanfei_sx.vpnt.packet.LocalPackets;
 import com.iqiyi.liquanfei_sx.vpnt.packet.PersistRequest;
-import com.iqiyi.liquanfei_sx.vpnt.view.ExpandableRecyclerView;
+import com.iqiyi.liquanfei_sx.vpnt.view.ExpandableRecyclerView2;
 
 import java.lang.ref.WeakReference;
 
@@ -18,19 +20,40 @@ import java.lang.ref.WeakReference;
 
 public class HistoryPresenter extends CommonPresenter implements LocalPackets.OnHistoryChangeListener{
 
-    private ExpandableRecyclerView mHistories;
-    private HistoryAdapter mAdapter;
+    private ExpandableRecyclerView2 mHistories;
+    private IAdapter mAdapter;
+
+    private boolean mIsBound=false;
 
     private H h=new H(this);
 
     @Override
     protected void onViewBind(View v) {
-        mHistories=(ExpandableRecyclerView)v.findViewById(R.id.erv_history);
-        mAdapter=new HistoryAdapter(v.getContext());
-        //mHistories.setAdapter(mAdapter);
+        mHistories=(ExpandableRecyclerView2)v.findViewById(R.id.erv_history);
+        mAdapter=new HistoryAdapter2(v.getContext());
 
         LocalPackets.get().addHistoryChangeListener(this);
+        mAdapter.setListeners();
         LocalPackets.mgr().addRequest(PersistRequest.newReadRequest());
+    }
+
+    @Override
+    protected void onPause() {
+        LocalPackets.get().removeHistoryListener(this);
+
+        if (mAdapter!=null)
+            mAdapter.removeListeners();
+    }
+
+    @Override
+    protected void onResume() {
+        if (mAdapter!=null) {
+            ((RecyclerView.Adapter)mAdapter).notifyDataSetChanged();
+            LocalPackets.get().addHistoryChangeListener(this);
+            if (mIsBound) {
+                mAdapter.setListeners();
+            }
+        }
     }
 
     @Override
@@ -44,7 +67,7 @@ public class HistoryPresenter extends CommonPresenter implements LocalPackets.On
 
         H(HistoryPresenter p)
         {
-            this.p=new WeakReference<HistoryPresenter>(p);
+            this.p=new WeakReference<>(p);
         }
 
         @Override
@@ -55,8 +78,11 @@ public class HistoryPresenter extends CommonPresenter implements LocalPackets.On
             if ((hp=p.get())==null)
                 return ;
 
-            hp.mAdapter.setHistorySource(LocalPackets.get().mAllPackets);
-            hp.mHistories.setAdapter(hp.mAdapter);
+            hp.mAdapter.setSource(LocalPackets.get().mAllPackets);
+            hp.mHistories.setAdapter((ExpandableRecyclerView2.Adapter)hp.mAdapter);
+            hp.mIsBound=true;
+
+            hp.mAdapter.setListeners();
         }
     }
 }

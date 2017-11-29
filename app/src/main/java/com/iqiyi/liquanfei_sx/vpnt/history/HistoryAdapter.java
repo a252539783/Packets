@@ -10,9 +10,10 @@ import android.view.ViewGroup;
 import android.widget.ImageView;
 import android.widget.TextView;
 
+import com.iqiyi.liquanfei_sx.vpnt.IAdapter;
 import com.iqiyi.liquanfei_sx.vpnt.R;
 import com.iqiyi.liquanfei_sx.vpnt.editor.EditActivity;
-import com.iqiyi.liquanfei_sx.vpnt.editor.EditPaketInfo;
+import com.iqiyi.liquanfei_sx.vpnt.editor.EditPacketInfo;
 import com.iqiyi.liquanfei_sx.vpnt.packet.LocalPackets;
 import com.iqiyi.liquanfei_sx.vpnt.packet.PacketList;
 import com.iqiyi.liquanfei_sx.vpnt.packet.PersistRequest;
@@ -28,7 +29,7 @@ import java.util.List;
  */
 
 
-public class HistoryAdapter extends ExpandableRecyclerView.Adapter<HistoryAdapter.H1> implements LocalPackets.OnHistoryChangeListener
+public class HistoryAdapter extends ExpandableRecyclerView.Adapter<HistoryAdapter.H1> implements LocalPackets.OnHistoryChangeListener,IAdapter
 {
     private List<LocalPackets.CaptureInfo> mAllHistory=null;
     private LayoutInflater mLf;
@@ -42,9 +43,20 @@ public class HistoryAdapter extends ExpandableRecyclerView.Adapter<HistoryAdapte
         mLf=LayoutInflater.from(c);
     }
 
-    void setHistorySource(List<LocalPackets.CaptureInfo> src)
+    @Override
+    public void setSource(Object src)
     {
-        mAllHistory=src;
+        mAllHistory= (List<LocalPackets.CaptureInfo>) src;
+    }
+
+    @Override
+    public void removeListeners() {
+
+    }
+
+    @Override
+    public void setListeners() {
+
     }
 
     @Override
@@ -413,7 +425,12 @@ public class HistoryAdapter extends ExpandableRecyclerView.Adapter<HistoryAdapte
 
     public void edit(int history,int listIndex,int index)
     {
-        EditPaketInfo pi=new EditPaketInfo(history,listIndex,index);
+        EditPacketInfo pi=new EditPacketInfo(history,listIndex,index);
+        edit(pi);
+    }
+
+    public void edit(EditPacketInfo pi)
+    {
         Intent i=editIntent();
         i.setAction(EditActivity.ACTION_OPEN_PACKET);
         i.putExtra(EditActivity.ACTION_OPEN_PACKET,pi);
