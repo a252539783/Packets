@@ -265,13 +265,9 @@ public class ExpandableRecyclerView2 extends RecyclerView implements View.OnClic
 
     private void freshPosition(int position,int size)
     {
-        Iterator<Map.Entry<ItemInfo,Integer>> it=mRealPosition.entrySet().iterator();
-        while (it.hasNext())
-        {
-            Map.Entry<ItemInfo,Integer> entry=it.next();
-            if (entry.getValue()>position)
-            {
-                entry.setValue(entry.getValue()+size);
+        for (Map.Entry<ItemInfo, Integer> entry : mRealPosition.entrySet()) {
+            if (entry.getValue() > position) {
+                entry.setValue(entry.getValue() + size);
             }
         }
     }
