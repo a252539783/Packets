@@ -4,6 +4,7 @@ import com.iqiyi.liquanfei_sx.vpnt.Constants;
 import com.iqiyi.liquanfei_sx.vpnt.MApp;
 import com.iqiyi.liquanfei_sx.vpnt.tools.AppPortList;
 import com.iqiyi.liquanfei_sx.vpnt.tools.ByteBufferPool;
+import com.iqiyi.liquanfei_sx.vpnt.tools.WeakLinkedList;
 
 import java.io.File;
 import java.lang.ref.WeakReference;
@@ -23,12 +24,12 @@ public class LocalPackets {
 
     private static LocalPackets instance=new LocalPackets();
 
-    private List<WeakReference<OnHistoryChangeListener>> mHistoryChangeListeners;
-    private List<WeakReference<OnPacketsChangeListener>> mPacketsChangeListeners;
-    private List<WeakReference<OnPacketChangeListener>> mPacketChangeListeners;
+    private WeakLinkedList<OnHistoryChangeListener> mHistoryChangeListeners;
+    private WeakLinkedList<OnPacketsChangeListener> mPacketsChangeListeners;
+    private WeakLinkedList<OnPacketChangeListener> mPacketChangeListeners;
 
-    private List<WeakReference<OnSavedChangeListener>> mSavedChangeListeners;
-    private List<WeakReference<OnSavedItemChangeListener>> mSavedItemChangeListeners;
+    private WeakLinkedList<OnSavedChangeListener> mSavedChangeListeners;
+    private WeakLinkedList<OnSavedItemChangeListener> mSavedItemChangeListeners;
 
     public List<CaptureInfo> mAllPackets=new ArrayList<>();
     public List<SavedInfo> mSavedPackets=new ArrayList<>();
@@ -74,10 +75,10 @@ public class LocalPackets {
     public void addSavedChangeListener(OnSavedChangeListener l)
     {
         if (mSavedChangeListeners==null)
-            mSavedChangeListeners=new LinkedList<>();
+            mSavedChangeListeners=new WeakLinkedList<>();
 
-        if (!contains(mSavedChangeListeners,l))
-        mSavedChangeListeners.add(new WeakReference<>(l));
+        if (!mSavedChangeListeners.contains(l))
+            mSavedChangeListeners.add(l);
     }
 
     public void removeSavedListener(OnSavedChangeListener l)
@@ -85,23 +86,16 @@ public class LocalPackets {
         if (mSavedChangeListeners==null)
             return ;
 
-        Iterator<WeakReference<OnSavedChangeListener>> it=mSavedChangeListeners.listIterator();
-        while(it.hasNext())
-        {
-            if (it.next().get()==l)
-            {
-                it.remove();
-            }
-        }
+        mSavedChangeListeners.remove(l);
     }
 
     public void addSavedItemChangeListener(OnSavedItemChangeListener l)
     {
         if (mSavedItemChangeListeners==null)
-            mSavedItemChangeListeners=new LinkedList<>();
+            mSavedItemChangeListeners=new WeakLinkedList<>();
 
-        if (!contains(mSavedItemChangeListeners,l))
-        mSavedItemChangeListeners.add(new WeakReference<>(l));
+        if (!mSavedItemChangeListeners.contains(l))
+        mSavedItemChangeListeners.add(l);
     }
 
     public void removeSavedItemListener(OnSavedItemChangeListener l)
@@ -109,23 +103,16 @@ public class LocalPackets {
         if (mSavedItemChangeListeners==null)
             return ;
 
-        Iterator<WeakReference<OnSavedItemChangeListener>> it=mSavedItemChangeListeners.listIterator();
-        while(it.hasNext())
-        {
-            if (it.next().get()==l)
-            {
-                it.remove();
-            }
-        }
+        mSavedItemChangeListeners.remove(l);
     }
 
     public void addHistoryChangeListener(OnHistoryChangeListener l)
     {
         if (mHistoryChangeListeners==null)
-            mHistoryChangeListeners=new LinkedList<>();
+            mHistoryChangeListeners=new WeakLinkedList<>();
 
-        if (!contains(mHistoryChangeListeners,l))
-        mHistoryChangeListeners.add(new WeakReference<>(l));
+        if (!mHistoryChangeListeners.contains(l))
+        mHistoryChangeListeners.add(l);
     }
 
     public void removeHistoryListener(OnHistoryChangeListener l)
@@ -133,23 +120,16 @@ public class LocalPackets {
         if (mHistoryChangeListeners==null)
             return ;
 
-        Iterator<WeakReference<OnHistoryChangeListener>> it=mHistoryChangeListeners.listIterator();
-        while(it.hasNext())
-        {
-            if (it.next().get()==l)
-            {
-                it.remove();
-            }
-        }
+        mHistoryChangeListeners.remove(l);
     }
 
     public void addPacketsChangeListener(OnPacketsChangeListener l)
     {
         if (mPacketsChangeListeners==null)
-            mPacketsChangeListeners=new LinkedList<>();
+            mPacketsChangeListeners=new WeakLinkedList<>();
 
-        if (!contains(mPacketsChangeListeners,l))
-        mPacketsChangeListeners.add(new WeakReference<>(l));
+        if (!mPacketsChangeListeners.contains(l))
+        mPacketsChangeListeners.add(l);
     }
 
     public void removePacketsListener(OnPacketsChangeListener l)
@@ -157,23 +137,16 @@ public class LocalPackets {
         if (mPacketsChangeListeners==null)
             return ;
 
-        Iterator<WeakReference<OnPacketsChangeListener>> it=mPacketsChangeListeners.listIterator();
-        while(it.hasNext())
-        {
-            if (it.next().get()==l)
-            {
-                it.remove();
-            }
-        }
+        mPacketsChangeListeners.remove(l);
     }
 
     public void addPacketChangeListener(OnPacketChangeListener l)
     {
         if (mPacketChangeListeners==null)
-            mPacketChangeListeners=new LinkedList<>();
+            mPacketChangeListeners=new WeakLinkedList<>();
 
-        if (!contains(mPacketChangeListeners,l))
-        mPacketChangeListeners.add(new WeakReference<>(l));
+        if (!mPacketChangeListeners.contains(l))
+        mPacketChangeListeners.add(l);
     }
 
     public void removePacketListener(OnPacketChangeListener l)
@@ -181,14 +154,7 @@ public class LocalPackets {
         if (mPacketChangeListeners==null)
             return ;
 
-        Iterator<WeakReference<OnPacketChangeListener>> it=mPacketChangeListeners.listIterator();
-        while(it.hasNext())
-        {
-            if (it.next().get()==l)
-            {
-                it.remove();
-            }
-        }
+        mPacketChangeListeners.remove(l);
     }
 
     static boolean contains(List ls,Object o)
@@ -341,16 +307,16 @@ public class LocalPackets {
         if (mSavedChangeListeners==null)
             return;
 
-        Iterator<WeakReference<OnSavedChangeListener>> it=mSavedChangeListeners.listIterator();
+        Iterator<OnSavedChangeListener> it=mSavedChangeListeners.listIterator();
 
 
         while (it.hasNext())
         {
-            WeakReference<OnSavedChangeListener> l=it.next();
-            if (l.get()==null)
+            OnSavedChangeListener l=it.next();
+            if (l==null)
                 it.remove();
             else
-                MApp.get().postMain(new OnSavedChangeRunnable(l));
+                MApp.get().postMain(new OnSavedChangeRunnable(new WeakReference(l)));
         }
     }
 
@@ -359,16 +325,16 @@ public class LocalPackets {
         if (mHistoryChangeListeners==null)
             return;
 
-        Iterator<WeakReference<OnHistoryChangeListener>> it=mHistoryChangeListeners.listIterator();
+        Iterator<OnHistoryChangeListener> it=mHistoryChangeListeners.listIterator();
 
 
         while (it.hasNext())
         {
-            WeakReference<OnHistoryChangeListener> l=it.next();
-            if (l.get()==null)
+            OnHistoryChangeListener l=it.next();
+            if (l==null)
                 it.remove();
             else
-                MApp.get().postMain(new OnChangeRunnable(l));
+                MApp.get().postMain(new OnChangeRunnable(new WeakReference(l)));
                 //l.get().onChange();
         }
     }
@@ -378,22 +344,22 @@ public class LocalPackets {
         if (mPacketsChangeListeners==null)
             return ;
 
-        Iterator<WeakReference<OnPacketsChangeListener>> it=mPacketsChangeListeners.listIterator();
+        Iterator<OnPacketsChangeListener> it=mPacketsChangeListeners.listIterator();
 
 
         while (it.hasNext())
         {
-            WeakReference<OnPacketsChangeListener> l=it.next();
-            if (l.get()==null)
+            OnPacketsChangeListener l=it.next();
+            if (l==null)
                 it.remove();
             else{
                 if (listIndex==-1)
                 {
-                    MApp.get().postMain(new OnChangeRunnable(l,time));
+                    MApp.get().postMain(new OnChangeRunnable(new WeakReference(l),time));
                     //l.get().onChange(time);
                 }else
                 {
-                    MApp.get().postMain(new OnAddRunnable(l,time,listIndex));
+                    MApp.get().postMain(new OnAddRunnable(new WeakReference(l),time,listIndex));
                     //l.get().onAdd(time,listIndex);
                 }
             }
@@ -405,22 +371,22 @@ public class LocalPackets {
         if (mPacketChangeListeners==null)
             return ;
 
-        Iterator<WeakReference<OnPacketChangeListener>> it=mPacketChangeListeners.listIterator();
+        Iterator<OnPacketChangeListener> it=mPacketChangeListeners.listIterator();
 
 
         while (it.hasNext())
         {
-            WeakReference<OnPacketChangeListener> l=it.next();
-            if (l.get()==null)
+            OnPacketChangeListener l=it.next();
+            if (l==null)
                 it.remove();
             else{
                 if (listIndex==-1)
                 {
-                    MApp.get().postMain(new OnChangeRunnable(l,time,listIndex));
+                    MApp.get().postMain(new OnChangeRunnable(new WeakReference(l),time,listIndex));
                     //l.get().onChange(time,listIndex);
                 }else
                 {
-                    MApp.get().postMain(new OnAddRunnable(l,time,listIndex,index));
+                    MApp.get().postMain(new OnAddRunnable(new WeakReference(l),time,listIndex,index));
                     //l.get().onAdd(time,listIndex,index);
                 }
             }
@@ -432,16 +398,16 @@ public class LocalPackets {
         if (mSavedItemChangeListeners==null)
             return ;
 
-        Iterator<WeakReference<OnSavedItemChangeListener>> it=mSavedItemChangeListeners.listIterator();
+        Iterator<OnSavedItemChangeListener> it=mSavedItemChangeListeners.listIterator();
 
 
         while (it.hasNext())
         {
-            WeakReference<OnSavedItemChangeListener> l=it.next();
-            if (l.get()==null)
+            OnSavedItemChangeListener l=it.next();
+            if (l==null)
                 it.remove();
             else{
-                MApp.get().postMain(new OnSavedAddRunnable(l,listIndex,index));
+                MApp.get().postMain(new OnSavedAddRunnable(new WeakReference(l),listIndex,index));
             }
         }
     }
