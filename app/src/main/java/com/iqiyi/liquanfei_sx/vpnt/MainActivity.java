@@ -15,18 +15,13 @@ import com.iqiyi.liquanfei_sx.vpnt.packet.ServerService;
 import com.iqiyi.liquanfei_sx.vpnt.view.ExpandableRecyclerView;
 import com.iqiyi.liquanfei_sx.vpnt.view.FixedWidthTextView;
 
-public class MainActivity extends AppCompatActivity{
+public class MainActivity extends CommonActivity{
 
     private MainPresenter mp;
 
     @Override
     protected void onCreate(Bundle savedInstanceState) {
         super.onCreate(savedInstanceState);
-        setContentView(R.layout.activity_main);
-        //window=new MFloatingWindow(this);
-
-        mp=new MainPresenter(this);
-        mp.bindView(findViewById(R.id.drawer_main));
     }
     @Override
     protected void onActivityResult(int requestCode, int resultCode, Intent data) {
@@ -39,31 +34,15 @@ public class MainActivity extends AppCompatActivity{
     }
 
     @Override
-    protected void onResume() {
-        super.onResume();
-    }
+    public CommonPresenter getPresenter() {
+        if (mp==null)
+            mp=new MainPresenter(this);
 
-//    @Override
-//    public void onConnected() {
-//        rv.post(new Runnable() {
-//            @Override
-//            public void run() {
-//
-//                //pa=new HistoryAdapter.PacketsAdapter(mServer.getPackets(),MainActivity.this);
-//                //rv.setAdapter(pa);
-//                //pa.setFilterKey(PacketsAdapter.FILTER_IP,"180.149.136.228");
-//                //mServer.setOnPacketsAddListener(MainActivity.this);
-//            }
-//        });
-//    }
-
-    @Override
-    protected void onDestroy() {
-        super.onDestroy();
+        return mp;
     }
 
     @Override
-    protected void onPause() {
-        super.onPause();
+    public int getLayoutId() {
+        return R.layout.content_main;
     }
 }
