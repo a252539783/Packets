@@ -26,23 +26,42 @@ public class ViewStub extends View {
 
     public View load(View view)
     {
-        final ViewParent viewParent = getParent();
-
-        if (viewParent != null && viewParent instanceof ViewGroup) {
-            final ViewGroup parent = (ViewGroup) viewParent;
-            view.setId(getId());
-
-            final int index = parent.indexOfChild(this);
-            parent.removeViewInLayout(this);
-
-            final ViewGroup.LayoutParams layoutParams = getLayoutParams();
-            if (layoutParams != null) {
-                parent.addView(view, index, layoutParams);
-            } else {
-                parent.addView(view, index);
-            }
-        }
-
+        replace(this,view);
         return view;
+    }
+
+    public static void remove(View v)
+    {
+        if (v==null)
+            return ;
+
+        final ViewParent viewParent = v.getParent();
+        if (viewParent == null || !(viewParent instanceof ViewGroup))
+            return ;
+
+        final ViewGroup parent = (ViewGroup) viewParent;
+        parent.removeViewInLayout(v);
+    }
+
+    public static void replace(View from,View to)
+    {
+        if (from==null||to==null)
+            return ;
+
+        final ViewParent viewParent = from.getParent();
+        if (viewParent == null || !(viewParent instanceof ViewGroup))
+            return ;
+
+        final ViewGroup parent = (ViewGroup) viewParent;
+
+        to.setId(from.getId());
+        final int index = parent.indexOfChild(from);
+        parent.removeViewInLayout(from);
+        final ViewGroup.LayoutParams layoutParams = from.getLayoutParams();
+        if (layoutParams != null) {
+            parent.addView(to, index, layoutParams);
+        } else {
+            parent.addView(to, index);
+        }
     }
 }
