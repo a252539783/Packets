@@ -2,6 +2,7 @@ package com.iqiyi.liquanfei_sx.vpnt.floating;
 
 import android.content.Context;
 import android.graphics.PixelFormat;
+import android.graphics.Point;
 import android.util.Log;
 import android.view.Gravity;
 import android.view.LayoutInflater;
@@ -9,11 +10,6 @@ import android.view.View;
 import android.view.ViewGroup;
 import android.view.WindowManager;
 import android.widget.FrameLayout;
-
-import com.iqiyi.liquanfei_sx.vpnt.CommonPresenter;
-import com.iqiyi.liquanfei_sx.vpnt.R;
-
-import java.lang.reflect.Constructor;
 import java.util.LinkedList;
 
 /**
@@ -24,9 +20,16 @@ public class WindowStack {
 
     private static WindowStack instance=null;
 
+    static final int CRASH_X=0x01;
+    static final int CRASH_Y=0x02;
+
     private WindowManager mWm;
     private WindowManager.LayoutParams params;
     private LayoutInflater mInflater;
+
+    private float mWindowX=0,mWindowY=0;
+    private Point mMaxSize=new Point();
+    private int mMaxX,mMaxY;
 
     private LinkedList<FloatingWindow> mWindows =new LinkedList<>();
 
@@ -41,6 +44,7 @@ public class WindowStack {
 
         mInflater=LayoutInflater.from(c);
         mWm=(WindowManager) c.getSystemService(Context.WINDOW_SERVICE);
+        mWm.getDefaultDisplay().getSize(mMaxSize);
 
         params=new WindowManager.LayoutParams();
         params.flags= WindowManager.LayoutParams.FLAG_NOT_FOCUSABLE;
@@ -49,7 +53,8 @@ public class WindowStack {
         params.height = WindowManager.LayoutParams.WRAP_CONTENT;
         params.gravity = Gravity.LEFT | Gravity.TOP;
         params.format = PixelFormat.RGBA_8888;
-        params.y = 1000;
+        params.y = mMaxSize.y/3*2;
+        mWindowY=params.y;
 
         mWm.addView(mRoot,params);
     }
@@ -106,13 +111,49 @@ public class WindowStack {
 
     void setWindowPosition(int x,int y)
     {
+        mWindowX=x;
+        mWindowY=y;
         params.x=x;
         params.y=y;
         mWm.updateViewLayout(mRoot,params);
     }
 
+    int moveWindow(float x,float y)
+    {
+        int res=0;
+
+        mWindowX+=x;
+        if (mWindowX<0) {
+            mWindowX = 0;
+            res|=CRASH_X;
+        }else if (mWindowX>mMaxX)
+        {
+            mWindowX=mMaxX;
+            res|=CRASH_X;
+        }
+
+        mWindowY+=y;
+        if (mWindowY<0)
+        {
+            mWindowY=0;
+            res|=CRASH_Y;
+        }else if (mWindowY>mMaxY)
+        {
+            mWindowY=mMaxY;
+            res|=CRASH_Y;
+        }
+
+        params.x=(int)mWindowX;
+        params.y=(int)mWindowY;
+        mWm.updateViewLayout(mRoot,params);
+
+        return res;
+    }
+
     void setWindowSize(int w,int h)
     {
+        mMaxX=mMaxSize.x-w;
+        mMaxY=mMaxSize.y-h;
         params.width=w;
         params.height=h;
         mWm.updateViewLayout(mRoot,params);

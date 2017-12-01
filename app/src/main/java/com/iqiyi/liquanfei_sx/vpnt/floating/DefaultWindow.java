@@ -36,7 +36,12 @@ public class DefaultWindow  extends FloatingWindow{
 
         @Override
         protected void onViewBind(View v) {
-
+            v.setOnTouchListener(DefaultWindow.this);
         }
+    }
+
+    @Override
+    public boolean autoMove() {
+        return true;
     }
 }
