@@ -1,7 +1,6 @@
 package com.iqiyi.liquanfei_sx.vpnt;
 
 
-import android.os.Bundle;
 import android.support.annotation.Nullable;
 import android.view.LayoutInflater;
 import android.view.View;
@@ -11,13 +10,14 @@ import android.view.ViewGroup;
  * Created by Administrator on 2017/11/30.
  */
 
-public abstract class PagerFragment {
+public abstract class FakeFragment {
 
     private View mView=null;
 
     public View onCreateView(LayoutInflater inflater, @Nullable ViewGroup container) {
         mView=inflater.inflate(getLayout(),container,false);
-        getPresenter().bindView(mView);
+        if (getPresenter()!=null)
+            getPresenter().onViewBind(mView);
         return mView;
     }
 
@@ -27,15 +27,18 @@ public abstract class PagerFragment {
     }
 
     public void onResume() {
-        getPresenter().onResume();
+        if (getPresenter()!=null)
+            getPresenter().onResume();
     }
 
     public void onPause() {
-        getPresenter().onPause();
+        if (getPresenter()!=null)
+            getPresenter().onPause();
     }
 
     public void onDestroy() {
-        getPresenter().onDead();
+        if (getPresenter()!=null)
+            getPresenter().onDead();
     }
 
     public abstract int getLayout();

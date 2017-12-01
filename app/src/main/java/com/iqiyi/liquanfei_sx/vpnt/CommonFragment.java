@@ -25,25 +25,29 @@ public abstract class CommonFragment extends Fragment{
     @Override
     public View onCreateView(LayoutInflater inflater, @Nullable ViewGroup container, @Nullable Bundle savedInstanceState) {
         View v=inflater.inflate(getLayout(),container,false);
-        getPresenter().bindView(v);
+        if (getPresenter()!=null)
+        getPresenter().onViewBind(v);
         return v;
     }
 
     @Override
     public void onResume() {
         super.onResume();
+        if (getPresenter()!=null)
         getPresenter().onResume();
     }
 
     @Override
     public void onPause() {
         super.onPause();
+        if (getPresenter()!=null)
         getPresenter().onPause();
     }
 
     @Override
     public void onDestroy() {
         super.onDestroy();
+        if (getPresenter()!=null)
         getPresenter().onDead();
     }
 
