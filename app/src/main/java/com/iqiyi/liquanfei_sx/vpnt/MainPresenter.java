@@ -8,13 +8,11 @@ import android.support.v4.app.Fragment;
 import android.support.v4.view.PagerAdapter;
 import android.support.v4.view.ViewPager;
 import android.support.v7.app.AppCompatActivity;
-import android.util.Log;
 import android.view.View;
 
-import com.iqiyi.liquanfei_sx.vpnt.history.HistoryFragment;
 import com.iqiyi.liquanfei_sx.vpnt.packet.ClientService;
 import com.iqiyi.liquanfei_sx.vpnt.packet.ServerService;
-import com.iqiyi.liquanfei_sx.vpnt.saved.SavedFragment;
+import com.iqiyi.liquanfei_sx.vpnt.view.ViewStub;
 
 /**
  * Created by Administrator on 2017/11/8.
@@ -23,9 +21,12 @@ import com.iqiyi.liquanfei_sx.vpnt.saved.SavedFragment;
 public class MainPresenter extends CommonPresenter implements View.OnClickListener{
 
     private ViewPager mViewPager;
+    private ViewStub mStub;
     private PagerAdapter mPagerAdapter;
     private TabLayout mTab;
     private FloatingActionButton mButton_start;
+
+    private boolean mPaused=false;
 
     private AppCompatActivity mActivity;
 
@@ -36,19 +37,10 @@ public class MainPresenter extends CommonPresenter implements View.OnClickListen
 
     @Override
     protected void onViewBind(View v) {
-        mViewPager=(ViewPager)v.findViewById(R.id.pager_main);
+        mStub=(ViewStub) v.findViewById(R.id.pager_main);
         mTab=(TabLayout)v.findViewById(R.id.tab_main);
         mButton_start=(FloatingActionButton)v.findViewById(R.id.fab_start);
         mButton_start.setOnClickListener(this);
-
-        mPagerAdapter=new MainPagerAdapter(mActivity.getSupportFragmentManager(),new Fragment[]{
-            new SavedFragment(),new HistoryFragment()
-        },new String[]{
-                "saved",        "history"
-        });
-
-        mViewPager.setAdapter(mPagerAdapter);
-        mTab.setupWithViewPager(mViewPager);
     }
 
     private void startService()
@@ -77,5 +69,20 @@ public class MainPresenter extends CommonPresenter implements View.OnClickListen
         {
             startService();
         }
+    }
+
+    @Override
+    protected void onResume() {
+        super.onResume();
+            mViewPager=(ViewPager) mStub.load(MApp.get().packetContent());
+            mTab.setupWithViewPager(mViewPager);
+            mButton_start.setVisibility(View.VISIBLE);
+    }
+
+    @Override
+    protected void onPause() {
+        super.onPause();
+        mButton_start.setVisibility(View.GONE);
+        ViewStub.replace(mViewPager,mStub);
     }
 }

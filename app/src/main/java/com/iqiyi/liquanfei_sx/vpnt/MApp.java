@@ -7,15 +7,12 @@ import android.util.SparseArray;
 import android.view.LayoutInflater;
 import android.view.View;
 
+import com.iqiyi.liquanfei_sx.vpnt.floating.WindowStack;
 import com.iqiyi.liquanfei_sx.vpnt.history.HistoryFragment2;
 import com.iqiyi.liquanfei_sx.vpnt.packet.LocalPackets;
 import com.iqiyi.liquanfei_sx.vpnt.saved.SavedFragment2;
 import com.iqiyi.liquanfei_sx.vpnt.tools.WeakLinkedList;
 import com.squareup.leakcanary.LeakCanary;
-
-import java.lang.ref.WeakReference;
-import java.util.LinkedList;
-import java.util.List;
 
 /**
  * Created by liquanfei_sx on 2017/8/14.
@@ -43,7 +40,7 @@ public class MApp extends Application {
         LeakCanary.install(this);
 
         mPacketContent= new ViewPager(this);
-        mAdapter=new MainPagerAdapter2(LayoutInflater.from(this),new PagerFragment[]{
+        mAdapter=new MainPagerAdapter2(LayoutInflater.from(this),new FakeFragment[]{
                 new SavedFragment2(),
                 new HistoryFragment2()
         },new String[]{
@@ -62,6 +59,8 @@ public class MApp extends Application {
                 mAdapter.onDeAttach();
             }
         });
+
+        WindowStack.init(this);
     }
 
     public View packetContent()
@@ -86,8 +85,6 @@ public class MApp extends Application {
             listeners = new WeakLinkedList();
             mListeners.put(requestCode,listeners);
         }
-
-
     }
 
     public interface OnDispatchResourceListener
