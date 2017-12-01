@@ -10,6 +10,7 @@
     <TextView
         android:layout_width="wrap_content"
         android:layout_height="wrap_content"
+        android:textColor="@android:color/black"
         android:textAppearance="@style/TextAppearance.AppCompat.Small"
         android:text="ttttttttttttttttttttttttttttttttttttttttttttttttt"
         android:id="@+id/t_packet_item_text"/>
