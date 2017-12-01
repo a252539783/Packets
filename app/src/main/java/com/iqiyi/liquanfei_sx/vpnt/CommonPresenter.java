@@ -15,12 +15,9 @@ public abstract class CommonPresenter {
         mFragment=frag;
     }
 
-    public final void bindView(View v)
+    protected void onViewBind(View v)
     {
-        onViewBind(v);
     }
-
-    protected abstract void onViewBind(View v);
 
     protected void onDead(){};
 
