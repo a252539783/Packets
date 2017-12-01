@@ -1,10 +1,8 @@
 package com.iqiyi.liquanfei_sx.vpnt.editor;
 
-import android.os.Bundle;
-import android.support.annotation.Nullable;
-import android.support.v7.app.AppCompatActivity;
 import android.view.Menu;
 
+import com.iqiyi.liquanfei_sx.vpnt.CommonActivity;
 import com.iqiyi.liquanfei_sx.vpnt.CommonPresenter;
 import com.iqiyi.liquanfei_sx.vpnt.R;
 
@@ -12,19 +10,23 @@ import com.iqiyi.liquanfei_sx.vpnt.R;
  * Created by Administrator on 2017/11/13.
  */
 
-public class EditActivity extends AppCompatActivity {
+public class EditActivity extends CommonActivity {
 
     public static final String ACTION_OPEN_PACKET="packet";
 
     private CommonPresenter mPresenter;
 
     @Override
-    protected void onCreate(@Nullable Bundle savedInstanceState) {
-        super.onCreate(savedInstanceState);
-        setContentView(R.layout.item_test);
+    public CommonPresenter getPresenter() {
+        if (mPresenter==null)
+            mPresenter=new EditPresenter(this);
 
-        mPresenter=new EditPresenter(this);
-        mPresenter.bindView(findViewById(R.id.container_editor));
+        return mPresenter;
+    }
+
+    @Override
+    public int getLayoutId() {
+        return R.layout.item_test;
     }
 
     @Override
