@@ -11,12 +11,12 @@ import android.view.ViewGroup;
 
 public class MainPagerAdapter2 extends PagerAdapter {
 
-    private PagerFragment []mViews;
+    private FakeFragment[]mViews;
     private String[] mTitles;
 
     private LayoutInflater mInflater;
 
-    public MainPagerAdapter2(LayoutInflater inflater,PagerFragment []views,String[] title)
+    public MainPagerAdapter2(LayoutInflater inflater, FakeFragment[]views, String[] title)
     {
         mViews=views;
         mTitles=title;
@@ -25,7 +25,7 @@ public class MainPagerAdapter2 extends PagerAdapter {
 
     public void onAttach()
     {
-        for (PagerFragment pf:mViews)
+        for (FakeFragment pf:mViews)
         {
             pf.onResume();
         }
@@ -33,7 +33,7 @@ public class MainPagerAdapter2 extends PagerAdapter {
 
     public void onDeAttach()
     {
-        for (PagerFragment pf:mViews)
+        for (FakeFragment pf:mViews)
         {
             pf.onPause();
         }
