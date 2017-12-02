@@ -14,9 +14,6 @@ import com.iqiyi.liquanfei_sx.vpnt.packet.ClientService;
 import com.iqiyi.liquanfei_sx.vpnt.packet.ServerService;
 import com.iqiyi.liquanfei_sx.vpnt.view.ViewStub;
 
-/**
- * Created by Administrator on 2017/11/8.
- */
 
 public class MainPresenter extends CommonPresenter implements View.OnClickListener{
 
