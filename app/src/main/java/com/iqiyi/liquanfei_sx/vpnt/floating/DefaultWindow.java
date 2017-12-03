@@ -19,6 +19,11 @@ public class DefaultWindow  extends FloatingWindow{
     }
 
     @Override
+    public boolean canMove() {
+        return true;
+    }
+
+    @Override
     public int getLayout() {
         return R.layout.float_main_button;
     }
