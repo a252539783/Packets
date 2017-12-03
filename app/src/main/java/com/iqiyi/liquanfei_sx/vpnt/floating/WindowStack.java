@@ -11,6 +11,7 @@ import android.view.ViewGroup;
 import android.view.WindowManager;
 import android.widget.FrameLayout;
 import java.util.LinkedList;
+import java.util.List;
 
 /**
  * Created by Administrator on 2017/11/30.
@@ -18,7 +19,7 @@ import java.util.LinkedList;
 
 public class WindowStack {
 
-    private static WindowStack instance=null;
+    private static List<WindowStack> instances=new LinkedList<>();
 
     static final int CRASH_X=0x01;
     static final int CRASH_Y=0x02;
@@ -192,13 +193,15 @@ public class WindowStack {
     public void destroy()
     {
         mWm.removeView(mRoot);
-        instance=null;
+        instances.remove(this);
     }
 
-    public static void init(Context c)
+    public static WindowStack init(Context c,Class cls)
     {
-        instance=new WindowStack(c);
+        WindowStack ws=new WindowStack(c);
+        ws.startWindow(DefaultWindow.class);
+        instances.add(ws);
 
-        instance.startWindow(DefaultWindow.class);
+        return ws;
     }
 }

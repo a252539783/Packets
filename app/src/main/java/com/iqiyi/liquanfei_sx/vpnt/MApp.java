@@ -7,6 +7,7 @@ import android.util.SparseArray;
 import android.view.LayoutInflater;
 import android.view.View;
 
+import com.iqiyi.liquanfei_sx.vpnt.floating.DefaultWindow;
 import com.iqiyi.liquanfei_sx.vpnt.floating.WindowStack;
 import com.iqiyi.liquanfei_sx.vpnt.history.HistoryFragment2;
 import com.iqiyi.liquanfei_sx.vpnt.packet.LocalPackets;
@@ -60,7 +61,7 @@ public class MApp extends Application {
             }
         });
 
-        WindowStack.init(this);
+        WindowStack.init(this, DefaultWindow.class);
     }
 
     public View packetContent()
