@@ -176,7 +176,7 @@ public class WindowStack {
         mRoot.setVisibility(View.GONE);
     }
 
-    int getX()
+    int horizon()
     {
         if (params.x==0||params.x==mMaxX)
             return POSITION_HORIZON_SIDE;
@@ -187,11 +187,6 @@ public class WindowStack {
         }
 
         return POSITION_HORIZON_RIGHT;
-    }
-
-    int getY()
-    {
-        return params.y;
     }
 
     public void destroy()

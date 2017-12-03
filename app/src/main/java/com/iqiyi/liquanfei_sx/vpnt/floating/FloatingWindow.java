@@ -28,7 +28,7 @@ public abstract class FloatingWindow extends FakeFragment implements View.OnTouc
         @Override
         public void run() {
 
-            switch (mStack.getX())
+            switch (mStack.horizon())
             {
                 case WindowStack.POSITION_HORIZON_LEFT:
                     mVelocityX-=gravity;
@@ -46,13 +46,13 @@ public abstract class FloatingWindow extends FakeFragment implements View.OnTouc
                 if ((res&WindowStack.CRASH_X)!=0)
                 {
                     mVelocityX=-mVelocityX;
-                    mVelocityX-=mVelocityX>0?mFriction:-mFriction;
+                    mVelocityX-=mVelocityX>0?5*mFriction:-5*mFriction;
                 }
 
                 if ((res&WindowStack.CRASH_Y)!=0)
                 {
                     mVelocityY=-mVelocityY;
-                    mVelocityY-=mVelocityY>0?mFriction:-mFriction;
+                    mVelocityY-=mVelocityY>0?5*mFriction:-5*mFriction;
                 }
 
                 mVelocityX-=mVelocityX>0?mFriction:-mFriction;
