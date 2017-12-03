@@ -23,6 +23,10 @@ public class WindowStack {
     static final int CRASH_X=0x01;
     static final int CRASH_Y=0x02;
 
+    static final int POSITION_HORIZON_SIDE=0;
+    static final int POSITION_HORIZON_LEFT=1;
+    static final int POSITION_HORIZON_RIGHT=2;
+
     private WindowManager mWm;
     private WindowManager.LayoutParams params;
     private LayoutInflater mInflater;
@@ -144,6 +148,14 @@ public class WindowStack {
         }
 
         params.x=(int)mWindowX;
+        if (params.x<10) {
+            params.x = 0;
+            res|=CRASH_X;
+        }else if (params.x>mMaxX-10)
+        {
+            params.x=mMaxX;
+            res|=CRASH_X;
+        }
         params.y=(int)mWindowY;
         mWm.updateViewLayout(mRoot,params);
 
@@ -162,6 +174,24 @@ public class WindowStack {
     void hide()
     {
         mRoot.setVisibility(View.GONE);
+    }
+
+    int getX()
+    {
+        if (params.x==0||params.x==mMaxX)
+            return POSITION_HORIZON_SIDE;
+
+        if (params.x<(mMaxSize.x-params.width)/2)
+        {
+            return POSITION_HORIZON_LEFT;
+        }
+
+        return POSITION_HORIZON_RIGHT;
+    }
+
+    int getY()
+    {
+        return params.y;
     }
 
     public void destroy()
