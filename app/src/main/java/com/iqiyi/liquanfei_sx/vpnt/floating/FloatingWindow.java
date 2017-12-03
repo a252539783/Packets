@@ -23,6 +23,7 @@ public abstract class FloatingWindow extends FakeFragment implements View.OnTouc
     private float gravity=2f;
 
     private boolean mTouched=false;
+    private boolean mTouchMoved=false;
 
     private Runnable mAutoMoveRunnable=new Runnable() {
         @Override
@@ -92,7 +93,11 @@ public abstract class FloatingWindow extends FakeFragment implements View.OnTouc
         mTouched=true;
         switch (e.getActionMasked())
         {
+            case MotionEvent.ACTION_DOWN:
+                mTouchMoved=false;
+                break;
             case MotionEvent.ACTION_MOVE:
+                mTouchMoved=true;
                 mStack.moveWindow(e.getRawX()-mLastX,e.getRawY()-mLastY);
                 mVelocityX=(mVelocityX+(e.getRawX()-mLastX)*10/(SystemClock.uptimeMillis()-mLastTouchTime))/2;
                 mVelocityY=(mVelocityY+(e.getRawY()-mLastY)*10/(SystemClock.uptimeMillis()-mLastTouchTime))/2;
@@ -100,6 +105,10 @@ public abstract class FloatingWindow extends FakeFragment implements View.OnTouc
             case MotionEvent.ACTION_UP:
             case MotionEvent.ACTION_CANCEL:
                 mTouched=false;
+                if (!mTouchMoved)
+                {
+                    v.performClick();
+                }
                 moveToSide();
                 break;
         }
