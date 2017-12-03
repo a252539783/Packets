@@ -20,7 +20,7 @@ public abstract class FloatingWindow extends FakeFragment implements View.OnTouc
 
     private float mVelocityX=0,mVelocityY=0;
     private float mFriction=0.7f;
-    private float gravity=2f;
+    private float gravity=2.3f;
 
     private boolean mTouched=false;
     private boolean mTouchMoved=false;
@@ -65,7 +65,6 @@ public abstract class FloatingWindow extends FakeFragment implements View.OnTouc
                 if (mVelocityY<0.8f&&mVelocityY>-0.8f)
                     mVelocityY=0;
 
-                Log.e("xx","move "+mVelocityX+":"+mVelocityY);
                 moveToSide();
             }
 
