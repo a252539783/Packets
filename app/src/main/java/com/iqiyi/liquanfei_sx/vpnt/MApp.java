@@ -23,7 +23,9 @@ public class MApp extends Application {
 
     public static final int RESOURCE_PACKET_PAGER=0;
 
-    private SparseArray<WeakLinkedList> mListeners=new SparseArray<>(1);
+    private SparseArray<WeakLinkedList<OnDispatchResourceListener>> mListeners=new SparseArray<>(1);
+    private boolean[] mResourceOccupied=new boolean[1];
+    private Object[] mSharedSource=new Object[1];
 
     private static MApp mInstance;
     private Handler mH=new Handler();
@@ -60,6 +62,7 @@ public class MApp extends Application {
                 mAdapter.onDeAttach();
             }
         });
+        mSharedSource[RESOURCE_PACKET_PAGER]=mPacketContent;
 
         WindowStack.init(this, DefaultWindow.class);
     }
@@ -85,6 +88,27 @@ public class MApp extends Application {
         if (listeners==null) {
             listeners = new WeakLinkedList();
             mListeners.put(requestCode,listeners);
+        }
+
+        if (mResourceOccupied[requestCode])
+        {
+            listeners.add(l);
+        }else
+        {
+            l.onDispatch(requestCode,mSharedSource[requestCode]);
+        }
+    }
+
+    public void releaseResource(int requestCode,Object obj)
+    {
+        WeakLinkedList<OnDispatchResourceListener> ls=mListeners.get(requestCode);
+        if (ls!=null&&ls.size()==0)
+        {
+            ls.poll().onDispatch(requestCode,obj);
+            mResourceOccupied[requestCode]=true;
+        }else
+        {
+            mResourceOccupied[requestCode]=false;
         }
     }
 
