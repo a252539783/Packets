@@ -145,6 +145,11 @@ public class ClientService extends VpnService{
         super.onDestroy();
     }
 
+    public void inject(TCPPacket packet)
+    {
+        server.inject(packet);
+    }
+
     public static boolean isRun()
     {
         return mAlreadyRun;

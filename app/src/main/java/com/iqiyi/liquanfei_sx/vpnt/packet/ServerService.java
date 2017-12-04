@@ -22,6 +22,7 @@ import java.nio.channels.SelectionKey;
 import java.nio.channels.Selector;
 import java.nio.channels.SocketChannel;
 import java.util.ArrayList;
+import java.util.HashMap;
 import java.util.Iterator;
 import java.util.LinkedList;
 import java.util.NoSuchElementException;
@@ -137,6 +138,11 @@ public class ServerService extends Service {
         return mTransmitThread.mPause;
     }
 
+    void inject(TCPPacket packet)
+    {
+        mTransmitThread.inject(packet);
+    }
+
     public void setLocal(ClientService local) {
         mLocal = local;
     }
@@ -150,12 +156,14 @@ public class ServerService extends Service {
     private class TransmitThread extends Thread {
         ConcurrentLinkedQueue<Packet> mPackets;
         SparseArray<TCPStatus> mSockets;
+        HashMap<String,TCPStatus> mSocketsByIp;
         private ExecutorService mThreadPool;
 
         boolean mPause = true;
 
         TransmitThread() {
             mSockets = new SparseArray<>();
+            mSocketsByIp=new HashMap<>();
             mPackets = new ConcurrentLinkedQueue<>();
             mThreadPool = Executors.newCachedThreadPool();
             setPriority(MAX_PRIORITY);
@@ -226,6 +234,19 @@ public class ServerService extends Service {
 
         }
 
+        void inject(TCPPacket tcp)
+        {
+            if (tcp.getDataLength()==0)
+                return ;
+
+            TCPStatus status = mSocketsByIp.get(tcp.getDestIp()+tcp.getPort());
+            if (status != null) {
+                SendEntry se = new SendEntry(tcp,true);
+                status.mReadySend.add(se);
+                mThreadPool.execute(new ACKRunnable(se, status));
+            }
+        }
+
         public void remove(TCPStatus status) {
             mSockets.remove(status.mPacketList.mSPort);
         }
@@ -242,13 +263,13 @@ public class ServerService extends Service {
             }
 
             mSockets.put(((TCPPacket) packet).getSourcePort(), status);
+            mSocketsByIp.put(((TCPPacket) packet).getDestIp()+((TCPPacket) packet).getPort(),status);
             return status;
         }
 
         void pause() {
             mPause = true;
         }
-
 
         class ConnectRunnable implements Runnable {
             private TCPPacket packet;
@@ -335,7 +356,14 @@ public class ServerService extends Service {
                 available = true;
         }
 
+        SendEntry(TCPPacket p,boolean inject)
+        {
+            this(p);
+            mInject=inject;
+        }
+
         boolean available = false;    //是否会被转发
+        boolean mInject=false;
         Queue<ByteBuffer> mReadySend = null;      //转发数据可能太大，该队列是转发数据分包的结果
 
         /**
@@ -449,13 +477,19 @@ public class ServerService extends Service {
                     //Log.e("write added :", new String(buffers[i].array(), 0, buffers[i].limit()));
                 }
                 /**设置回复包*/
-                se.packet = (TCPPacket) mBuilder.build(se.packet).getData();
+                if (!se.mInject)
+                {
+                    se.packet = (TCPPacket) mBuilder.build(se.packet).getData();
+                }else
+                {
+                    se.packet=null;
+                }
 
                 prepareRegister.add(new Key(mChannel, SelectionKey.OP_WRITE, TCPStatus.this));
                 mSelector.wakeup();
             }
 
-            if (se.packet.fin) {
+            if (se.packet!=null&&se.packet.fin) {
                 se.available = false;
                 if (closed) {
                     try {
@@ -472,7 +506,7 @@ public class ServerService extends Service {
                 }
             }
 
-            if (se.packet.rst) {
+            if (se.packet!=null&&se.packet.rst) {
                 se.available = false;
                 if (closed) {
                     try {
@@ -594,8 +628,11 @@ public class ServerService extends Service {
 
                                         /**一个数据包已经被转发完成，此时把它的回复包写入本地*/
                                         if (buffer == null) {
-                                            mWriteThread.write(se.packet);
-                                            LocalPackets.get().addPacket(status.mPacketList.mIndex,se.packet,false);
+                                            if (se.packet!=null)
+                                            {
+                                                mWriteThread.write(se.packet);
+                                                LocalPackets.get().addPacket(status.mPacketList.mIndex,se.packet,false);
+                                            }
                                             status.mReadySend.poll();
                                             continue;
                                         }
