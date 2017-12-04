@@ -99,7 +99,7 @@ public abstract class PersistRequest {
             String newF=Constants.PrivateFileLocation.SAVED+File.separator+mUid+File.separator;
             new File(newF).mkdirs();
 
-            return newF;
+            return null;
         }
     }
 
