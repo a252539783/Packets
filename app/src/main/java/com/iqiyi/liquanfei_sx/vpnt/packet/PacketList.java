@@ -28,8 +28,13 @@ public class PacketList {
     private ArrayList<PacketItem> packets;
     int mIndex=0;
 
+    public boolean mAlive=true;
+
     private int mLast=0;
 
+    /**
+     * 用于新产生的数据包
+     */
     PacketList(TCPPacket init,int index) {
         mIndex=index;
         packets = new ArrayList<>();
@@ -40,8 +45,13 @@ public class PacketList {
         add(init,true);
     }
 
+    /**
+     * 用于读取存储于本地的历史数据包
+     */
     PacketList(TCPPacket init,int index,long time,int uid)
     {
+        mAlive=false;
+
         mIndex=index;
         packets = new ArrayList<>();
         mSPort = init.getSourcePort();
@@ -55,6 +65,9 @@ public class PacketList {
         return packets.size();
     }
 
+    /**
+     * 用于添加新产生的数据包
+     */
     synchronized PacketItem add(TCPPacket p,boolean local) {
         PacketItem item=new PacketItem(System.nanoTime(),p);
         packets.add(item);
@@ -64,6 +77,9 @@ public class PacketList {
         {
             mLast=packets.size()-1;
         }
+
+        if (p.fin||p.rst)
+            mAlive=false;
 
         return item;
     }
