@@ -50,6 +50,7 @@ public class HistoryPresenter extends CommonPresenter implements LocalPackets.On
         if (mAdapter!=null) {
             ((RecyclerView.Adapter)mAdapter).notifyDataSetChanged();
             LocalPackets.get().addHistoryChangeListener(this);
+            LocalPackets.get().addHistoryChangeListener(this);
             if (mIsBound) {
                 mAdapter.setListeners();
             }
@@ -58,7 +59,13 @@ public class HistoryPresenter extends CommonPresenter implements LocalPackets.On
 
     @Override
     public void onChange() {
-        h.sendEmptyMessage(0);
+        if (h!=null)
+        {
+            h.sendEmptyMessage(0);
+        }else
+        {
+            ((RecyclerView.Adapter)mAdapter).notifyDataSetChanged();
+        }
     }
 
     private static class H extends Handler
@@ -83,6 +90,7 @@ public class HistoryPresenter extends CommonPresenter implements LocalPackets.On
             hp.mIsBound=true;
 
             hp.mAdapter.setListeners();
+            hp.h=null;
         }
     }
 }

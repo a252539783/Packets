@@ -60,7 +60,13 @@ public class SavedPresenter extends CommonPresenter implements LocalPackets.OnSa
 
     @Override
     public void onChange() {
-        h.sendEmptyMessage(0);
+        if (h!=null)
+        {
+            h.sendEmptyMessage(0);
+        }else
+        {
+            ((RecyclerView.Adapter)mAdapter).notifyDataSetChanged();
+        }
     }
 
     private static class H extends Handler
@@ -83,6 +89,7 @@ public class SavedPresenter extends CommonPresenter implements LocalPackets.OnSa
             hp.mAdapter.setSource(LocalPackets.get().mSavedPackets);
             hp.mHistories.setAdapter((SavedAdapter2)hp.mAdapter);
             hp.mIsBound=true;
+            hp.h=null;
         }
     }
 }
