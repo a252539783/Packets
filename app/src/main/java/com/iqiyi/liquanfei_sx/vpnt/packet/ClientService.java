@@ -22,7 +22,7 @@ import java.util.ArrayList;
 
 public class ClientService extends VpnService{
 
-    static boolean debug=false;
+    static boolean debug=true;
 
     private String addr="127.0.0.1";
     private int port=4444;
@@ -63,8 +63,9 @@ public class ClientService extends VpnService{
     @Override
     public int onStartCommand(Intent intent, int flags, int startId) {
         if (mAlreadyRun){
-            unbindService(mConn);
             server.stopDaemon();
+            unbindService(mConn);
+            server=null;
             return super.onStartCommand(intent, flags, startId);
         }
 

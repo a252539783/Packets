@@ -60,7 +60,6 @@ public class ServerService extends Service {
         public void onServiceDisconnected(ComponentName name) {
             if (mLocal!=null)
             {
-                mLocal.stop();
                 mLocal=null;
             }
         }
@@ -99,6 +98,7 @@ public class ServerService extends Service {
     public void onDestroy() {
         if (mLocal!=null)
         {
+            unbindService(mConn);
             mLocal.stop();
             mLocal=null;
         }
@@ -328,7 +328,6 @@ public class ServerService extends Service {
 
             if (debug)
             Log.e("xx","writeThread end");
-            unbindService(mConn);
             stopSelf();
         }
 
