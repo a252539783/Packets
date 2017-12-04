@@ -217,6 +217,7 @@ public class HistoryAdapter2 extends ExpandableRecyclerView2.Adapter implements 
     public void edit(EditPacketInfo pi)
     {
         Intent i=editIntent();
+        i.setFlags(Intent.FLAG_ACTIVITY_NEW_TASK);
         i.setAction(EditActivity.ACTION_OPEN_PACKET);
         i.putExtra(EditActivity.ACTION_OPEN_PACKET,pi);
         mContext.startActivity(i);
