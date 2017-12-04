@@ -10,7 +10,6 @@ import com.iqiyi.liquanfei_sx.vpnt.IAdapter;
 import com.iqiyi.liquanfei_sx.vpnt.R;
 import com.iqiyi.liquanfei_sx.vpnt.packet.LocalPackets;
 import com.iqiyi.liquanfei_sx.vpnt.packet.PersistRequest;
-import com.iqiyi.liquanfei_sx.vpnt.view.ExpandableRecyclerView;
 import com.iqiyi.liquanfei_sx.vpnt.view.ExpandableRecyclerView2;
 
 import java.lang.ref.WeakReference;
@@ -52,6 +51,7 @@ public class SavedPresenter extends CommonPresenter implements LocalPackets.OnSa
         if (mAdapter!=null) {
             ((RecyclerView.Adapter)mAdapter).notifyDataSetChanged();
             LocalPackets.get().addSavedChangeListener(this);
+            LocalPackets.mgr().addRequest(PersistRequest.newReadSavedRequest());
             if (mIsBound) {
                 mAdapter.setListeners();
             }
