@@ -8,13 +8,19 @@ import java.util.Collection;
 import java.util.Iterator;
 import java.util.List;
 import java.util.ListIterator;
-import java.util.Spliterator;
 
 /**
  * Created by Administrator on 2017/12/4.
  */
 
 public abstract class Filter<T> implements List<T>{
+
+    public static final int NON_EMPTY=0x01;
+    public static final int BY_NAME=0x02;
+    public static final int BY_PACKAGE=0x04;
+    public static final int BY_IP_DEST=0x08;
+    public static final int BY_PORT_DEST=0x10;
+    public static final int BY_PORT_SOURCE=0x20;
 
     private List<T>[] mFiltered;
     private List<T> mSrc;
@@ -47,9 +53,10 @@ public abstract class Filter<T> implements List<T>{
         {
             mFiltered[mCurrentKey]=new ArrayList<>();
         }
+        mCachedIndex[mCurrentKey]=0;
 
-        reload(l);
-
+        if (reload)
+            reload(l);
     }
 
     public void reload(WeakReference<LoadListener> l)
@@ -80,7 +87,8 @@ public abstract class Filter<T> implements List<T>{
             mLoadStopped=false;
             while(mLoading&&mCachedIndex[mCurrentKey]!=mSrc.size())
             {
-                add(mSrc.get(mCachedIndex[mCurrentKey]));
+                //add(mSrc.get(mCachedIndex[mCurrentKey]));
+                addFromInner();
             }
             mLoadStopped=true;
         }else
@@ -98,11 +106,12 @@ public abstract class Filter<T> implements List<T>{
             mLoadStopped=false;
             while(mLoading&&mCachedIndex[mCurrentKey]!=mSrc.size())
             {
-                if (add(mSrc.get(mCachedIndex[mCurrentKey]))) {
+//                if (add(mSrc.get(mCachedIndex[mCurrentKey]))) {
+                if (addFromInner()) {
                     LoadListener ll=l.get();
                     if (ll!=null)
                     {
-                        ll.onLoadOne(mSrc.size()-1);
+                        ll.onLoadOne(size()-1);
                     }else
                     {
                         return;
@@ -277,6 +286,26 @@ public abstract class Filter<T> implements List<T>{
         return accept;
     }
 
+    boolean addFromInner()
+    {
+        if (mCurrentKey==0)
+            return false;
+
+        if (mSrc.size()==mCachedIndex[mCurrentKey])
+            return false;
+
+        T o=mSrc.get(mCachedIndex[mCurrentKey]);
+        boolean accept=filter(mCurrentKey,o);
+
+        if (accept)
+        {
+            mFiltered[mCurrentKey].add(o);
+        }
+        mCachedIndex[mCurrentKey]++;
+
+        return accept;
+    }
+
     @Override
     public void add(int index, T element) {
     }
@@ -298,7 +327,7 @@ public abstract class Filter<T> implements List<T>{
 
     public abstract boolean filter(int key,T o);
 
-    interface LoadListener
+    public interface LoadListener
     {
         void onLoadOne(int index);
         void onLoadComplete();
