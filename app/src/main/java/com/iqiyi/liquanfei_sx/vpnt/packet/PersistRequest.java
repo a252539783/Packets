@@ -209,7 +209,7 @@ public abstract class PersistRequest {
                     long time=0;
                     byte []timeBuf=new byte[8];
 
-                    PacketList.PacketItem pi=ci.mPackets.get(mIndex).get(0);
+                    PacketList.PacketItem pi=ci.mPackets.get(mIndex).get(0,0);
                     if (pi.mPacket.getIpInfo().length!=60)//抓包过程中出现问题
                     {
                         fis.skip(8);

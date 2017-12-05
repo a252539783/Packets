@@ -3,14 +3,26 @@ package com.iqiyi.liquanfei_sx.vpnt.packet;
 import android.util.Log;
 
 import com.iqiyi.liquanfei_sx.vpnt.tools.AppPortList;
+import com.iqiyi.liquanfei_sx.vpnt.tools.Filter;
 
 import java.util.ArrayList;
+import java.util.List;
 
 /**
  * Created by Administrator on 2017/11/20.
  */
 
-public class PacketList {
+public class PacketList extends Filter<PacketList.PacketItem>{
+
+    public static final int NON_EMPTY=0x01;
+    public static final int BY_NAME=0x01;
+    public static final int BY_PACKAGE=0x02;
+    public static final int BY_IP_DEST=2;
+    public static final int BY_PORT_DEST=3;
+    public static final int BY_PORT_SOURCE=4;
+    public static final int BY_DIP_DPORT=5;
+    public static final int BY_DIP_SPORT=6;
+
     public class PacketItem
     {
         public long mTime;
@@ -25,7 +37,7 @@ public class PacketList {
     AppPortList.AppInfo mInfo;
     public int mSPort, mDPort;
     private String ip;
-    private ArrayList<PacketItem> packets;
+    private List<PacketItem> packets;
     int mIndex=0;
 
     public boolean mAlive=true;
@@ -36,8 +48,10 @@ public class PacketList {
      * 用于新产生的数据包
      */
     PacketList(TCPPacket init,int index) {
+        super(1,new ArrayList<PacketItem>());
+        setKey(NON_EMPTY,null,false);
         mIndex=index;
-        packets = new ArrayList<>();
+        packets = getSrc();
         mSPort = init.getSourcePort();
         mDPort = init.getPort();
         ip = init.getDestIp();
@@ -50,10 +64,12 @@ public class PacketList {
      */
     PacketList(TCPPacket init,int index,long time,int uid)
     {
+        super(7,new ArrayList<PacketItem>());
+        setKey(NON_EMPTY,null,false);
         mAlive=false;
 
         mIndex=index;
-        packets = new ArrayList<>();
+        packets = getSrc();
         mSPort = init.getSourcePort();
         mDPort = init.getPort();
         ip = init.getDestIp();
@@ -61,16 +77,12 @@ public class PacketList {
         add(init,time);
     }
 
-    public int size() {
-        return packets.size();
-    }
-
     /**
      * 用于添加新产生的数据包
      */
-    synchronized PacketItem add(TCPPacket p,boolean local) {
+    synchronized boolean add(TCPPacket p,boolean local) {
         PacketItem item=new PacketItem(System.nanoTime(),p);
-        packets.add(item);
+        boolean res=super.add(item);
         LocalPackets.mgr().addRequest(PersistRequest.newWriteRequest(item.mTime,this,p));
 
         if (local)
@@ -81,19 +93,23 @@ public class PacketList {
         if (p.fin||p.rst)
             mAlive=false;
 
-        return item;
+        return res;
     }
 
-    PacketItem add(TCPPacket p,long time)
+    boolean add(TCPPacket p,long time)
     {
         PacketItem item=new PacketItem(time,p);
-        packets.add(item);
-
-        return item;
+        return super.add(item);
     }
 
-    public PacketItem get(int i) {
-        return packets.get(i);
+    @Override
+    public boolean filter(int key, PacketItem o) {
+        if ((key&NON_EMPTY)!=0)
+        {
+            return o.mPacket.getDataLength() != 0;
+        }
+
+        return false;
     }
 
     public int port() {
