@@ -435,12 +435,12 @@ public class ServerService extends Service {
 
         void fin() {
             LocalPackets.get().addPacket(mPacketList.mIndex,(TCPPacket) mBuilder.build(mPacketList.getLast(), null, TCPPacket.FIN).getData(),false);
-            mWriteThread.write(mPacketList.get(mPacketList.size()-1).mPacket);
+            mWriteThread.write(mPacketList.get(0,mPacketList.size(0)-1).mPacket);
         }
 
         void rst() {
             LocalPackets.get().addPacket(mPacketList.mIndex,(TCPPacket) mBuilder.build(mPacketList.getLast(), null, TCPPacket.RST).getData(),false);
-            mWriteThread.write(mPacketList.get(mPacketList.size()-1).mPacket);
+            mWriteThread.write(mPacketList.get(0,mPacketList.size(0)-1).mPacket);
         }
 
         public void ack(SendEntry se)      //避免发送队列混乱
@@ -453,13 +453,13 @@ public class ServerService extends Service {
 
             LocalPackets.get().addPacket(mPacketList.mIndex,se.packet,true);
             if (mListenerInfo.mOnPacketAddListener != null) {
-                mListenerInfo.mOnPacketAddListener.onPacketAdd(mPosition, mPacketList.size() - 1);
+                //mListenerInfo.mOnPacketAddListener.onPacketAdd(mPosition, mPacketList.size() - 1);
             }
 
             if (se.packet.fin || se.packet.rst) {
                 se.available = false;
                 LocalPackets.get().addPacket(mPacketList.mIndex,(TCPPacket) mBuilder.build(se.packet).getData(),false);
-                mWriteThread.write(mPacketList.get(mPacketList.size()-1).mPacket);
+                mWriteThread.write(mPacketList.get(0,mPacketList.size(0)-1).mPacket);
             }
 
             if (!se.packet.syn && se.packet.getDataLength() == 0 && !se.packet.fin && !se.packet.rst) {
@@ -526,9 +526,9 @@ public class ServerService extends Service {
         void ack(ByteBuffer data) {
             TCPPacket packet = mPacketList.getLast();
             LocalPackets.get().addPacket(mPacketList.mIndex,(TCPPacket) mBuilder.build(packet, data).getData(),false);
-            mWriteThread.write(mPacketList.get(mPacketList.size()-1).mPacket);
+            mWriteThread.write(mPacketList.get(0,mPacketList.size(0)-1).mPacket);
             if (mListenerInfo.mOnPacketAddListener != null) {
-                mListenerInfo.mOnPacketAddListener.onPacketAdd(mPosition, mPacketList.size() - 1);
+                mListenerInfo.mOnPacketAddListener.onPacketAdd(mPosition, mPacketList.size(0) - 1);
             }
         }
     }
@@ -596,7 +596,7 @@ public class ServerService extends Service {
                                             //prepareRegister.add(new Key(channel,SelectionKey.OP_READ,status));
                                             //channel.register(mSelector,SelectionKey.OP_READ,status);
                                             key.interestOps(key.interestOps() | SelectionKey.OP_READ);
-                                            status.ack(new SendEntry(status.mPacketList.get(0).mPacket));
+                                            status.ack(new SendEntry(status.mPacketList.get(0,0).mPacket));
                                             //prepareRegister.add(new Key(channel,SelectionKey.OP_CONNECT,status));
                                             //mSelector.wakeup();
                                             if (debug)
