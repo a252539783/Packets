@@ -142,6 +142,7 @@ public class ExpandableRecyclerView2 extends RecyclerView implements View.OnClic
                 outRect.set(0, 0, 0, 1);
             }
         });
+        mRealPosition.put(null,0);
         super.setAdapter(mInnerAdapter);
     }
 
@@ -168,11 +169,11 @@ public class ExpandableRecyclerView2 extends RecyclerView implements View.OnClic
         return mInnerAdapter;
     }
 
-    void expandItem(ItemInfo ii,int position)
+    boolean expandItem(ItemInfo ii,int position)
     {
         if (position>=mSize) {
             Log.e("ExpandableRecyclerView","Exception: expand a item out of range");
-            return;
+            return false;
         }
 
         ExpandInfo ei=mExpand.get(ii);
@@ -180,15 +181,55 @@ public class ExpandableRecyclerView2 extends RecyclerView implements View.OnClic
         {
             //Log.e("xx","expand "+position+":startP "+mStartPosition+":endP:"+mEndPosition);
             expandItemUnchecked(ii,position);
+            return true;
         }else
         {
             collapseItemUnchecked(ei,position);
+            return false;
         }
+    }
+
+    public boolean isExpand(int []position)
+    {
+        return getExpandInfo(position)!=null;
+    }
+
+    private ExpandInfo getExpandInfo(int []position)
+    {
+        ExpandInfo ei=mExpand;
+        for (int aPosition : position) {
+            ei = ei.get(aPosition);
+
+            if (ei == null)
+                return null;
+        }
+
+        return ei;
+    }
+
+    private boolean expandItem(View v)
+    {
+        MAdapter.ListenerInfo info=mChildClickListeners.get(v);
+        if (info==null)
+            return false;
+
+        return expandItem(info.mii,info.mHolder.getAdapterPosition());
+    }
+
+    private boolean collapseItem(int [] position)
+    {
+        ExpandInfo ei=getExpandInfo(position);
+
+        if (ei!=null)
+        {
+            collapseItemUnchecked(ei,mRealPosition.get(ei.mItem));
+            return true;
+        }
+        return false;
     }
 
     private void collapseItemUnchecked(ExpandInfo ei,int position)
     {
-        //TODO collapse the item's all children
         mExpand.remove(ei.mItem);
         if (ei.mEnd==null)
             return;
@@ -239,6 +280,11 @@ public class ExpandableRecyclerView2 extends RecyclerView implements View.OnClic
                 ii.mNext=new ItemInfo(depth,i);
                 ii.mNext.mPrevious=ii;
                 ii.mNext.mParent=parent;
+                if (ii.mDepth==ii.mNext.mDepth)
+                {
+                    ii.mNext.mDPrevious=ii;
+                    ii.mDNext=ii.mNext;
+                }
                 ii=ii.mNext;
             }
             ii.mNext=last;
@@ -422,6 +468,7 @@ public class ExpandableRecyclerView2 extends RecyclerView implements View.OnClic
             //simply new
             mRoot=new ItemInfo(0,0);
             mStart=mEnd=mRoot;
+            mExpand.mEnd=mRoot;
             return mRoot;
         }
 
@@ -468,6 +515,7 @@ public class ExpandableRecyclerView2 extends RecyclerView implements View.OnClic
                 {
                     int[] index=contentPosition(mEnd,mEndPosition);
                     ItemInfo parent=mEnd.mParent;
+                    ItemInfo preParent=mEnd;
                     for (int i=1;i<=index.length;i++)
                     {
                         //find the next item
@@ -476,8 +524,17 @@ public class ExpandableRecyclerView2 extends RecyclerView implements View.OnClic
                             mEnd.mNext=new ItemInfo(i-1,index[index.length-i]+1);
                             mEnd.mNext.mPrevious=mEnd;
                             mEnd.mNext.mParent=parent;
+                            mEnd.mNext.mDPrevious=preParent;
+                            if (preParent!=null)
+                            preParent.mDNext=mEnd.mNext;
+
+                            if (mEnd.mNext.mDepth==0)
+                            {
+                                mExpand.mEnd=mEnd.mNext;
+                            }
                             break;
                         }
+                        preParent=parent;
                         if (parent!=null)
                             parent=parent.mParent;
                     }
@@ -695,6 +752,7 @@ public class ExpandableRecyclerView2 extends RecyclerView implements View.OnClic
     private class ItemInfo implements Comparable<ItemInfo>
     {
         ItemInfo mNext=null,mPrevious=null,mParent=null;
+        ItemInfo mDNext=null,mDPrevious=null;
         int mDepth,mIndex;
 
         ItemInfo(int depth,int index)
@@ -915,8 +973,17 @@ public class ExpandableRecyclerView2 extends RecyclerView implements View.OnClic
             if (ei.mEnd==null)
             {
                 ei.mEnd=new ItemInfo(ei.mItem.mDepth+1,0);
-                ei.mEnd.mNext=ei.mItem.mNext;
-                ei.mItem.mNext=ei.mEnd;
+                if (ei.mItem!=null)
+                {
+                    ei.mEnd.mNext=ei.mItem.mNext;
+                    ei.mItem.mNext=ei.mEnd;
+                }else
+                {
+                    if (mRoot==null)
+                    {
+                        mRoot=mStart=mEnd=ei.mEnd;
+                    }
+                }
                 ei.mEnd.mPrevious=ei.mItem;
                 ei.mEnd.mParent=ei.mItem;
 
@@ -926,7 +993,42 @@ public class ExpandableRecyclerView2 extends RecyclerView implements View.OnClic
             }else
             if (ei.mEnd.mIndex>=position[i])
             {
-                //TODO out-of-order writing
+                if (position[i]>ei.mEnd.mIndex/2)
+                {
+
+                }else
+                {
+                    ItemInfo ii=ei.mItem;
+                    if (ii==null) {
+                        ii = mRoot;
+                        realPosition=position[i];
+                        if (position[i]==0)
+                        {
+                            ii.mPrevious=new ItemInfo(0,0);
+                            ii.mPrevious.mNext=ii;
+                            ii.mPrevious.mDNext=ii;
+                            ii.mDPrevious=ii.mPrevious;
+
+                            while(ii!=null)
+                            {
+                                ii.mIndex++;
+                                ii=ii.mDNext;
+                            }
+                        }else
+                        {
+                            //TODO
+//                            for (int j=1;j!=position[i];j++)
+//                            {
+//                                ii=ii.mDNext;
+//                            }
+//                            ItemInfo iii=ii.mDNext;
+//                            iii.mDPrevious=new ItemInfo(0,position[i]);
+//                            iii.mDPrevious.mDPrevious=ii;
+//                            iii.mDPrevious.mNext=iii;
+
+                        }
+                    }
+                }
             }else
             {
                 //after ei.mEnd
