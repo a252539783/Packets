@@ -14,8 +14,8 @@ public abstract class LoopThread extends Thread {
     @Override
     public void run() {
         super.run();
-        mH=onCreateHandler();
         Looper.prepare();
+        mH=onCreateHandler();
         Looper.loop();
     }
 
