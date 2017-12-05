@@ -1,14 +1,20 @@
 package com.iqiyi.liquanfei_sx.vpnt.tools;
 
+import android.support.annotation.NonNull;
+
 import java.lang.ref.WeakReference;
 import java.util.ArrayList;
+import java.util.Collection;
+import java.util.Iterator;
 import java.util.List;
+import java.util.ListIterator;
+import java.util.Spliterator;
 
 /**
  * Created by Administrator on 2017/12/4.
  */
 
-public abstract class Filter<T> {
+public abstract class Filter<T> implements List<T>{
 
     private List<T>[] mFiltered;
     private List<T> mSrc;
@@ -118,9 +124,133 @@ public abstract class Filter<T> {
         mLoading=false;
     }
 
+    @Override
     public int size()
     {
         return size(mCurrentKey);
+    }
+
+    @Override
+    public boolean isEmpty() {
+        return size()==0;
+    }
+
+    @Override
+    public boolean contains(Object o) {
+        return mFiltered[mCurrentKey].contains(o);
+    }
+
+    @NonNull
+    @Override
+    public Iterator<T> iterator() {
+        return mFiltered[mCurrentKey].iterator();
+    }
+
+    @NonNull
+    @Override
+    public <T1> T1[] toArray(@NonNull T1[] a) {
+        return mFiltered[mCurrentKey].toArray(a);
+    }
+
+    @NonNull
+    @Override
+    public Object[] toArray() {
+        return mFiltered[mCurrentKey].toArray();
+    }
+
+    @Override
+    public boolean remove(Object o) {
+        boolean res=false;
+
+        for (int i=0;i<mFiltered.length;i++)
+        {
+            if (i==mCurrentKey)
+            {
+                if (res=mFiltered[mCurrentKey].remove(o))
+                {
+                    mCachedIndex[mCurrentKey]--;
+                }
+            }else
+            {
+                if (mFiltered[i].remove(o))
+                {
+                    mCachedIndex[i]--;
+                }
+            }
+        }
+
+        return res;
+    }
+
+    @Override
+    public boolean containsAll(@NonNull Collection<?> c) {
+        return false;
+    }
+
+    @Override
+    public boolean addAll(@NonNull Collection<? extends T> c) {
+        return false;
+    }
+
+    @Override
+    public boolean addAll(int index, @NonNull Collection<? extends T> c) {
+        return false;
+    }
+
+    @Override
+    public boolean removeAll(@NonNull Collection<?> c) {
+        return false;
+    }
+
+    @Override
+    public boolean retainAll(@NonNull Collection<?> c) {
+        return false;
+    }
+
+    @Override
+    public void clear() {
+        for (int i=0;i<mFiltered.length;i++)
+        {
+            mFiltered[i].clear();
+            mCachedIndex[i]=0;
+        }
+    }
+
+    @Override
+    public T set(int index, T element) {
+        return null;
+    }
+
+    @Override
+    public T remove(int index) {
+        return null;
+    }
+
+    @Override
+    public int indexOf(Object o) {
+        return 0;
+    }
+
+    @Override
+    public int lastIndexOf(Object o) {
+        return 0;
+    }
+
+    @Override
+    public ListIterator<T> listIterator() {
+        return mFiltered[mCurrentKey].listIterator();
+    }
+
+    @NonNull
+    @Override
+    public ListIterator<T> listIterator(int index) {
+        return mFiltered[mCurrentKey].listIterator(index);
+    }
+
+    @NonNull
+    @Override
+    public List<T> subList(int fromIndex, int toIndex) {
+        return mFiltered[mCurrentKey].subList(fromIndex, toIndex);
     }
 
     public int size(int key)
@@ -128,6 +258,7 @@ public abstract class Filter<T> {
         return mFiltered[key].size();
     }
 
+    @Override
     public boolean add(T o)
     {
         mFiltered[0].add(o);
@@ -144,6 +275,10 @@ public abstract class Filter<T> {
         mCachedIndex[mCurrentKey]++;
 
         return accept;
+    }
+
+    @Override
+    public void add(int index, T element) {
     }
 
     public T get(int index)
