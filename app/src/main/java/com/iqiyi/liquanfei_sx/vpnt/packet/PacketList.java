@@ -14,15 +14,6 @@ import java.util.List;
 
 public class PacketList extends Filter<PacketList.PacketItem>{
 
-    public static final int NON_EMPTY=0x01;
-    public static final int BY_NAME=0x01;
-    public static final int BY_PACKAGE=0x02;
-    public static final int BY_IP_DEST=2;
-    public static final int BY_PORT_DEST=3;
-    public static final int BY_PORT_SOURCE=4;
-    public static final int BY_DIP_DPORT=5;
-    public static final int BY_DIP_SPORT=6;
-
     public class PacketItem
     {
         public long mTime;
@@ -109,7 +100,7 @@ public class PacketList extends Filter<PacketList.PacketItem>{
             return o.mPacket.getDataLength() != 0;
         }
 
-        return false;
+        return true;
     }
 
     public int port() {
