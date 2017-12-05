@@ -1,9 +1,15 @@
 package com.iqiyi.liquanfei_sx.vpnt.packet;
 
+import android.os.Handler;
+import android.os.Looper;
+import android.os.Message;
+
 import com.iqiyi.liquanfei_sx.vpnt.Constants;
 import com.iqiyi.liquanfei_sx.vpnt.MApp;
 import com.iqiyi.liquanfei_sx.vpnt.tools.AppPortList;
 import com.iqiyi.liquanfei_sx.vpnt.tools.ByteBufferPool;
+import com.iqiyi.liquanfei_sx.vpnt.tools.Filter;
+import com.iqiyi.liquanfei_sx.vpnt.tools.LoopThread;
 import com.iqiyi.liquanfei_sx.vpnt.tools.WeakLinkedList;
 
 import java.io.File;
@@ -35,8 +41,54 @@ public class LocalPackets {
     public List<SavedInfo> mSavedPackets=new ArrayList<>();
     private AppPortList mPortList;
 
+    private LoadFilterThread mThread=new LoadFilterThread();
+
+    private String mFilterIp=null,mFilterName=null,mFilterPkg=null;
+    private int mFilterSPort=-1,mFilterDPort=-1,mKey=0;
+
     private LocalPackets()
     {
+        mThread.start();
+    }
+
+    public void addFilterKey(int key,String word)
+    {
+        mKey|=key;
+        switch (key)
+        {
+            case Filter.BY_NAME:
+                mFilterName=word;
+                break;
+            case Filter.BY_IP_DEST:
+                mFilterIp=word;
+                break;
+            case Filter.BY_PACKAGE:
+                mFilterPkg=word;
+                break;
+        }
+        for (int i=0;i<mAllPackets.size();i++)
+        {
+            mAllPackets.get(i).mPackets.setKey(mKey,null,false);
+        }
+    }
+
+    public void addFilterKey(int key,int word)
+    {
+        mKey|=key;
+        switch (key)
+        {
+            case Filter.BY_PORT_DEST:
+                mFilterDPort=word;
+                break;
+            case Filter.BY_PORT_SOURCE:
+                mFilterSPort=word;
+                break;
+        }
+
+        for (int i=0;i<mAllPackets.size();i++)
+        {
+            mAllPackets.get(i).mPackets.setKey(mKey,null,false);
+        }
     }
 
     public boolean containSaved(int uid)
@@ -170,6 +222,7 @@ public class LocalPackets {
         return false;
     }
 
+    //TODO 使用多个锁来获得更高效率
     synchronized void newHistory(long time)
     {
         if (AppPortList.get()==null)
@@ -258,13 +311,13 @@ public class LocalPackets {
         callHistoryChange();
     }
 
-    synchronized void initPackets(int history,long time,TCPPacket packet,int listIndex,int uid)
+    void initPackets(int history,long time,TCPPacket packet,int listIndex,int uid)
     {
         CaptureInfo ci=mAllPackets.get(history);
 
         if (packet!=null)
         {
-            ci.mPackets.add(new PacketList(packet,listIndex,time,uid));
+            if (ci.mPackets.add(new PacketList(packet,listIndex,time,uid)))
             callPacketsChange(history,ci.mPackets.size()-1);
         }
     }
@@ -277,14 +330,14 @@ public class LocalPackets {
         if (packet!=null)
         {
             pl=new PacketList(packet,listIndex);
-            ci.mPackets.add(pl);
+            if (ci.mPackets.add(pl))
             callPacketsChange(0,listIndex);
         }
 
         return pl;
     }
 
-    synchronized void initPacketList(int history,int index,long time,TCPPacket packet,boolean local)
+    void initPacketList(int history,int index,long time,TCPPacket packet,boolean local)
     {
         if (packet!=null)
         {
@@ -299,9 +352,9 @@ public class LocalPackets {
     {
         if (packet!=null)
         {
-            if (mAllPackets.get(0).mPackets.get(index).add(packet,local))
+            if (mAllPackets.get(0).mPackets.get(0,index).add(packet,local))
             {
-                callPacketChange(0,index,mAllPackets.get(0).mPackets.get(index).size()-1);
+                callPacketChange(0,index,mAllPackets.get(0).mPackets.get(0,index).size()-1);
             }
         }
     }
@@ -426,6 +479,92 @@ public class LocalPackets {
         return LocalPacketsMgr.instance;
     }
 
+    public void filterLoadHistory(int time)
+    {
+        filterLoadHistory(time,-1);
+    }
+
+    public void filterLoadHistory(int time,int list)
+    {
+        Message msg=Message.obtain();
+        msg.what=LoadFilterThread.LOAD_HISTORY;
+        msg.arg1=time;
+        msg.arg2=list;
+        mThread.getHandler().sendMessage(msg);
+    }
+
+    public class PacketsFilter extends Filter<PacketList>
+    {
+
+        public PacketsFilter(int size, List src) {
+            super(size, src);
+        }
+
+        @Override
+        public boolean filter(int key, PacketList o) {
+            if (key==0)
+                return true;
+
+            boolean res=false;
+
+            if ((key&BY_NAME)!=0)
+            {
+                if (mFilterName==null||mFilterName.equals(""))
+                {
+                    res=true;
+                }else
+                {
+                    res=o.info().appName.contains(mFilterName);
+                }
+            }
+
+            return res;
+        }
+    }
+
+    private class LoadFilterThread extends LoopThread
+    {
+        private static final int LOAD_HISTORY=0;
+        private static final int LOAD_SAVED=1;
+
+        @Override
+        protected Handler onCreateHandler() {
+            return new LoadHandler();
+        }
+
+        /**
+         * msg.what:keyType
+         */
+        private class LoadHandler extends Handler implements Filter.LoadListener
+        {
+            int mCurrentTime=0;
+
+            @Override
+            public void handleMessage(Message msg) {
+                super.handleMessage(msg);
+
+                if (msg.what==LOAD_HISTORY)
+                {
+                    mCurrentTime=msg.arg1;
+                    mAllPackets.get(msg.arg1).mPackets.load(new WeakReference<Filter.LoadListener>(this));
+                }else if (msg.what==LOAD_SAVED)
+                {
+
+                }
+            }
+
+            @Override
+            public void onLoadOne(int index) {
+                callPacketsChange(mCurrentTime,index);
+            }
+
+            @Override
+            public void onLoadComplete() {
+
+            }
+        }
+    }
+
     public static class LocalPacketsMgr
     {
         static final LocalPacketsMgr instance=new LocalPacketsMgr();
@@ -449,11 +588,18 @@ public class LocalPackets {
             mCurrentTime=time;
         }
 
+        //TODO 使用阻塞队列
         public void addRequest(PersistRequest request)
         {
-            mThread.mWriteQueue.add(request);
-            synchronized (this) {
-                this.notify();
+            if (request.hasRead())
+            {
+                LocalPackets.get();
+            }else
+            {
+                mThread.mWriteQueue.add(request);
+                synchronized (this) {
+                    this.notify();
+                }
             }
         }
 
@@ -470,6 +616,7 @@ public class LocalPackets {
                 super.start();
             }
 
+            //TODO 使用handler以获得更高效率
             @Override
             public void run() {
                 super.run();
@@ -499,15 +646,15 @@ public class LocalPackets {
         }
     }
 
-    public static class CaptureInfo
+    public class CaptureInfo
     {
         public long mTime;
-        public List<PacketList> mPackets;
+        public PacketsFilter mPackets;
 
         CaptureInfo(long time)
         {
             mTime=time;
-            mPackets=new ArrayList<>();
+            mPackets=new PacketsFilter(50,new ArrayList());
         }
     }
 
