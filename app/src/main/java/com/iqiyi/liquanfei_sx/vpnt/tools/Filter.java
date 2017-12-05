@@ -8,10 +8,10 @@ import java.util.List;
  * Created by Administrator on 2017/12/4.
  */
 
-public abstract class Filter {
+public abstract class Filter<T> {
 
-    private List[] mFiltered;
-    private List mSrc;
+    private List<T>[] mFiltered;
+    private List<T> mSrc;
 
     private int[] mCachedIndex;
 
@@ -20,11 +20,12 @@ public abstract class Filter {
 
     private int mCurrentKey =0;
 
-    public Filter(int size,List src)
+    public Filter(int size,List<T> src)
     {
         mSrc=src;
-        mFiltered=new List[size];
-        mCachedIndex=new int[size];
+        mFiltered=new List[size+1];
+        mFiltered[0]=src;
+        mCachedIndex=new int[size+1];
     }
 
     /**
@@ -32,51 +33,83 @@ public abstract class Filter {
      */
     public void setKey(int key, WeakReference<LoadListener> l,boolean reload)
     {
+        if (key<=0||key>=mFiltered.length)
+            key=0;
+
         mCurrentKey =key;
-        if (reload)
+        if (mFiltered[mCurrentKey]==null)
         {
-            reload(key,l);
-        }else {
-            load(key, l);
+            mFiltered[mCurrentKey]=new ArrayList<>();
         }
+
+        reload(l);
+
     }
 
     public void reload(WeakReference<LoadListener> l)
     {
-        reload(mCurrentKey,l);
-    }
 
-    public void reload(int key, WeakReference<LoadListener> l)
-    {
-        mCachedIndex[key]=0;
-        load(key,l);
-    }
-
-    public void load(int key, WeakReference<LoadListener> l)
-    {
-        while(!mLoadStopped);   //等待上一个加载结束
-
-        mLoading=true;
-        mLoadStopped=false;
-        while(mLoading&&mCachedIndex[key]!=mSrc.size())
+        if (mCurrentKey!=0)
         {
-            if (add(mSrc.get(mCachedIndex[key]))) {
+            mCachedIndex[mCurrentKey]=0;
+            load(l);
+        }
+    }
+
+    public List<T> getSrc()
+    {
+        return mSrc;
+    }
+
+    public void load(WeakReference<LoadListener> l)
+    {
+        if (l==null)
+        {
+            if (mCurrentKey==0)
+                return;
+
+            while(!mLoadStopped);   //等待上一个加载结束
+
+            mLoading=true;
+            mLoadStopped=false;
+            while(mLoading&&mCachedIndex[mCurrentKey]!=mSrc.size())
+            {
+                add(mSrc.get(mCachedIndex[mCurrentKey]));
+            }
+            mLoadStopped=true;
+        }else
+        {
+            if (mCurrentKey==0) {
                 LoadListener ll=l.get();
                 if (ll!=null)
-                {
-                    ll.onLoadOne(mSrc.size()-1);
-                }else
-                {
-                    return;
+                    ll.onLoadComplete();
+                return;
+            }
+
+            while(!mLoadStopped);   //等待上一个加载结束
+
+            mLoading=true;
+            mLoadStopped=false;
+            while(mLoading&&mCachedIndex[mCurrentKey]!=mSrc.size())
+            {
+                if (add(mSrc.get(mCachedIndex[mCurrentKey]))) {
+                    LoadListener ll=l.get();
+                    if (ll!=null)
+                    {
+                        ll.onLoadOne(mSrc.size()-1);
+                    }else
+                    {
+                        return;
+                    }
                 }
             }
-        }
-        mLoadStopped=true;
+            mLoadStopped=true;
 
-        LoadListener ll=l.get();
-        if (ll!=null)
-        {
-            ll.onLoadComplete();
+            LoadListener ll=l.get();
+            if (ll!=null)
+            {
+                ll.onLoadComplete();
+            }
         }
     }
 
@@ -95,8 +128,13 @@ public abstract class Filter {
         return mFiltered[key].size();
     }
 
-    public boolean add(Object o)
+    public boolean add(T o)
     {
+        mFiltered[0].add(o);
+
+        if (mCurrentKey==0)
+            return true;
+
         boolean accept=filter(mCurrentKey,o);
 
         if (accept)
@@ -108,38 +146,22 @@ public abstract class Filter {
         return accept;
     }
 
-    public Object get(int index)
+    public T get(int index)
     {
         return get(mCurrentKey,index);
     }
 
-    public Object get(int key,int index)
+    public T get(int key,int index)
     {
-        if (key<0||key>=mFiltered.length)
+        if (key<=0||key>=mFiltered.length)
         {
-            return null;
+            key=0;
         }
-
-//        List list=mFiltered[key];
-//        if (list==null)
-//        {
-//            list=mFiltered[key]=new ArrayList();
-//        }
-//        while(list.size()<=index&&mCachedIndex[key]<mSrc.size())
-//        {
-//            Object o=mSrc.get(mCachedIndex[key]);
-//            if (filter(key,o))
-//            {
-//                list.add(o);
-//            }
-//
-//            mCachedIndex[key]++;
-//        }
 
         return mFiltered[key].get(index);
     }
 
-    abstract boolean filter(int key,Object o);
+    public abstract boolean filter(int key,T o);
 
     interface LoadListener
     {
