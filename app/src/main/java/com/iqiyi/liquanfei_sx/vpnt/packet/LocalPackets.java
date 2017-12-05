@@ -288,18 +288,22 @@ public class LocalPackets {
     {
         if (packet!=null)
         {
-            mAllPackets.get(history).mPackets.get(index).add(packet,time);
+            if (mAllPackets.get(history).mPackets.get(index).add(packet,time))
+            {
+                callPacketChange(history,index,mAllPackets.get(history).mPackets.get(index).size()-1);
+            }
         }
-        callPacketChange(history,index,mAllPackets.get(history).mPackets.get(index).size()-1);
     }
 
     synchronized void addPacket(int index,TCPPacket packet,boolean local)
     {
         if (packet!=null)
         {
-            mAllPackets.get(0).mPackets.get(index).add(packet,local);
+            if (mAllPackets.get(0).mPackets.get(index).add(packet,local))
+            {
+                callPacketChange(0,index,mAllPackets.get(0).mPackets.get(index).size()-1);
+            }
         }
-        callPacketChange(0,index,mAllPackets.get(0).mPackets.get(index).size()-1);
     }
 
     private void callSavedChange()
