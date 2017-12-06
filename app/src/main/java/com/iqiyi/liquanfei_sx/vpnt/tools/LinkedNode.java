@@ -18,13 +18,15 @@ public class LinkedNode<T> {
      * link this after the node
      * @param node node
      */
-    public void linkThisAfter(LinkedNode<T> node)
+    public LinkedNode<T> linkThisAfter(LinkedNode<T> node)
     {
         previous=node;
 
         if (node!=null) {
             node.next = this;
         }
+
+        return node;
     }
 
     /**
@@ -39,8 +41,28 @@ public class LinkedNode<T> {
             node.previous=this;
         }
 
-        next.next.previous=node;
+        if (next!=null&&next.next!=null)
+        {
+            next.next.previous=node;
+        }
         next=node;
+
+        return node;
+    }
+
+    public LinkedNode<T> replaceThisPrevious(LinkedNode<T> node)
+    {
+        if (node!=null)
+        {
+            node.next=this;
+            node.previous=previous.previous;
+        }
+
+        if (previous!=null&&previous.previous!=null)
+        {
+            previous.previous.next=node;
+        }
+        previous=node;
 
         return node;
     }
