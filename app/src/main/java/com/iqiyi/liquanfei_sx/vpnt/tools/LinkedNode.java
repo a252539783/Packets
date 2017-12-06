@@ -31,7 +31,7 @@ public class LinkedNode<T> {
      * deprecate next,and link node after this.
      * @param node node
      */
-    public void replaceThisNext(LinkedNode<T> node)
+    public LinkedNode<T> replaceThisNext(LinkedNode<T> node)
     {
         if (node!=null)
         {
@@ -41,13 +41,15 @@ public class LinkedNode<T> {
 
         next.next.previous=node;
         next=node;
+
+        return node;
     }
 
     /**
      * link this before the node
      * @param node node
      */
-    public void linkThisBefore(LinkedNode<T> node)
+    public LinkedNode<T> linkThisBefore(LinkedNode<T> node)
     {
         next=node;
 
@@ -55,6 +57,8 @@ public class LinkedNode<T> {
         {
             node.previous=this;
         }
+
+        return node;
     }
 
     public void linkBetween(LinkedNode<T> before,LinkedNode<T> after)
