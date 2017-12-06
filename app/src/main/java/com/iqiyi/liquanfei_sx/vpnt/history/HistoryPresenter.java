@@ -68,6 +68,17 @@ public class HistoryPresenter extends CommonPresenter implements LocalPackets.On
         }
     }
 
+    @Override
+    public void onAdd(int timeIndex) {
+        if (h!=null)
+        {
+            h.sendEmptyMessage(0);
+        }else
+        {
+            ((ExpandableRecyclerView2.Adapter)mAdapter).notifyItemAdd(timeIndex);
+        }
+    }
+
     private static class H extends Handler
     {
         WeakReference<HistoryPresenter> p;
