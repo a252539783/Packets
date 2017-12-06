@@ -230,7 +230,7 @@ public class LocalPackets {
 
         mAllPackets.add(0,new CaptureInfo(time));
         mgr().addRequest(PersistRequest.newCreateRequest(time));
-        callHistoryChange();
+        callHistoryChange(0);
     }
 
     public void newSaved(int uid)
@@ -299,16 +299,15 @@ public class LocalPackets {
             Arrays.sort(times);
 
             if (mAllPackets.size()!=0&&mAllPackets.get(0).mTime==times[0]) {
-                callHistoryChange();
+                //callHistoryChange(0);
                 return;
             }
 
             for (int i=0;i<times.length;i++) {
                 mAllPackets.add(i,new CaptureInfo(times[i]));
+                callHistoryChange(i);
             }
         }
-
-        callHistoryChange();
     }
 
     void initPackets(int history,long time,TCPPacket packet,int listIndex,int uid)
@@ -377,7 +376,7 @@ public class LocalPackets {
         }
     }
 
-    private void callHistoryChange()
+    private void callHistoryChange(int timeIndex)
     {
         if (mHistoryChangeListeners==null)
             return;
@@ -391,7 +390,15 @@ public class LocalPackets {
             if (l==null)
                 it.remove();
             else
-                MApp.get().postMain(new OnChangeRunnable(new WeakReference(l)));
+            {
+                if (timeIndex!=-1)
+                {
+                    MApp.get().postMain(new OnAddRunnable(new WeakReference(l),timeIndex));
+                }else
+                {
+                    MApp.get().postMain(new OnChangeRunnable(new WeakReference(l)));
+                }
+            }
                 //l.get().onChange();
         }
     }
@@ -696,6 +703,7 @@ public class LocalPackets {
     public interface OnHistoryChangeListener
     {
         void onChange();
+        void onAdd(int timeIndex);
     }
 
     public interface OnSavedItemChangeListener
@@ -737,8 +745,20 @@ public class LocalPackets {
             mIndex=index;
         }
 
+        OnAddRunnable(WeakReference l,int time)
+        {
+            mTime=time;
+            mListener=l;
+        }
+
         @Override
         public void run() {
+            if (mListIndex==-1)
+            {
+                OnHistoryChangeListener l= (OnHistoryChangeListener) mListener.get();
+                if (l!=null)
+                    l.onAdd(mTime);
+            }else
             if (mIndex==-1)
             {
                 OnPacketsChangeListener l= (OnPacketsChangeListener) mListener.get();
