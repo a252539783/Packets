@@ -1,7 +1,5 @@
 package com.iqiyi.liquanfei_sx.vpnt.view;
 
-import android.util.SparseArray;
-
 import com.iqiyi.liquanfei_sx.vpnt.tools.LinkedNode;
 
 import java.util.ArrayList;
@@ -23,10 +21,10 @@ public class ExpandableItem {
         }
     }
 
-    static final int MAXITEM=20;
+    static final int MAXITEM=10;
 
     int mIndex=0;
-    private int mSize=0;
+    int mSize=0;
     private int mDepth;
     private int mChildCount=0;
     ExpandableItem mParent;
@@ -49,12 +47,34 @@ public class ExpandableItem {
         }
     }
 
+    /**
+     * 每个child的大小改变时，都应该去通知parent去改变childPosition
+     * @param index parent的第index个child发生了大小变化
+     * @param size 变化大小
+     */
+    void offsetChild(int index, int size)
+    {
+        if (mChild!=null&&mChild.o.mIndex>index)
+        {
+            mChildPosition+=size;
+        }
+
+        if (mParent!=null)
+        {
+            mParent.offsetChild(mIndex,size);
+        }
+    }
+
     void expand(int position,int initSize)
     {
         if (position==-1)
         {
             int d=initSize-mSize;
             fresh(initSize);
+            mStart=mEnd=mChild=null;
+            mExpands.clear();
+            mChildPosition=0;
+            offsetChild(initSize,d);
             mParent.sizeChange(d);
             mParent.addExpand(mIndex,this);
             return;
@@ -79,9 +99,12 @@ public class ExpandableItem {
                 ei.o.mIndex++;
                 ei=ei.next;
             }
+
+            //插入一定引起childPosition的改变
             mChildPosition++;
         }else if (index<=mEnd.o.mIndex)
         {
+            //插入可能引起childPosition的改变
             if (mChild.o.mIndex<=index)
             {
                 mChildPosition++;
@@ -104,8 +127,16 @@ public class ExpandableItem {
                 ei=ei.next;
             }
 
+            //原先的最后一个会被丢弃，此时更新child为倒数第二个
+            if (mChild==mEnd)
+            {
+                mChild=mEnd.previous;
+                mChildPosition--;
+            }
+
             //丢弃原先的最后一个
-            ei.previous.linkThisBefore(mStart);
+            mEnd=mEnd.previous;
+            mEnd.linkThisBefore(mStart);
         }else
         {
             //后面插入的话管都不用管
@@ -113,6 +144,10 @@ public class ExpandableItem {
 
 
         mSize++;
+        if (mParent!=null) {
+            mParent.sizeChange(1);
+            offsetChild(index,1);
+        }
     }
 
     private void addExpand(int index,ExpandableItem ei)
@@ -181,7 +216,7 @@ public class ExpandableItem {
                     {
                         //先保存child位置
                         saveChildPosition();
-                        mEnd=mChild;
+                        //mEnd=mChild;
                         return mChild.o.find(position-(mChildPosition+1));
                     }
                 }

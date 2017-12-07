@@ -26,7 +26,14 @@ public class ExpandableItemTest {
     @Test
     public void nextInOneLayer()
     {
-        nextInOneLayer(400);
+        mRoot.fresh(30);
+        for (int i=0;i<10;i++)
+        {
+            for (int j=0;j<i;j++)
+            {
+                Util.pln(mRoot.get(j));
+            }
+        }
     }
 
     @Test
@@ -59,12 +66,38 @@ public class ExpandableItemTest {
     public void insert()
     {
         mRoot.fresh(30);
-        for (int i=0;i<30;i++)
+        for (int i=0;i<10;i++)
     {
         Util.pln(mRoot.get(i));
     }
-        mRoot.insert(30);
-        for (int i=0;i<31;i++)
+        mRoot.insert(1);
+        mRoot.insert(1);
+        for (int i=0;i<32;i++)
+        {
+            Util.pln(mRoot.get(i));
+        }
+    }
+
+    @Test
+    public void expandInsert()
+    {
+        mRoot.fresh(40);
+        for (int i=0;i<40;i++)
+        {
+            Util.pln(mRoot.get(i));
+        }
+        mRoot.expand(0,1);
+        for (int i=0;i<10;i++)
+        {
+            mRoot.findExpand(0).insert(i);
+            for (int j=0;j<10;j++)
+            {
+                Util.pln("-----"+mRoot.findExpand(0).mChildPosition);
+                Util.pln(mRoot.get(j));
+                Util.pln("-----"+mRoot.findExpand(0).mChildPosition);
+            }
+        }
+        for (int i=0;i<50;i++)
         {
             Util.pln(mRoot.get(i));
         }
