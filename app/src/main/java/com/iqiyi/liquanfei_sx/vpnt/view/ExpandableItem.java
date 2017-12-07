@@ -38,9 +38,14 @@ public class ExpandableItem {
         mDepth=depth;
     }
 
+    /**
+     * item大小变化时，应当且必须通知parent大小也改变
+     * @param size 大小相对于以前的改变了多少,可以为负数
+     */
     void sizeChange(int size)
     {
         mSize+=size;
+
         if (mParent!=null)
         {
             mParent.sizeChange(size);
@@ -65,6 +70,11 @@ public class ExpandableItem {
         }
     }
 
+    /**
+     * 从一个实际绝对位置去展开一个item
+     * @param position 绝对位置;如果为-1表示当前item要被展开
+     * @param initSize 展开的初始大小
+     */
     void expand(int position,int initSize)
     {
         if (position==-1)
@@ -83,6 +93,11 @@ public class ExpandableItem {
         find(position).expand(-1,initSize);
     }
 
+    /**
+     * 在当前层次中的index位置插入一个;
+     * 不会去根据index去计算扩展层次的实际位置，实际使用应该findExpand().insert()
+     * @param index 当前层次相对位置
+     */
     void insert(int index)
     {
         if (mStart==null)
@@ -150,11 +165,20 @@ public class ExpandableItem {
         }
     }
 
+    /**
+     * 用于某个item被展开时，通知parent自己被展开
+     * @param index 被展开item的在parent中的相对位置
+     * @param ei 被展开的item
+     */
     private void addExpand(int index,ExpandableItem ei)
     {
         mExpands.put(index,new LinkedNode<>(ei));
     }
 
+    /**
+     * 更新大小，并且丢失所有的扩展信息
+     * (无法保留展开的条目是因为在更新时无法确认数据绑定的关系)
+     */
     void fresh(int size)
     {
         mExpands.clear();
@@ -175,16 +199,28 @@ public class ExpandableItem {
         mSize=size;
     }
 
+    /**
+     * 用绝对位置去得到一组相对位置
+     * @param position 绝对位置
+     * @return 相对位置数组，数组长度表示位置深度，第i个元素表示
+     * 深度为i时其相对于parent的位置
+     */
     int[] get(int position)
     {
         return mCachedPosition.get(find(position).mDepth);
     }
 
+    /**
+     * 直接使用相对位置来得到一个展开的child
+     */
     ExpandableItem findExpand(int index)
     {
         return mExpands.get(index).o;
     }
 
+    /**
+     * 使用绝对位置来得到一个child
+     */
     ExpandableItem find(int position)
     {
         if (position>=mSize||position<0)
@@ -349,8 +385,14 @@ public class ExpandableItem {
         }
     }
 
+    /**
+     * 保存并返回当前child的相对位置
+     */
     private int[] saveChildPosition()
     {
+        if (mChild==null)
+            return new int[0];
+
         if (mDepth==-1)
         {
             int []r=mCachedPosition.get(0);
