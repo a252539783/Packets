@@ -2,4 +2,7 @@
     <string name="app_name">VPNT</string>
 
     <string name="save">保存</string>
+
+    <string name="hint_inputkey">过滤关键字</string>
+    <string name="select_inputkey">过滤类型</string>
 </resources>
