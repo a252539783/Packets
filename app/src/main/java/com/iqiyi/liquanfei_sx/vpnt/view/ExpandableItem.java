@@ -6,7 +6,9 @@ import com.iqiyi.liquanfei_sx.vpnt.tools.LinkedNode;
 
 import java.util.ArrayList;
 import java.util.HashMap;
+import java.util.LinkedList;
 import java.util.List;
+import java.util.Map;
 
 /**
  * Created by Administrator on 2017/12/7.
@@ -144,7 +146,6 @@ public class ExpandableItem {
      */
     void insert(int index)
     {
-        //TODO 插入后更新所有保存的展开条目
 
         if (mStart==null)
         {
@@ -203,6 +204,26 @@ public class ExpandableItem {
             //后面插入的话管都不用管
         }
 
+        //更新所有的展开条目
+        LinkedList<LinkedNode<ExpandableItem>> list=new LinkedList<>();
+        for (Map.Entry<Integer,LinkedNode<ExpandableItem>> entry:mExpands.entrySet())
+        {
+            if (entry.getKey()>=index)
+            {
+                //如果key与value不相等，说明已经在前面被更新过
+                if (entry.getValue().o.mIndex==entry.getKey())
+                {
+                    entry.getValue().o.mIndex++;
+                }
+                list.add(entry.getValue());
+                mExpands.remove(entry.getKey());
+            }
+        }
+        while(!list.isEmpty())
+        {
+            LinkedNode<ExpandableItem> ei=list.pollFirst();
+            mExpands.put(ei.o.mIndex,ei);
+        }
 
         mSize++;
         if (mParent!=null) {
