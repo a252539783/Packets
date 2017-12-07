@@ -32,11 +32,11 @@ public class ExpandableItemTest {
     @Test
     public void fresh()
     {
-        mRoot.fresh(400);
-        nextInOneLayer(400);
-        mRoot.get(300);
-        mRoot.fresh(200);
-        nextInOneLayer(200);
+        mRoot.fresh(15);
+        nextInOneLayer(15);
+        mRoot.get(14);
+        mRoot.fresh(10);
+        nextInOneLayer(10);
     }
 
     @Test
@@ -50,6 +50,21 @@ public class ExpandableItemTest {
             Util.pln(mRoot.get(i));
         }
         for (int i=59;i>=0;i--)
+        {
+            Util.pln(mRoot.get(i));
+        }
+    }
+
+    @Test
+    public void insert()
+    {
+        mRoot.fresh(30);
+        for (int i=0;i<30;i++)
+    {
+        Util.pln(mRoot.get(i));
+    }
+        mRoot.insert(30);
+        for (int i=0;i<31;i++)
         {
             Util.pln(mRoot.get(i));
         }
