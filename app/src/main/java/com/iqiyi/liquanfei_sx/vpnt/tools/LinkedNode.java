@@ -29,6 +29,11 @@ public class LinkedNode<T> {
         return node;
     }
 
+    public LinkedNode<T> linkThisAfter(T o)
+    {
+        return linkThisAfter(new LinkedNode<T>(o));
+    }
+
     /**
      * deprecate next,and link node after this.
      * @param node node
@@ -37,7 +42,8 @@ public class LinkedNode<T> {
     {
         if (node!=null)
         {
-            node.next=next.next;
+            if (next!=null)
+                node.next=next.next;
             node.previous=this;
         }
 
@@ -50,12 +56,18 @@ public class LinkedNode<T> {
         return node;
     }
 
+    public LinkedNode<T> replaceThisNext(T o)
+    {
+        return replaceThisNext(new LinkedNode<T>(o));
+    }
+
     public LinkedNode<T> replaceThisPrevious(LinkedNode<T> node)
     {
         if (node!=null)
         {
             node.next=this;
-            node.previous=previous.previous;
+            if (previous!=null)
+                node.previous=previous.previous;
         }
 
         if (previous!=null&&previous.previous!=null)
@@ -65,6 +77,10 @@ public class LinkedNode<T> {
         previous=node;
 
         return node;
+    }
+
+    public LinkedNode<T> replaceThisPrevious(T o) {
+        return replaceThisPrevious(new LinkedNode<T>(o));
     }
 
     /**
@@ -83,10 +99,19 @@ public class LinkedNode<T> {
         return node;
     }
 
+    public LinkedNode<T> linkThisBefore(T o)
+    {
+        return linkThisBefore(new LinkedNode<T>(o));
+    }
+
+    public void linkBetween(T before,T after)
+    {
+        linkBetween(new LinkedNode<T>(before),new LinkedNode<T>(after));
+    }
+
     public void linkBetween(LinkedNode<T> before,LinkedNode<T> after)
     {
         linkThisAfter(before);
         linkThisBefore(after);
     }
-
 }
