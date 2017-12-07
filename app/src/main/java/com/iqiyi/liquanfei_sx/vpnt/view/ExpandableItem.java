@@ -1,5 +1,7 @@
 package com.iqiyi.liquanfei_sx.vpnt.view;
 
+import android.util.Log;
+
 import com.iqiyi.liquanfei_sx.vpnt.tools.LinkedNode;
 
 import java.util.ArrayList;
@@ -21,7 +23,7 @@ public class ExpandableItem {
         }
     }
 
-    static final int MAXITEM=10;
+    static final int MAXITEM=20;
 
     int mIndex=0;
     int mSize=0;
@@ -71,26 +73,68 @@ public class ExpandableItem {
     }
 
     /**
-     * 从一个实际绝对位置去展开一个item
+     * 从一个绝对位置去展开一个item
      * @param position 绝对位置;如果为-1表示当前item要被展开
      * @param initSize 展开的初始大小
+     * @return true当被展开，false被跟着跌
      */
-    void expand(int position,int initSize)
+    boolean expand(int position,int initSize)
     {
         if (position==-1)
         {
-            int d=initSize-mSize;
-            fresh(initSize);
+            int d;
+            boolean expand;
+
+            if (mParent.mExpands.containsKey(mIndex))
+            {
+                //已经被展开,折叠
+                d=-mSize;
+                fresh(0);
+
+                mParent.removeExpand(mIndex);
+                expand=false;
+            }else
+            {
+                d=initSize-mSize;
+                fresh(initSize);
+
+                //通知parent
+                mParent.addExpand(mIndex,this);
+                expand=true;
+            }
+
             mStart=mEnd=mChild=null;
-            mExpands.clear();
             mChildPosition=0;
-            offsetChild(initSize,d);
-            mParent.sizeChange(d);
-            mParent.addExpand(mIndex,this);
-            return;
+            if (d!=0)
+            {
+                offsetChild(initSize,d);
+                mParent.sizeChange(d);
+            }
+            return expand;
         }
 
-        find(position).expand(-1,initSize);
+        return find(position).expand(-1,initSize);
+    }
+
+    void collapseExpand(int position)
+    {
+        if (position==-1)
+        {
+            int size=-mSize;
+            fresh(0);
+            mStart=mEnd=mChild=null;
+
+            //通知parent
+            if (size!=0&&mParent!=null)
+            {
+                offsetChild(10,size);
+                mParent.sizeChange(size);
+                mParent.removeExpand(mIndex);
+            }
+            return ;
+        }
+
+        find(position).collapseExpand(-1);
     }
 
     /**
@@ -100,6 +144,8 @@ public class ExpandableItem {
      */
     void insert(int index)
     {
+        //TODO 插入后更新所有保存的展开条目
+
         if (mStart==null)
         {
             //还没有查找过任何一次，此时没有缓存任何条目，所以不用管
@@ -175,9 +221,15 @@ public class ExpandableItem {
         mExpands.put(index,new LinkedNode<>(ei));
     }
 
+    private void removeExpand(int index)
+    {
+        mExpands.remove(index);
+    }
+
     /**
      * 更新大小，并且丢失所有的扩展信息
      * (无法保留展开的条目是因为在更新时无法确认数据绑定的关系)
+     * @param size 更新后的大小
      */
     void fresh(int size)
     {
@@ -201,6 +253,8 @@ public class ExpandableItem {
 
     /**
      * 用绝对位置去得到一组相对位置
+     *
+     * 得到的相对位置会很快的失效（当再次调用get(int)/find(int)时)
      * @param position 绝对位置
      * @return 相对位置数组，数组长度表示位置深度，第i个元素表示
      * 深度为i时其相对于parent的位置
@@ -223,8 +277,10 @@ public class ExpandableItem {
      */
     ExpandableItem find(int position)
     {
-        if (position>=mSize||position<0)
+        if (position>=mSize||position<0) {
+            Log.e("xx","find unknown position"+position);
             return null;
+        }
 
         if (mChild==null)
         {

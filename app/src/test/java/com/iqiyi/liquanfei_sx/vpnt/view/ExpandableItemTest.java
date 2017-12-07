@@ -82,7 +82,7 @@ public class ExpandableItemTest {
     public void expandInsert()
     {
         mRoot.fresh(40);
-        for (int i=0;i<40;i++)
+        for (int i=0;i<10;i++)
         {
             Util.pln(mRoot.get(i));
         }
@@ -90,12 +90,10 @@ public class ExpandableItemTest {
         for (int i=0;i<10;i++)
         {
             mRoot.findExpand(0).insert(i);
-            for (int j=0;j<10;j++)
-            {
-                Util.pln("-----"+mRoot.findExpand(0).mChildPosition);
-                Util.pln(mRoot.get(j));
-                Util.pln("-----"+mRoot.findExpand(0).mChildPosition);
-            }
+        }
+        for (int i=0;i<50;i++)
+        {
+            Util.pln(mRoot.get(i));
         }
         for (int i=0;i<50;i++)
         {
