@@ -1,5 +1,7 @@
 package com.iqiyi.liquanfei_sx.vpnt.view;
 
+import com.iqiyi.liquanfei_sx.vpnt.Util;
+
 import org.junit.Before;
 import org.junit.Test;
 
@@ -19,15 +21,46 @@ public class ExpandableItemTest {
     public void before()
     {
         mRoot=new ExpandableItem(-1,null);
-        mRoot.mSize=400;
     }
 
     @Test
     public void nextInOneLayer()
     {
-        for (int i=0;i<10000;i++)
+        nextInOneLayer(400);
+    }
+
+    @Test
+    public void fresh()
+    {
+        mRoot.fresh(400);
+        nextInOneLayer(400);
+        mRoot.get(300);
+        mRoot.fresh(200);
+        nextInOneLayer(200);
+    }
+
+    @Test
+    public void expand()
+    {
+        mRoot.fresh(40);
+        mRoot.expand(20,10);
+        mRoot.expand(18,10);
+        for (int i=0;i<60;i++)
         {
-            int m= Math.abs(rand.nextInt())%400;
+            Util.pln(mRoot.get(i));
+        }
+        for (int i=59;i>=0;i--)
+        {
+            Util.pln(mRoot.get(i));
+        }
+    }
+
+    void nextInOneLayer(int size)
+    {
+        for (int i=0;i<size*size;i++)
+        {
+            int m= Math.abs(rand.nextInt())%size;
+            //System.out.println(""+i);
             assertEquals(m,mRoot.get(m)[0]);
         }
     }
