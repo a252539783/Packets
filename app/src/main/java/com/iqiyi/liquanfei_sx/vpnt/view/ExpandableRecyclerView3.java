@@ -13,16 +13,19 @@ import android.view.View;
 import android.view.ViewGroup;
 
 import com.iqiyi.liquanfei_sx.vpnt.tools.LinkedNode;
+import com.iqiyi.liquanfei_sx.vpnt.tools.Rf;
 
 import java.util.ArrayList;
+import java.util.HashMap;
 import java.util.List;
+import java.util.Map;
 
 /**
  * Created by Administrator on 2017/12/6.
  *
  */
 
-public class ExpandableRecyclerView3 extends RecyclerView {
+public class ExpandableRecyclerView3 extends RecyclerView implements View.OnClickListener{
 
     private Adapter mAdapter=null;
     private MAdapter mInnerAdapter=null;
@@ -31,6 +34,9 @@ public class ExpandableRecyclerView3 extends RecyclerView {
 
     private List<int[]> mCachedPosition=new ArrayList<>();
 
+    private Map<View,MAdapter.ListenerInfo> mChildClickListeners=new HashMap<>();
+
+    private ExpandItemAddObserver mExpandItemObserver=new ExpandItemAddObserver();
 
     /**
      * TODO when notify
@@ -39,6 +45,7 @@ public class ExpandableRecyclerView3 extends RecyclerView {
         @Override
         public void onChanged() {
             //rangeChanged();
+            //mRoot.fresh(mAdapter.getItemCount());
             mInnerAdapter.notifyDataSetChanged();
         }
 
@@ -108,6 +115,41 @@ public class ExpandableRecyclerView3 extends RecyclerView {
         super.setAdapter(mInnerAdapter);
     }
 
+    @Override
+    public RecyclerView.Adapter getAdapter() {
+        return mAdapter;
+    }
+
+    public void setAdapter(Adapter adapter) {
+        if (mAdapter==null||mAdapter!=adapter) {
+            mAdapter = adapter;
+            mAdapter.registerAdapterDataObserver(mObserver);
+            mAdapter.setObserver(mExpandItemObserver);
+        }
+        //mAdapter.notifyDataSetChanged();
+        mRoot.fresh(mAdapter.getItemCount());
+        super.setAdapter(mInnerAdapter);
+    }
+
+    @Override
+    public void onClick(View v) {
+        MAdapter.ListenerInfo li=mChildClickListeners.get(v);
+        if (li.mHolder.getAdapterPosition()<0) {
+            //holder有可能已经被解除关联
+            return;
+        }
+
+        int []p=mRoot.get(li.mHolder.getAdapterPosition());
+        if (mRoot.expand(li.mHolder.getAdapterPosition(),mAdapter.getItemCount(p)))
+        {
+            mAdapter.onExpand(p);
+        }
+        mInnerAdapter.notifyDataSetChanged();
+        OnClickListener l=li.mL;
+        if (l!=null&&l!=this)
+            l.onClick(v);
+    }
+
     private class MAdapter extends RecyclerView.Adapter
     {
         @Override
@@ -143,6 +185,28 @@ public class ExpandableRecyclerView3 extends RecyclerView {
         public void onBindViewHolder(ViewHolder holder, int position) {
             if (mAdapter==null)
                 return;
+
+            int []p=mRoot.get(position);
+            Log.e("xx","current mroot childposition:"+mRoot.mChildPosition);
+            mAdapter.onBindViewHolder(holder,p);
+            if (mAdapter.canExpand(p))
+            {
+                View v=holder.itemView;
+                OnClickListener l=getOnClickListener(v);
+                MAdapter.ListenerInfo li=mChildClickListeners.get(v);
+                if (li==null)
+                {
+                    mChildClickListeners.put(v,new MAdapter.ListenerInfo(l,holder));
+                    v.setOnClickListener(ExpandableRecyclerView3.this);
+                }else
+                {
+                    if (l!=ExpandableRecyclerView3.this)
+                    {
+                        li.mL=l;
+                    }
+                    li.mHolder=holder;
+                }
+            }
         }
 
         @Override
@@ -156,7 +220,7 @@ public class ExpandableRecyclerView3 extends RecyclerView {
                 return 0;
 
 
-            return 0;
+            return mAdapter.getItemViewType(mRoot.get(position));
         }
 
 
@@ -178,6 +242,19 @@ public class ExpandableRecyclerView3 extends RecyclerView {
                 this.mL =l;
             }
         }
+    }
+
+    private static OnClickListener getOnClickListener(View v)
+    {
+        Object li= Rf.readField(View.class,v,"mListenerInfo");
+        if (li==null)
+            return null;
+
+        Object l=Rf.readField(li,"mOnClickListener");
+        if (l==null)
+            return null;
+
+        return (OnClickListener)l;
     }
 
     public static abstract class Adapter extends RecyclerView.Adapter
@@ -220,181 +297,7 @@ public class ExpandableRecyclerView3 extends RecyclerView {
         }
     }
 
-    private class ExpandableItem
-    {
-        int mIndex=0;
-        int mSize=0;
-        int mDepth;
-        int mChildCount=0;
-        ExpandableItem mParent;
-        int mStartPosition=0,mEndPosition=0,mChildPosition=0;
-        private LinkedNode<ExpandableItem> mChild,mStart,mEnd;
-        private SparseArray<LinkedNode<ExpandableItem>> mExpands;
-
-        ExpandableItem(int depth,ExpandableItem parent)
-        {
-            mParent=parent;
-            mDepth=depth;
-        }
-
-        int[] get(int position)
-        {
-            if (mChild==null)
-            {
-                mEnd=mStart=mChild=new LinkedNode<>(new ExpandableItem(mDepth+1,this));
-            }
-
-            if (mChildPosition==position)
-            {
-                //当前child就是目标
-                return saveChildPosition();
-            }
-
-            if (mChildPosition<position)
-            {
-                //向后get
-
-                while(mChildPosition!=position)
-                {
-                    if (mChild.o.mSize!=0)
-                    {
-                        //当前child被展开，检查position处item是否位于child展开部分中
-                        if (mChildPosition+mChild.o.mSize>=position)
-                        {
-                            //先保存child位置
-                            saveChildPosition();
-                            return mChild.o.get(position);
-                        }
-                    }
-
-                    mChildPosition+=1+mChild.o.mSize;
-
-                    if (mChild.next==null)
-                    {
-                        //添加下一个
-                        if (mChildCount==20)
-                        {
-                            //如果个数满了，把第一个链接到最后一个成环
-                            mChild.linkThisBefore(mStart);
-                        }else
-                        {
-                            //new
-                            mChildCount++;
-                            mEnd=mChild.linkThisBefore(new LinkedNode<>(new ExpandableItem(mDepth+1,this)));
-                        }
-                    }else
-                    {
-                        /* next很有可能是之前被使用过的，更新它的数值
-                        * 而且应该避开去更新一个被展开的child，反之应该去除并保存起来
-                        * 插入一个新的
-                        */
-                        LinkedNode<ExpandableItem> ei;
-                        if ((ei=mExpands.get(mChild.o.mIndex+1))!=null)
-                        {
-                            //下一个应该是被展开过得,取出保存的，替换
-                            mChild.replaceThisNext(ei);
-                        }else
-                        {
-                            //下一个不是被展开的
-                            //如果旧的被展开则插入新的
-                            if (mChild.next.o.mSize!=0)
-                            {
-                                mChild.replaceThisNext(new LinkedNode<>(new ExpandableItem(mDepth+1,this)));
-                            }else
-                            {
-                                //否则更新
-                                mChild.next.o.mIndex=mChild.o.mIndex+1;
-                            }
-                        }
-                    }
-
-                    mChild=mChild.next;
-                }
-                //循环退出后说明当前child已经是目标
-                return saveChildPosition();
-            }else
-            {
-                while(mChildPosition!=position)
-                {
-                    if (mChild.previous==null)
-                    {
-                        //添加上一个
-                        if (mChildCount==20)
-                        {
-                            //如果个数满了，把最后一个链接到第一个成环
-                            mChild.linkThisAfter(mEnd);
-                        }else
-                        {
-                            //new
-                            mChildCount++;
-                            mStart=mChild.linkThisAfter(new LinkedNode<>(new ExpandableItem(mDepth+1,this)));
-                        }
-
-                        mChildPosition--;
-                    }else
-                    {
-                        /* previous很有可能是之前被使用过的，更新它的数值
-                        * 而且应该避开去更新一个被展开的child，反之应该去除并保存起来
-                        * 插入一个新的
-                        */
-                        LinkedNode<ExpandableItem> ei;
-                        if ((ei=mExpands.get(mChild.o.mIndex-1))!=null)
-                        {
-                            //上一个应该是被展开过得,取出保存的，替换
-                            mChild.replaceThisPrevious(ei);
-                        }else
-                        {
-                            //上一个不是被展开的
-                            //如果旧的被展开则插入新的
-                            if (mChild.next.o.mSize!=0)
-                            {
-                                mChild.replaceThisPrevious(new LinkedNode<>(new ExpandableItem(mDepth+1,this)));
-                            }else
-                            {
-                                //否则更新
-                                mChild.next.o.mIndex=mChild.o.mIndex-1;
-                            }
-                        }
-
-                        mChildPosition-=mChild.previous.o.mSize+1;
-
-                        mChild=mChild.previous;
-                        if (mChild.o.mSize!=0)
-                        {
-                            //上一child被展开，检查position处item是否位于上一child展开部分中
-                            if (mChildPosition<position)
-                            {
-                                //先保存child位置
-                                saveChildPosition();
-                                return mChild.o.get(position);
-                            }else if (mChildPosition==position)
-                            {
-                                return saveChildPosition();
-                            }
-                        }
-                    }
-                }
-            }
-            return null;
-        }
-
-        private int[] saveChildPosition()
-        {
-            if (mDepth==-1)
-            {
-                int []r=mCachedPosition.get(0);
-                r[0]=mChild.o.mIndex;
-                return r;
-            }else
-            {
-                int[] r=mCachedPosition.get(mDepth);
-                int []r1=mCachedPosition.get(mChild.o.mDepth);
-                System.arraycopy(r,0,r1,0,r.length);
-                r1[r.length]=mChild.o.mIndex;
-                return r1;
-            }
-        }
-    }
+    static final int MAXITEM=20;
 
     @Override
     protected void onSizeChanged(int w, int h, int oldw, int oldh) {
@@ -404,6 +307,24 @@ public class ExpandableRecyclerView3 extends RecyclerView {
     private class ExpandItemAddObserver
     {
         void onAdd(int ...position) {
+            int i=0;
+            ExpandableItem ei=mRoot;
+            for (;i<position.length-1;i++)
+            {
+                if (ei==null)
+                    return;
+                ei=ei.findExpand(position[i]);
+            }
+            if (ei==null)
+                return;
+            ei.insert(position[i]);
+
+            mInnerAdapter.notifyDataSetChanged();
+        }
+
+        void onChange(int ...position)
+        {
+
         }
     }
 }
