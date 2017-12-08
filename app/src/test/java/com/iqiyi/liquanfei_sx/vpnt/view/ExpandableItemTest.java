@@ -86,16 +86,38 @@ public class ExpandableItemTest {
         {
             Util.pln(mRoot.get(i));
         }
-        mRoot.expand(0,1);
-        for (int i=0;i<10;i++)
+        mRoot.expand(1,1);
+        //assertEquals(mRoot.mEnd.next,mRoot.mStart);
+        for (int i=0;i<4;i++)
         {
-            mRoot.findExpand(0).insert(i);
+            mRoot.findExpand(1).insert(i);
+            //assertEquals(mRoot.mEnd.next,mRoot.mStart);
         }
-        for (int i=0;i<50;i++)
+        for (int i=0;i<71;i++)
+        {
+            //Util.pln(mRoot.get(i));
+            //assertEquals(mRoot.mEnd.next,mRoot.mStart);
+        }
+        mRoot.insert(0);
+        //assertEquals(mRoot.mEnd.next,mRoot.mStart);
+        for (int i=0;i<45;i++)
         {
             Util.pln(mRoot.get(i));
+            //assertEquals(mRoot.mEnd.next,mRoot.mStart);
         }
-        for (int i=0;i<50;i++)
+    }
+
+    @Test
+    public void randExpand()
+    {
+        mRoot.fresh(40);
+        mRoot.expand(1,1);
+        mRoot.expand(2,1);
+        mRoot.expand(5,1);
+        mRoot.expand(4,1);
+        mRoot.expand(5,1);
+        mRoot.expand(3,1);
+        for (int i=0;i<45;i++)
         {
             Util.pln(mRoot.get(i));
         }

@@ -115,28 +115,11 @@ public class ExpandableItem {
             return expand;
         }
 
-        return find(position).expand(-1,initSize);
-    }
-
-    void collapseExpand(int position)
-    {
-        if (position==-1)
-        {
-            int size=-mSize;
-            fresh(0);
-            mStart=mEnd=mChild=null;
-
-            //通知parent
-            if (size!=0&&mParent!=null)
-            {
-                offsetChild(10,size);
-                mParent.sizeChange(size);
-                mParent.removeExpand(mIndex);
-            }
-            return ;
-        }
-
-        find(position).collapseExpand(-1);
+        ExpandableItem ei=find(position);
+        if (ei!=null)
+            return find(position).expand(-1,initSize);
+        else
+            return false;
     }
 
     /**
@@ -290,7 +273,8 @@ public class ExpandableItem {
      */
     ExpandableItem findExpand(int index)
     {
-        return mExpands.get(index).o;
+        LinkedNode<ExpandableItem> ei=mExpands.get(index);
+        return ei==null?null:ei.o;
     }
 
     /**
@@ -367,6 +351,12 @@ public class ExpandableItem {
                         if (mChild.next.o.mSize!=0)
                         {
                             mChild.replaceThisNext(new LinkedNode<>(new ExpandableItem(mDepth+1,this)));
+
+                            //如果替换的下一个刚好是start，同时更新start
+                            if (mChild==mStart.previous)
+                            {
+                                mStart=mChild.next;
+                            }
                         }
 
                         {
@@ -402,10 +392,11 @@ public class ExpandableItem {
                         //new
                         mChildCount++;
                         mStart=mChild.linkThisAfter(new LinkedNode<>(new ExpandableItem(mDepth+1,this)));
+                        //mStart.o.mIndex=mChild.o.mIndex-1;
                     }
 
-                    mChildPosition--;
-                }else
+                    //mChildPosition--;
+                }
                 {
                         /* previous很有可能是之前被使用过的，更新它的数值
                         * 而且应该避开去更新一个被展开的child，反之应该去除并保存起来
