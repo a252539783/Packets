@@ -17,6 +17,7 @@ import android.view.ViewGroup;
 import com.iqiyi.liquanfei_sx.vpnt.history.HistoryAdapter2;
 import com.iqiyi.liquanfei_sx.vpnt.tools.Rf;
 
+import java.util.HashMap;
 import java.util.Iterator;
 import java.util.LinkedList;
 import java.util.List;
@@ -35,9 +36,9 @@ public class ExpandableRecyclerView2 extends RecyclerView implements View.OnClic
 
     private MAdapter mInnerAdapter=null;
 
-    private ArrayMap<View,MAdapter.ListenerInfo> mChildClickListeners=new ArrayMap<>();
+    private Map<View,MAdapter.ListenerInfo> mChildClickListeners=new HashMap<>();
 
-    private ArrayMap<ItemInfo,Integer> mRealPosition=new ArrayMap<>();
+    private Map<ItemInfo,Integer> mRealPosition=new HashMap<>();
 
     private ExpandInfo mExpand=new ExpandInfo(null);
 
@@ -142,7 +143,7 @@ public class ExpandableRecyclerView2 extends RecyclerView implements View.OnClic
                 outRect.set(0, 0, 0, 1);
             }
         });
-        mRealPosition.put(null,0);
+        //mRealPosition.put(null,0);
         super.setAdapter(mInnerAdapter);
     }
 
@@ -192,6 +193,57 @@ public class ExpandableRecyclerView2 extends RecyclerView implements View.OnClic
     public boolean isExpand(int []position)
     {
         return getExpandInfo(position)!=null;
+    }
+
+    private int getRealPosition(int position)
+    {
+        int res=0;
+        int resi=0;
+        int fresi=0;
+        int p=position;
+        ItemInfo ii=mRoot;
+        ExpandInfo ei=mExpand;
+        while (ei!=null)
+        {
+            if (ei.mItem!=null)
+            {
+                if (ei.mEnd!=null)
+                {
+                    p=ei.mEnd.mIndex+1;
+                }else
+                {
+                    p=0;
+                }
+            }
+
+            boolean find=false;
+            for (int i=0;i<p;i++)
+            {
+                Integer o=mRealPosition.get(ii);
+                if (o!=null)
+                {
+                    res=o;
+                    resi=i;
+                    find=true;
+                }
+
+                ii=ii.mDNext;
+            }
+
+            if (!find)
+            {
+                break;
+            }
+            //进入最后一个被展开item的下一层
+            ei=ei.get(resi);
+
+            if (p==position)
+            {
+                fresi=resi;
+            }
+        }
+
+        return (position-fresi)+res;
     }
 
     private ExpandInfo getExpandInfo(int []position)
@@ -314,6 +366,21 @@ public class ExpandableRecyclerView2 extends RecyclerView implements View.OnClic
         for (Map.Entry<ItemInfo, Integer> entry : mRealPosition.entrySet()) {
             if (entry.getValue() > position) {
                 entry.setValue(entry.getValue() + size);
+            }
+        }
+    }
+
+    private void freshPosition(int[] position,int size)
+    {
+        for (Map.Entry<ItemInfo, Integer> entry : mRealPosition.entrySet()) {
+            ItemInfo ii=entry.getKey();
+            for (int i=0;i<position.length;i++)
+            {
+                if (ii.mIndex>=position[i])
+                {
+                    entry.setValue(entry.getValue() + size);
+                    break;
+                }
             }
         }
     }
@@ -967,18 +1034,34 @@ public class ExpandableRecyclerView2 extends RecyclerView implements View.OnClic
             }
 
             mSize++;
-            freshPosition(mRealPosition.get(ei.mItem)-1,1);
-            int realPosition=mRealPosition.get(ei.mItem);
+            if (position.length==0)
+            {
+                freshPosition(position,1);
+            }else
+            {
+                freshPosition(position,1);
+                //freshPosition(mRealPosition.get(ei.mItem)-1,1);
+            }
+
+            int realPosition=-1;
+            if (position.length!=1) {
+                realPosition = mRealPosition.get(ei.mItem);
+            }
+            else
+            {
+                realPosition=getRealPosition(position[0]);
+            }
 
             if (ei.mEnd==null)
             {
-                ei.mEnd=new ItemInfo(ei.mItem.mDepth+1,0);
                 if (ei.mItem!=null)
                 {
+                    ei.mEnd=new ItemInfo(ei.mItem.mDepth+1,0);
                     ei.mEnd.mNext=ei.mItem.mNext;
                     ei.mItem.mNext=ei.mEnd;
                 }else
                 {
+                    ei.mEnd=new ItemInfo(0,0);
                     if (mRoot==null)
                     {
                         mRoot=mStart=mEnd=ei.mEnd;
@@ -992,7 +1075,7 @@ public class ExpandableRecyclerView2 extends RecyclerView implements View.OnClic
                 }
             }else
             if (ei.mEnd.mIndex>=position[i])
-            {
+            {//TODO 完成中间添加
                 if (position[i]>ei.mEnd.mIndex/2)
                 {
 
@@ -1067,7 +1150,6 @@ public class ExpandableRecyclerView2 extends RecyclerView implements View.OnClic
             else {
                 mInnerAdapter.notifyItemInserted(realPosition);
             }
-            //Log.e("xx","notifyed "+realPosition);
         }
     }
 

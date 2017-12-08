@@ -9,6 +9,7 @@ import com.iqiyi.liquanfei_sx.vpnt.tools.IOUtil;
 import java.io.BufferedInputStream;
 import java.io.File;
 import java.io.FileInputStream;
+import java.io.FileNotFoundException;
 import java.io.FileOutputStream;
 import java.io.IOException;
 import java.util.Arrays;
@@ -20,7 +21,16 @@ import java.util.List;
 
 public abstract class PersistRequest {
 
+    boolean mInterrupted=false;
+
+    void interrupt()
+    {
+        mInterrupted=true;
+    }
+
     abstract String doRequest(String folder);
+
+    abstract boolean hasRead();
 
     static PersistRequest newWriteRequest(long time, PacketList list, Packet packet)
     {
@@ -83,6 +93,11 @@ public abstract class PersistRequest {
 
             return newF;
         }
+
+        @Override
+        boolean hasRead() {
+            return false;
+        }
     }
 
     private static class CreateSavedRequest extends PersistRequest
@@ -100,6 +115,11 @@ public abstract class PersistRequest {
             new File(newF).mkdirs();
 
             return null;
+        }
+
+        @Override
+        boolean hasRead() {
+            return false;
         }
     }
 
@@ -137,6 +157,11 @@ public abstract class PersistRequest {
 
             return null;
         }
+
+        @Override
+        boolean hasRead() {
+            return false;
+        }
     }
 
     private static class WriteRequest extends PersistRequest
@@ -166,6 +191,11 @@ public abstract class PersistRequest {
             }
 
             return null;
+        }
+
+        @Override
+        boolean hasRead() {
+            return false;
         }
     }
 
@@ -313,95 +343,107 @@ public abstract class PersistRequest {
 
             return null;
         }
+
+        @Override
+        boolean hasRead() {
+            if (mIndex!=-1) {
+                try {
+                    LocalPackets.CaptureInfo ci = LocalPackets.get().mAllPackets.get(mTimeIndex);
+                    FileInputStream fis = new FileInputStream(new File(Constants.PrivateFileLocation.HISTORY + File.separator +
+                            ci.mTime + File.separator + (ci.mPackets.get(mIndex).mIndex + 1000000000) + "_" + ci.mPackets.get(mIndex).mInfo.info.applicationInfo.uid + Constants.FileType._PACKETS));
+
+                    if (ci.mPackets.get(mIndex).size() > 1)
+                        return true;
+                } catch (FileNotFoundException e) {
+                    return true;
+                }
+            }else if (mTimeIndex !=-1)
+            {
+                LocalPackets.CaptureInfo ci=LocalPackets.get().mAllPackets.get(mTimeIndex);
+                if (ci.mPackets.size()!=0)
+                    return true;
+            }
+
+            return false;
+        }
     }
 
-    private static class LoadSavedRequest extends PersistRequest
-    {
+    private static class LoadSavedRequest extends PersistRequest {
 
-        int mUid=-1;
+        int mUid = -1;
 
-        private LoadSavedRequest(){
+        private LoadSavedRequest() {
 
         }
 
-        private LoadSavedRequest(int uid)
-        {
-            mUid=uid;
+        private LoadSavedRequest(int uid) {
+            mUid = uid;
         }
 
         @Override
         String doRequest(String folder) {
-            if (mUid==-1)
-            {
-                File file=new File(Constants.PrivateFileLocation.SAVED);
+            if (mUid == -1) {
+                File file = new File(Constants.PrivateFileLocation.SAVED);
 
-                if (file.exists())
-                {
-                    String []files=file.list();
-                    int [] nums=new int[files.length];
-                    for (int i=0;i<files.length;i++)
-                    {
-                        nums[i]=new File(file,files[i]).list().length;
+                if (file.exists()) {
+                    String[] files = file.list();
+                    int[] nums = new int[files.length];
+                    for (int i = 0; i < files.length; i++) {
+                        nums[i] = new File(file, files[i]).list().length;
                     }
 
-                    LocalPackets.get().initSavedList(file.list(),nums);
-                }else
-                {
+                    LocalPackets.get().initSavedList(file.list(), nums);
+                } else {
                     LocalPackets.get().initHistory(null);
                 }
-            }else
-            {
-                int sindex=LocalPackets.get().indexOfSaved(mUid);
-                LocalPackets.SavedInfo si=LocalPackets.get().mSavedPackets.get(sindex);
-                if (si.mPackets.size()!=0)
+            } else {
+                int sindex = LocalPackets.get().indexOfSaved(mUid);
+                LocalPackets.SavedInfo si = LocalPackets.get().mSavedPackets.get(sindex);
+                if (si.mPackets.size() != 0)
                     return null;
 
-                File base=new File(Constants.PrivateFileLocation.SAVED+File.separator+ mUid);
-                String []names=base.list();
-                long[] times=new long[names.length];
-                File []files=new File[names.length];
-                for (int i=0;i<files.length;i++)
-                {
-                    String ss[]=names[i].split(File.separator);
-                    times[i]=Long.parseLong(ss[ss.length-1].substring(0,ss[ss.length-1].length()- Constants.FileType._PACKET.length()));
+                File base = new File(Constants.PrivateFileLocation.SAVED + File.separator + mUid);
+                String[] names = base.list();
+                long[] times = new long[names.length];
+                File[] files = new File[names.length];
+                for (int i = 0; i < files.length; i++) {
+                    String ss[] = names[i].split(File.separator);
+                    times[i] = Long.parseLong(ss[ss.length - 1].substring(0, ss[ss.length - 1].length() - Constants.FileType._PACKET.length()));
                 }
                 Arrays.sort(times);
 
-                for (int i=0;i<files.length;i++)
-                {
-                    files[i]=new File(base,times[i]+ Constants.FileType._PACKET);
+                for (int i = 0; i < files.length; i++) {
+                    files[i] = new File(base, times[i] + Constants.FileType._PACKET);
                 }
 
                 //File []files=new File(Constants.PrivateFileLocation.HISTORY+File.separator+ LocalPackets.get().mAllPackets.get(mTimeIndex).mTime).listFiles();
                 FileInputStream fis;
-                TCPPacket []packets=new TCPPacket[files.length];
-                long time=0;
-                for (int i=0;i<files.length;i++)
-                {
-                    byte []src;
+                TCPPacket[] packets = new TCPPacket[files.length];
+                long time = 0;
+                for (int i = 0; i < files.length; i++) {
+                    byte[] src;
                     /**
                      * 只获取端口ip信息
                      */
-                    int l=0;
+                    int l = 0;
                     try {
-                        fis=new FileInputStream(files[i]);
+                        fis = new FileInputStream(files[i]);
 
-                        src=new byte[fis.available()-8];
-                        IOUtil.read(fis,src,0,8);
-                        time=ByteConvert.parseLong(src,0);
-                        IOUtil.read(fis,src);
+                        src = new byte[fis.available() - 8];
+                        IOUtil.read(fis, src, 0, 8);
+                        time = ByteConvert.parseLong(src, 0);
+                        IOUtil.read(fis, src);
                     } catch (IOException e) {
                         continue;
                     }
 
                     try {
-                        IPPacket ip=new IPPacket(src);
-                        Log.e("xx",""+ip.length);
+                        IPPacket ip = new IPPacket(src);
+                        Log.e("xx", "" + ip.length);
                         packets[i] = (TCPPacket) ip.getData();
 
-                        LocalPackets.get().initSavedPacketUnchecked(sindex,time,packets[i]);
-                    }catch (ClassCastException e)
-                    {
+                        LocalPackets.get().initSavedPacketUnchecked(sindex, time, packets[i]);
+                    } catch (ClassCastException e) {
                         //不是tcp，先忽略它们
                     }
                 }
@@ -409,6 +451,18 @@ public abstract class PersistRequest {
 
 
             return null;
+        }
+
+        @Override
+        boolean hasRead() {
+            if (mUid != -1) {
+                int sindex = LocalPackets.get().indexOfSaved(mUid);
+                LocalPackets.SavedInfo si = LocalPackets.get().mSavedPackets.get(sindex);
+                if (si.mPackets.size() != 0)
+                    return true;
+
+            }
+            return false;
         }
     }
 }

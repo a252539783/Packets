@@ -21,7 +21,34 @@
                 android:id="@+id/tool_bar_main"
                 android:title="main"
                 android:layout_height="56dp"
-                android:layout_width="match_parent"/>
+                android:layout_width="match_parent">
+
+                <LinearLayout
+                    android:layout_width="match_parent"
+                    android:layout_height="match_parent"
+                    android:orientation="horizontal">
+
+                    <android.support.v7.widget.AppCompatEditText
+                        android:layout_width="0dp"
+                        android:inputType="textFilter"
+                        android:theme="@style/edit_filter"
+                        android:id="@+id/edit_filter"
+                        android:hint="@string/hint_inputkey"
+                        android:layout_height="match_parent"
+                        android:layout_weight="1"/>
+
+                    <android.support.v7.widget.AppCompatSpinner
+                        android:layout_width="180dp"
+                        android:layout_height="match_parent"
+                        android:id="@+id/main_spinner"
+                        android:dropDownSelector="@android:color/white"
+                        android:spinnerMode="dialog"
+                        android:theme="@style/drop_down"
+                        android:background="@drawable/shape_dropdown">
+                    </android.support.v7.widget.AppCompatSpinner>
+                </LinearLayout>
+
+            </android.support.v7.widget.Toolbar>
         </android.support.design.widget.CollapsingToolbarLayout>
 
         <android.support.design.widget.TabLayout

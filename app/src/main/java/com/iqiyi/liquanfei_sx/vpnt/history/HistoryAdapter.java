@@ -60,6 +60,11 @@ public class HistoryAdapter extends ExpandableRecyclerView.Adapter<HistoryAdapte
     }
 
     @Override
+    public void onFilterChanged() {
+
+    }
+
+    @Override
     public void onBindExpandView(ExpandableRecyclerView view, int position) {
 //        if (mAdapters==null)
 //            mAdapters=new SparseArray<>();
@@ -94,6 +99,11 @@ public class HistoryAdapter extends ExpandableRecyclerView.Adapter<HistoryAdapte
     @Override
     public void onChange() {
         notifyDataSetChanged();
+    }
+
+    @Override
+    public void onAdd(int timeIndex) {
+
     }
 
     public class PacketsAdapter extends ExpandableRecyclerView.Adapter<H2> implements LocalPackets.OnPacketsChangeListener{

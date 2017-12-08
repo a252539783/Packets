@@ -217,7 +217,6 @@ public class SimpleFixedLayout extends Layout{
             lastLine++;
 
         int index=mColumns*firstLine;
-        Log.e("xx","draw "+index);
         float drawY=(firstLine+1)*mOneHeight;
         if (mEncode==ENCODE_HEX)
         {
