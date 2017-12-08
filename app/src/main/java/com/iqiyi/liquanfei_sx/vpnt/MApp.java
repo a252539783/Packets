@@ -12,6 +12,7 @@ import com.iqiyi.liquanfei_sx.vpnt.floating.WindowStack;
 import com.iqiyi.liquanfei_sx.vpnt.history.HistoryFragment2;
 import com.iqiyi.liquanfei_sx.vpnt.packet.LocalPackets;
 import com.iqiyi.liquanfei_sx.vpnt.saved.SavedFragment2;
+import com.iqiyi.liquanfei_sx.vpnt.tools.DisplayHelper;
 import com.iqiyi.liquanfei_sx.vpnt.tools.WeakLinkedList;
 import com.squareup.leakcanary.LeakCanary;
 
@@ -41,6 +42,7 @@ public class MApp extends Application {
         Constants.init(this);
         LocalPackets.mgr();
         LeakCanary.install(this);
+        DisplayHelper.init(this);
 
         mPacketContent= new ViewPager(this);
         mAdapter=new MainPagerAdapter2(LayoutInflater.from(this),new FakeFragment[]{
