@@ -84,8 +84,8 @@ public class ExpandableItem {
     {
         if (position==-1)
         {
-            int d;
-            boolean expand;
+            int d=0;
+            boolean expand=false;
 
             if (mParent.mExpands.containsKey(mIndex))
             {
@@ -94,15 +94,20 @@ public class ExpandableItem {
                 fresh(0);
 
                 mParent.removeExpand(mIndex);
-                expand=false;
             }else
             {
-                d=initSize-mSize;
-                fresh(initSize);
+                if (mParent!=null&&
+                        //parent不是顶层，要保证parent已经被展开
+                        ((mParent.mDepth!=-1&&mParent.mParent!=null&&mParent.mParent.mExpands.containsKey(mParent.mIndex))
+                                ||mParent.mDepth==-1))//而对于顶层parent无须判断
+                {
+                    d=initSize-mSize;
+                    fresh(initSize);
 
-                //通知parent
-                mParent.addExpand(mIndex,this);
-                expand=true;
+                    //通知parent
+                    mParent.addExpand(mIndex,this);
+                    expand=true;
+                }
             }
 
             mStart=mEnd=mChild=null;
