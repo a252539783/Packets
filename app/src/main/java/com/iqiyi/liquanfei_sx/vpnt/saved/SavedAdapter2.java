@@ -11,11 +11,13 @@ import android.widget.TextView;
 
 import com.iqiyi.liquanfei_sx.vpnt.IAdapter;
 import com.iqiyi.liquanfei_sx.vpnt.R;
+import com.iqiyi.liquanfei_sx.vpnt.floating.DefaultWindow;
 import com.iqiyi.liquanfei_sx.vpnt.packet.LocalPackets;
 import com.iqiyi.liquanfei_sx.vpnt.packet.PersistRequest;
 import com.iqiyi.liquanfei_sx.vpnt.packet.TCPPacket;
 import com.iqiyi.liquanfei_sx.vpnt.tools.AppPortList;
 import com.iqiyi.liquanfei_sx.vpnt.view.ExpandableRecyclerView2;
+import com.iqiyi.liquanfei_sx.vpnt.view.ExpandableRecyclerView3;
 
 import java.util.List;
 
@@ -23,7 +25,7 @@ import java.util.List;
  * Created by Administrator on 2017/11/29.
  */
 
-public class SavedAdapter2 extends ExpandableRecyclerView2.Adapter implements IAdapter,LocalPackets.OnSavedItemChangeListener,View.OnClickListener {
+public class SavedAdapter2 extends ExpandableRecyclerView3.Adapter implements IAdapter,LocalPackets.OnSavedItemChangeListener,View.OnClickListener {
 
     private static final int ITEM_SAVED=1;
     private static final int ITEM_PACKET=2;
@@ -51,6 +53,11 @@ public class SavedAdapter2 extends ExpandableRecyclerView2.Adapter implements IA
     @Override
     public void setListeners() {
         LocalPackets.get().addSavedItemChangeListener(this);
+    }
+
+    @Override
+    public void onFilterChanged() {
+
     }
 
     @Override
@@ -135,6 +142,8 @@ public class SavedAdapter2 extends ExpandableRecyclerView2.Adapter implements IA
         TCPPacket packet=mAllSaved.get(savedPosition).mPackets.get(position).mPackets.get(0).mPacket;
         holder.text.setText(packet.getIpInfo().getHeader());//+new String(packet.getRawData(),packet.mOffset,packet.getDataLength()));
         holder.itemView.setId(position);
+        holder.itemView.setTag(packet);
+        holder.itemView.setOnClickListener(this);
     }
 
     @Override
@@ -149,7 +158,7 @@ public class SavedAdapter2 extends ExpandableRecyclerView2.Adapter implements IA
 
     @Override
     public void onClick(View v) {
-
+        DefaultWindow.test= (TCPPacket) v.getTag();
     }
 
     static class H1 extends RecyclerView.ViewHolder

@@ -11,6 +11,7 @@ import com.iqiyi.liquanfei_sx.vpnt.R;
 import com.iqiyi.liquanfei_sx.vpnt.packet.LocalPackets;
 import com.iqiyi.liquanfei_sx.vpnt.packet.PersistRequest;
 import com.iqiyi.liquanfei_sx.vpnt.view.ExpandableRecyclerView2;
+import com.iqiyi.liquanfei_sx.vpnt.view.ExpandableRecyclerView3;
 
 import java.lang.ref.WeakReference;
 
@@ -20,7 +21,7 @@ import java.lang.ref.WeakReference;
 
 public class SavedPresenter extends CommonPresenter implements LocalPackets.OnSavedChangeListener {
 
-    private ExpandableRecyclerView2 mHistories;
+    private ExpandableRecyclerView3 mHistories;
     private IAdapter mAdapter;
 
     private boolean mIsBound=false;
@@ -29,7 +30,7 @@ public class SavedPresenter extends CommonPresenter implements LocalPackets.OnSa
 
     @Override
     protected void onViewBind(View v) {
-        mHistories=(ExpandableRecyclerView2)v.findViewById(R.id.erv_history);
+        mHistories=(ExpandableRecyclerView3)v.findViewById(R.id.erv_history);
         mAdapter=new SavedAdapter2(v.getContext());
 
         LocalPackets.get().addSavedChangeListener(this);

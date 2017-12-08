@@ -2,6 +2,10 @@ package com.iqiyi.liquanfei_sx.vpnt.history;
 
 import android.content.Context;
 import android.content.Intent;
+import android.graphics.Color;
+import android.os.Handler;
+import android.os.Looper;
+import android.os.Message;
 import android.support.v7.widget.RecyclerView;
 import android.util.Log;
 import android.view.LayoutInflater;
@@ -15,24 +19,31 @@ import com.iqiyi.liquanfei_sx.vpnt.MApp;
 import com.iqiyi.liquanfei_sx.vpnt.R;
 import com.iqiyi.liquanfei_sx.vpnt.editor.EditActivity;
 import com.iqiyi.liquanfei_sx.vpnt.editor.EditPacketInfo;
+import com.iqiyi.liquanfei_sx.vpnt.packet.ClientService;
 import com.iqiyi.liquanfei_sx.vpnt.packet.LocalPackets;
 import com.iqiyi.liquanfei_sx.vpnt.packet.PacketList;
 import com.iqiyi.liquanfei_sx.vpnt.packet.PersistRequest;
 import com.iqiyi.liquanfei_sx.vpnt.packet.TCPPacket;
 import com.iqiyi.liquanfei_sx.vpnt.tools.AppPortList;
 import com.iqiyi.liquanfei_sx.vpnt.view.ExpandableRecyclerView2;
+import com.iqiyi.liquanfei_sx.vpnt.view.ExpandableRecyclerView3;
 
+import java.util.ArrayList;
 import java.util.List;
 
 /**
  * Created by Administrator on 2017/11/27.
  */
 
-public class HistoryAdapter2 extends ExpandableRecyclerView2.Adapter implements IAdapter,LocalPackets.OnHistoryChangeListener,LocalPackets.OnPacketsChangeListener,LocalPackets.OnPacketChangeListener,View.OnClickListener{
+public class HistoryAdapter2 extends ExpandableRecyclerView3.Adapter implements IAdapter,LocalPackets.OnHistoryChangeListener,LocalPackets.OnPacketsChangeListener,LocalPackets.OnPacketChangeListener,View.OnClickListener{
 
     private final static int ITEM_TYPE_HISTORY=1;
     private final static int ITEM_TYPE_PACKETS=2;
     private final static int ITEM_TYPE_PACKET=3;
+
+    private Handler mLoadHandler=null;
+
+    private Thread mLoadThread=new LoadThread();
 
     private List<LocalPackets.CaptureInfo> mAllHistory=null;
     private LayoutInflater mLf;
@@ -62,6 +73,11 @@ public class HistoryAdapter2 extends ExpandableRecyclerView2.Adapter implements 
     public void setListeners() {
         LocalPackets.get().addPacketsChangeListener(this);
         LocalPackets.get().addPacketChangeListener(this);
+    }
+
+    @Override
+    public void onFilterChanged() {
+
     }
 
     @Override
@@ -169,6 +185,14 @@ public class HistoryAdapter2 extends ExpandableRecyclerView2.Adapter implements 
     {
         PacketList packetList= mAllHistory.get(historyIndex).mPackets.get(index);
         AppPortList.AppInfo info=packetList.info();
+        if (packetList.mAlive)
+        {
+            h.name.setTextColor(Color.BLACK);
+        }else
+        {
+            h.name.setTextColor(Color.GRAY);
+        }
+
         if (info!=null) {
             h.icon.setImageDrawable(info.icon);
             h.name.setText(info.appName + ":" + info.info.applicationInfo.packageName);
@@ -179,7 +203,14 @@ public class HistoryAdapter2 extends ExpandableRecyclerView2.Adapter implements 
     private void bindPacket(H3 h,int historyIndex,int listIndex,int index)
     {
         TCPPacket packet= mAllHistory.get(historyIndex).mPackets.get(listIndex).get(index).mPacket;
-        h.text.setText(packet.getIpInfo().getHeader());//+new String(packet.getRawData(),packet.mOffset,packet.getDataLength()));
+        if (packet.getSourceIp().equals(ClientService.addr))
+        {
+            h.text.setTextColor(Color.BLACK);
+        }else
+        {
+            h.text.setTextColor(Color.BLUE);
+        }
+        h.text.setText(new String(packet.getRawData(),packet.mOffset,packet.getDataLength()));//packet.getIpInfo().getHeader());//+new String(packet.getRawData(),packet.mOffset,packet.getDataLength()));
         h.itemView.setTag(new EditPacketInfo(historyIndex,listIndex,index));
         h.itemView.setOnClickListener(this);
     }
@@ -187,6 +218,11 @@ public class HistoryAdapter2 extends ExpandableRecyclerView2.Adapter implements 
     @Override
     public void onChange() {
         notifyDataSetChanged();
+    }
+
+    @Override
+    public void onAdd(int timeIndex) {
+
     }
 
     @Override
@@ -260,6 +296,29 @@ public class HistoryAdapter2 extends ExpandableRecyclerView2.Adapter implements 
         public H3(View itemView) {
             super(itemView);
             text=(TextView)itemView.findViewById(R.id.t_packet_item_text);
+        }
+    }
+
+    private static class LoadHandler extends Handler
+    {
+        @Override
+        public void handleMessage(Message msg) {
+            super.handleMessage(msg);
+
+
+        }
+    }
+
+    private static class LoadThread extends Thread
+    {
+        LoadHandler mLoadHandler;
+
+        @Override
+        public void run() {
+            super.run();
+            mLoadHandler=new LoadHandler();
+            Looper.prepare();
+            Looper.loop();
         }
     }
 }
