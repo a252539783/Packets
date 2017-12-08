@@ -24,7 +24,7 @@ public class ClientService extends VpnService{
 
     static boolean debug=true;
 
-    private String addr="127.0.0.1";
+    public static String addr="10.0.10.0";
     private int port=4444;
     private MB mb=new MB();
     private ServerService server=null;
@@ -178,7 +178,7 @@ public class ClientService extends VpnService{
         if (mInterface==null) {
             Builder builder = new Builder();
             builder.setMtu(1500);
-            builder.addAddress("10.0.10.0", 32);
+            builder.addAddress(addr, 32);
             //builder.addAddress("127.0.0.1", port);
             builder.addRoute("0.0.0.0", 0);
             mInterface = builder.establish();
