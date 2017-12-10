@@ -352,7 +352,7 @@ public abstract class PersistRequest {
                     FileInputStream fis = new FileInputStream(new File(Constants.PrivateFileLocation.HISTORY + File.separator +
                             ci.mTime + File.separator + (ci.mPackets.get(mIndex).mIndex + 1000000000) + "_" + ci.mPackets.get(mIndex).mInfo.info.applicationInfo.uid + Constants.FileType._PACKETS));
 
-                    if (ci.mPackets.get(mIndex).size() > 1)
+                    if (ci.mPackets.get(mIndex).size(0) > 1)
                         return true;
                 } catch (FileNotFoundException e) {
                     return true;
@@ -360,7 +360,7 @@ public abstract class PersistRequest {
             }else if (mTimeIndex !=-1)
             {
                 LocalPackets.CaptureInfo ci=LocalPackets.get().mAllPackets.get(mTimeIndex);
-                if (ci.mPackets.size()!=0)
+                if (ci.mPackets.size(0)!=0)
                     return true;
             }
 
@@ -368,7 +368,7 @@ public abstract class PersistRequest {
         }
     }
 
-    private static class LoadSavedRequest extends PersistRequest {
+    static class LoadSavedRequest extends PersistRequest {
 
         int mUid = -1;
 
@@ -458,9 +458,15 @@ public abstract class PersistRequest {
             if (mUid != -1) {
                 int sindex = LocalPackets.get().indexOfSaved(mUid);
                 LocalPackets.SavedInfo si = LocalPackets.get().mSavedPackets.get(sindex);
-                if (si.mPackets.size() != 0)
+                if (si.mPackets.size(0) != 0)
                     return true;
 
+            }else
+            {
+                if (LocalPackets.get().mSavedPackets.size(0)!=0)
+                {
+                    return true;
+                }
             }
             return false;
         }
