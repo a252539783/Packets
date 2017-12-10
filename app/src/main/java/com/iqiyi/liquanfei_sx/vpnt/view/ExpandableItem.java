@@ -74,6 +74,21 @@ public class ExpandableItem {
         }
     }
 
+    int getRealPosition(int depth,int ...position)
+    {
+        if (depth<0||depth>=position.length)
+            return 0;
+
+        int res=position[depth];
+        for (Map.Entry<Integer,LinkedNode<ExpandableItem>> entry:mExpands.entrySet())
+        {
+            res+=entry.getValue().o.mSize;
+        }
+
+        ExpandableItem ei=findExpand(position[depth]);
+        return ei==null?res:res+ei.getRealPosition(depth+1,position);
+    }
+
     /**
      * 从一个绝对位置去展开一个item
      * @param position 绝对位置;如果为-1表示当前item要被展开

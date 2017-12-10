@@ -8,11 +8,9 @@ import android.support.v7.widget.RecyclerView;
 import android.support.v7.widget.SimpleItemAnimator;
 import android.util.AttributeSet;
 import android.util.Log;
-import android.util.SparseArray;
 import android.view.View;
 import android.view.ViewGroup;
 
-import com.iqiyi.liquanfei_sx.vpnt.tools.LinkedNode;
 import com.iqiyi.liquanfei_sx.vpnt.tools.Rf;
 
 import java.util.ArrayList;
@@ -36,7 +34,7 @@ public class ExpandableRecyclerView3 extends RecyclerView implements View.OnClic
 
     private Map<View,MAdapter.ListenerInfo> mChildClickListeners=new HashMap<>();
 
-    private ExpandItemAddObserver mExpandItemObserver=new ExpandItemAddObserver();
+    private ExpandObserver mExpandItemObserver=new ExpandObserver();
 
     /**
      * TODO when notify
@@ -259,9 +257,9 @@ public class ExpandableRecyclerView3 extends RecyclerView implements View.OnClic
 
     public static abstract class Adapter extends RecyclerView.Adapter
     {
-        private ExpandItemAddObserver mObserver;
+        private ExpandObserver mObserver;
 
-        private void setObserver(ExpandItemAddObserver o)
+        private void setObserver(ExpandObserver o)
         {
             mObserver=o;
         }
@@ -304,7 +302,7 @@ public class ExpandableRecyclerView3 extends RecyclerView implements View.OnClic
         super.onSizeChanged(w, h, oldw, oldh);
     }
 
-    private class ExpandItemAddObserver
+    private class ExpandObserver
     {
         void onAdd(int ...position) {
             int i=0;
@@ -319,11 +317,13 @@ public class ExpandableRecyclerView3 extends RecyclerView implements View.OnClic
                 return;
             ei.insert(position[i]);
 
-            mInnerAdapter.notifyDataSetChanged();
+            mInnerAdapter.notifyItemInserted(mRoot.getRealPosition(0,position));
         }
 
-        void onChange(int ...position)
+        void onFresh(int depth)
         {
+            int i=0;
+            ExpandableItem ei=mRoot;
 
         }
     }
