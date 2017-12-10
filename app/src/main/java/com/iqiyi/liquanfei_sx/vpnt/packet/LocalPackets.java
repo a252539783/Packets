@@ -38,7 +38,7 @@ public class LocalPackets {
     private WeakLinkedList<OnSavedItemChangeListener> mSavedItemChangeListeners;
 
     public List<CaptureInfo> mAllPackets=new ArrayList<>();
-    public List<SavedInfo> mSavedPackets=new ArrayList<>();
+    public SavedInfoFilter mSavedPackets=new SavedInfoFilter(50,new ArrayList<SavedInfo>());
     private AppPortList mPortList;
 
     private LoadFilterThread mThread=new LoadFilterThread();
@@ -70,6 +70,7 @@ public class LocalPackets {
         {
             mAllPackets.get(i).mPackets.setKey(mKey,null,false);
         }
+        mSavedPackets.setKey(key,null,false);
     }
 
     public void addFilterKey(int key,int word)
@@ -89,6 +90,7 @@ public class LocalPackets {
         {
             mAllPackets.get(i).mPackets.setKey(mKey,null,false);
         }
+        mSavedPackets.setKey(key,null,false);
     }
 
     public boolean containSaved(int uid)
@@ -240,7 +242,7 @@ public class LocalPackets {
 
         mSavedPackets.add(new SavedInfo(uid,0));
         mgr().addRequest(PersistRequest.newCreateSavedRequest(uid));
-        callSavedChange();
+        callSavedChange(0);
     }
 
     void initSavedPacket(int uid,long time,TCPPacket packet)
@@ -281,9 +283,9 @@ public class LocalPackets {
                 if (indexOfSaved(uid)!=-1)
                     continue;
                 mSavedPackets.add(new SavedInfo(uid,nums[i]));
+                callSavedChange(mSavedPackets.size()-1);
             }
         }
-        callSavedChange();
     }
 
     synchronized void initHistory(String [] files)
@@ -358,7 +360,7 @@ public class LocalPackets {
         }
     }
 
-    private void callSavedChange()
+    private void callSavedChange(int index)
     {
         if (mSavedChangeListeners==null)
             return;
@@ -371,8 +373,15 @@ public class LocalPackets {
             OnSavedChangeListener l=it.next();
             if (l==null)
                 it.remove();
-            else
-                MApp.get().postMain(new OnSavedChangeRunnable(new WeakReference(l)));
+            else {
+                if (index==-1)
+                {
+                    MApp.get().postMain(new OnSavedChangeRunnable(new WeakReference(l)));
+                }else
+                {
+                    MApp.get().postMain(new OnSavedChangeRunnable(new WeakReference(l),index));
+                }
+            }
         }
     }
 
@@ -491,6 +500,19 @@ public class LocalPackets {
         filterLoadHistory(time,-1);
     }
 
+    public void filterSaved(int uid)
+    {
+        Message msg=Message.obtain();
+        msg.what=LoadFilterThread.LOAD_SAVED;
+        msg.arg1=uid;
+        mThread.getHandler().sendMessage(msg);
+    }
+
+    public void filterSaved()
+    {
+        filterSaved(-1);
+    }
+
     public void filterLoadHistory(int time,int list)
     {
         Message msg=Message.obtain();
@@ -503,7 +525,7 @@ public class LocalPackets {
     public class PacketsFilter extends Filter<PacketList>
     {
 
-        public PacketsFilter(int size, List src) {
+        public PacketsFilter(int size, List<PacketList> src) {
             super(size, src);
         }
 
@@ -529,6 +551,63 @@ public class LocalPackets {
         }
     }
 
+    public class SavedInfoFilter extends Filter<SavedInfo>
+    {
+
+        public SavedInfoFilter(int size, List<SavedInfo> src) {
+            super(size, src);
+        }
+
+        @Override
+        public boolean filter(int key, SavedInfo o) {
+            if (key==0)
+                return true;
+
+            boolean res=false;
+
+            if ((key&BY_NAME)!=0)
+            {
+                if (mFilterName==null||mFilterName.equals(""))
+                {
+                    res=true;
+                }else
+                {
+                    res=o.mInfo.appName.contains(mFilterName);
+                }
+            }
+
+            return res;
+        }
+    }
+
+    public class SavedFilter extends Filter<SavedItem>
+    {
+        public SavedFilter(int size, List<SavedItem> src) {
+            super(size, src);
+        }
+
+        @Override
+        public boolean filter(int key, SavedItem o) {
+            if (key==0)
+                return true;
+
+            boolean res=false;
+
+            if ((key&BY_NAME)!=0)
+            {
+                if (mFilterName==null||mFilterName.equals(""))
+                {
+                    res=true;
+                }else
+                {
+                    res=o.mPackets.info().appName.contains(mFilterName);
+                }
+            }
+
+            return res;
+        }
+    }
+
     private class LoadFilterThread extends LoopThread
     {
         private static final int LOAD_HISTORY=0;
@@ -545,24 +624,47 @@ public class LocalPackets {
         private class LoadHandler extends Handler implements Filter.LoadListener
         {
             int mCurrentTime=0;
+            int mCurrentUid=-1;
+
+            int mLoading=0;
 
             @Override
             public void handleMessage(Message msg) {
                 super.handleMessage(msg);
 
-                if (msg.what==LOAD_HISTORY)
+                mLoading=msg.what;
+                if (mLoading==LOAD_HISTORY)
                 {
                     mCurrentTime=msg.arg1;
                     mAllPackets.get(msg.arg1).mPackets.load(new WeakReference<Filter.LoadListener>(this));
-                }else if (msg.what==LOAD_SAVED)
+                }else if (mLoading==LOAD_SAVED)
                 {
-
+                    mCurrentUid=msg.arg1;
+                    if (mCurrentUid==-1)
+                    {
+                        mSavedPackets.load(new WeakReference<Filter.LoadListener>(this));
+                    }else
+                    {
+                        getSavedInfo(mCurrentUid).mPackets.load(new WeakReference<Filter.LoadListener>(this));
+                    }
                 }
             }
 
             @Override
             public void onLoadOne(int index) {
-                callPacketsChange(mCurrentTime,index);
+                switch (mLoading)
+                {
+                    case LOAD_HISTORY:
+                        callPacketsChange(mCurrentTime,index);
+                        break;
+                    case LOAD_SAVED:
+                        if (mCurrentUid!=-1)
+                            callSavedItemChange(mCurrentUid,index);
+                        else
+                            callSavedChange(index);
+                        break;
+                }
+
             }
 
             @Override
@@ -601,7 +703,9 @@ public class LocalPackets {
             if (request.hasRead())
             {
                 if (request instanceof PersistRequest.LoadRequest)
-                LocalPackets.get().filterLoadHistory(((PersistRequest.LoadRequest)request).mTimeIndex);
+                    LocalPackets.get().filterLoadHistory(((PersistRequest.LoadRequest)request).mTimeIndex);
+                else if (request instanceof PersistRequest.LoadSavedRequest)
+                    LocalPackets.get().filterSaved(((PersistRequest.LoadSavedRequest)request).mUid);
             }else
             {
                 mThread.mWriteQueue.add(request);
@@ -662,15 +766,15 @@ public class LocalPackets {
         CaptureInfo(long time)
         {
             mTime=time;
-            mPackets=new PacketsFilter(50,new ArrayList());
+            mPackets=new PacketsFilter(50,new ArrayList<PacketList>());
         }
     }
 
-    public static class SavedInfo
+    public class SavedInfo
     {
         public int mUid;
         public AppPortList.AppInfo mInfo;
-        public List<SavedItem > mPackets;
+        public SavedFilter mPackets;
         public int mNum=0;
 
         SavedInfo(int uid,int num)
@@ -678,7 +782,7 @@ public class LocalPackets {
             mUid=uid;
             mNum=num;
             mInfo=AppPortList.get().getAppByUid(uid);
-            mPackets=new ArrayList<>();
+            mPackets=new SavedFilter(50,new ArrayList<SavedItem>());
         }
     }
 
@@ -699,6 +803,7 @@ public class LocalPackets {
     public interface OnSavedChangeListener
     {
         void onChange();
+        void onAdd(int index);
     }
 
     public interface OnHistoryChangeListener
@@ -845,17 +950,29 @@ public class LocalPackets {
     private class OnSavedChangeRunnable implements Runnable
     {
         private WeakReference mL;
+        private int mIndex;
 
         OnSavedChangeRunnable(WeakReference l)
         {
             mL=l;
         }
 
+        OnSavedChangeRunnable(WeakReference l,int index)
+        {
+            this(l);
+            mIndex=index;
+        }
+
         @Override
         public void run() {
+
             OnSavedChangeListener l= (OnSavedChangeListener) mL.get();
-            if (l!=null)
-                l.onChange();
+            if (l!=null) {
+                if (mIndex==-1)
+                    l.onChange();
+                else
+                    l.onAdd(mIndex);
+            }
         }
     }
 }

@@ -42,6 +42,7 @@ public class SavedPresenter extends CommonPresenter implements LocalPackets.OnSa
     public void notifyFilterChanged()
     {
         mAdapter.onFilterChanged();
+        LocalPackets.mgr().addRequest(PersistRequest.newReadSavedRequest());
     }
 
     @Override
@@ -71,7 +72,18 @@ public class SavedPresenter extends CommonPresenter implements LocalPackets.OnSa
             h.sendEmptyMessage(0);
         }else
         {
-            ((RecyclerView.Adapter)mAdapter).notifyDataSetChanged();
+            ((SavedAdapter2)mAdapter).notifyFresh(0);
+        }
+    }
+
+    @Override
+    public void onAdd(int index) {
+        if (h!=null)
+        {
+            h.sendEmptyMessage(0);
+        }else
+        {
+            ((ExpandableRecyclerView3.Adapter)mAdapter).notifyItemAdd(index);
         }
     }
 

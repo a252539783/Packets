@@ -78,6 +78,11 @@ public class SavedAdapter extends ExpandableRecyclerView.Adapter<SavedAdapter.H1
         notifyDataSetChanged();
     }
 
+    @Override
+    public void onAdd(int index) {
+
+    }
+
     private class SavedItemAdapter extends ExpandableRecyclerView.Adapter<H2> implements LocalPackets.OnSavedItemChangeListener
     {
         private int mIndex;

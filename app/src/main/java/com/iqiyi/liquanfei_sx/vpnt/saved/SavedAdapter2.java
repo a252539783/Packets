@@ -57,7 +57,7 @@ public class SavedAdapter2 extends ExpandableRecyclerView3.Adapter implements IA
 
     @Override
     public void onFilterChanged() {
-
+        notifyFresh(0);
     }
 
     @Override
