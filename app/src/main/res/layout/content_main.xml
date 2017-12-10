@@ -21,6 +21,8 @@
                 android:id="@+id/tool_bar_main"
                 android:title="main"
                 android:layout_height="56dp"
+                android:focusable="true"
+                android:focusableInTouchMode="true"
                 android:layout_width="match_parent">
 
                 <LinearLayout
