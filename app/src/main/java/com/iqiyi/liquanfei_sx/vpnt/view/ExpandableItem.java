@@ -95,8 +95,10 @@ public class ExpandableItem {
      * @param initSize 展开的初始大小
      * @return true当被展开，false被跟着跌
      */
-    boolean expand(int position,int initSize)
+    int expand(int position,int initSize)
     {
+        int oldSize=mSize;
+
         if (position==-1)
         {
             int d=0;
@@ -132,14 +134,14 @@ public class ExpandableItem {
                 offsetChild(initSize,d);
                 //mParent.sizeChange(d);
             }
-            return expand;
+            return expand?-1:oldSize;
         }
 
         ExpandableItem ei=find(position);
         if (ei!=null)
-            return find(position).expand(-1,initSize);
+            return ei.expand(-1,initSize);
         else
-            return false;
+            return 0;
     }
 
     /**
