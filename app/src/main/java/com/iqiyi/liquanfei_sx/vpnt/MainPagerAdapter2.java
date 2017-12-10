@@ -5,6 +5,9 @@ import android.view.LayoutInflater;
 import android.view.View;
 import android.view.ViewGroup;
 
+import com.iqiyi.liquanfei_sx.vpnt.history.HistoryPresenter;
+import com.iqiyi.liquanfei_sx.vpnt.saved.SavedPresenter;
+
 /**
  * Created by Administrator on 2017/11/30.
  */
@@ -36,6 +39,20 @@ public class MainPagerAdapter2 extends PagerAdapter {
         for (FakeFragment pf:mViews)
         {
             pf.onPause();
+        }
+    }
+
+    public void notifyFilterChanged()
+    {
+        for (int i=0;i<mViews.length;i++)
+        {
+            if (mViews[i].getPresenter() instanceof HistoryPresenter)
+            {
+                ((HistoryPresenter)mViews[i].getPresenter()).notifyFilterChanged();
+            }else if (mViews[i].getPresenter() instanceof SavedPresenter)
+            {
+                ((SavedPresenter)mViews[i].getPresenter()).notifyFilterChanged();
+            }
         }
     }
 

@@ -119,6 +119,7 @@ public class MainPresenter extends CommonPresenter implements View.OnClickListen
     @Override
     public void onTextChanged(CharSequence s, int start, int before, int count) {
         LocalPackets.get().addFilterKey(Filter.BY_NAME,s.toString());
+        MApp.get().notifyFilterChanged();
     }
 
     @Override

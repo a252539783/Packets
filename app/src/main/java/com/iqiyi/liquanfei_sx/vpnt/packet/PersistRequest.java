@@ -199,14 +199,14 @@ public abstract class PersistRequest {
         }
     }
 
-    private static class LoadRequest extends PersistRequest
+    static class LoadRequest extends PersistRequest
     {
         private static final int DEFAULT_BUFL=8196;
         private static byte[] mBuffer=new byte[DEFAULT_BUFL];
 
-        private int mTimeIndex=-1;
+        int mTimeIndex=-1;
 
-        private int mIndex=-1;
+        int mIndex=-1;
 
         private LoadRequest()
         {

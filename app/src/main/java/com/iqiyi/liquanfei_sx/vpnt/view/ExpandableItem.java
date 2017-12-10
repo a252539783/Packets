@@ -280,6 +280,22 @@ public class ExpandableItem {
         mSize=size;
     }
 
+    void freshExpandChildren(int depth)
+    {
+        if (depth==mDepth+1)
+        {
+            int oldSize=mSize;
+            fresh(0);
+            offsetChild(mIndex,-oldSize);
+        }else if (depth>mDepth+1)
+        {
+            for (Map.Entry<Integer,LinkedNode<ExpandableItem>> entry:mExpands.entrySet())
+            {
+                entry.getValue().o.freshExpandChildren(depth);
+            }
+        }
+    }
+
     /**
      * 用绝对位置去得到一组相对位置
      *

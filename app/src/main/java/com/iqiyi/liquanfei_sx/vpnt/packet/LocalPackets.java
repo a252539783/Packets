@@ -600,7 +600,8 @@ public class LocalPackets {
         {
             if (request.hasRead())
             {
-                LocalPackets.get();
+                if (request instanceof PersistRequest.LoadRequest)
+                LocalPackets.get().filterLoadHistory(((PersistRequest.LoadRequest)request).mTimeIndex);
             }else
             {
                 mThread.mWriteQueue.add(request);

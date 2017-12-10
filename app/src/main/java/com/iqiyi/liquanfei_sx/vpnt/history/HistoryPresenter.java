@@ -58,6 +58,11 @@ public class HistoryPresenter extends CommonPresenter implements LocalPackets.On
         }
     }
 
+    public void notifyFilterChanged()
+    {
+        mAdapter.onFilterChanged();
+    }
+
     @Override
     public void onChange() {
         if (h!=null)

@@ -39,6 +39,11 @@ public class SavedPresenter extends CommonPresenter implements LocalPackets.OnSa
         LocalPackets.mgr().addRequest(PersistRequest.newReadSavedRequest());
     }
 
+    public void notifyFilterChanged()
+    {
+        mAdapter.onFilterChanged();
+    }
+
     @Override
     protected void onPause() {
         LocalPackets.get().removeSavedListener(this);

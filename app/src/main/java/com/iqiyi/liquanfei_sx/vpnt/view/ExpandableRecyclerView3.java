@@ -190,7 +190,6 @@ public class ExpandableRecyclerView3 extends RecyclerView implements View.OnClic
                 return;
 
             int []p=mRoot.get(position);
-            Log.e("xx","current mroot childposition:"+mRoot.mChildPosition);
             mAdapter.onBindViewHolder(holder,p);
             if (mAdapter.canExpand(p))
             {
@@ -298,6 +297,11 @@ public class ExpandableRecyclerView3 extends RecyclerView implements View.OnClic
         {
             mObserver.onAdd(position);
         }
+
+        public final void notifyFresh(int depth)
+        {
+            mObserver.onFresh(depth);
+        }
     }
 
     static final int MAXITEM=20;
@@ -327,9 +331,8 @@ public class ExpandableRecyclerView3 extends RecyclerView implements View.OnClic
 
         void onFresh(int depth)
         {
-            int i=0;
-            ExpandableItem ei=mRoot;
-
+            mRoot.freshExpandChildren(depth);
+            mInnerAdapter.notifyDataSetChanged();
         }
     }
 }

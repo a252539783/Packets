@@ -77,7 +77,9 @@ public class HistoryAdapter2 extends ExpandableRecyclerView3.Adapter implements 
 
     @Override
     public void onFilterChanged() {
-
+        notifyFresh(1);
+        for (int i=0;i<mAllHistory.size();i++)
+            LocalPackets.mgr().addRequest(PersistRequest.newReadRequest(i));
     }
 
     @Override

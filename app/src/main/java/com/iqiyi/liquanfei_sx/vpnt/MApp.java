@@ -101,6 +101,11 @@ public class MApp extends Application {
         }
     }
 
+    public void notifyFilterChanged()
+    {
+        mAdapter.notifyFilterChanged();
+    }
+
     public void releaseResource(int requestCode,Object obj)
     {
         WeakLinkedList<OnDispatchResourceListener> ls=mListeners.get(requestCode);
