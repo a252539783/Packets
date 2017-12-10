@@ -25,7 +25,7 @@ public class ExpandableItem {
         }
     }
 
-    static final int MAXITEM=20;
+    static final int MAXITEM=5;
 
     int mIndex=0;
     int mSize=0;
@@ -115,7 +115,7 @@ public class ExpandableItem {
             if (d!=0)
             {
                 offsetChild(initSize,d);
-                mParent.sizeChange(d);
+                //mParent.sizeChange(d);
             }
             return expand;
         }
@@ -257,6 +257,8 @@ public class ExpandableItem {
             mChildPosition-=d;
         }
 
+        if (mParent!=null&&size-mSize!=0)
+            mParent.sizeChange(size-mSize);
         mSize=size;
     }
 
@@ -300,7 +302,7 @@ public class ExpandableItem {
         if (mChildPosition==position)
         {
             //当前child就是目标
-            mEnd=mChild;
+            //mEnd=mChild;
             saveChildPosition();
             return mChild.o;
         }
@@ -349,11 +351,17 @@ public class ExpandableItem {
                     {
                         //下一个应该是被展开过得,取出保存的，替换
                         mChild.replaceThisNext(ei);
+
+                        //如果替换的下一个刚好是start，同时更新start
+                        if (mChild==mStart.previous)
+                        {
+                            mStart=mChild.next;
+                        }
                     }else
                     {
                         //下一个不是被展开的
                         //如果旧的被展开则插入新的
-                        if (mChild.next.o.mSize!=0)
+                        if (mChild.next!=null&&mExpands.get(mChild.next.o.mIndex)!=null)
                         {
                             mChild.replaceThisNext(new LinkedNode<>(new ExpandableItem(mDepth+1,this)));
 
@@ -412,13 +420,25 @@ public class ExpandableItem {
                     {
                         //上一个应该是被展开过得,取出保存的，替换
                         mChild.replaceThisPrevious(ei);
+
+                        //如果替换的上一个刚好是end，同时更新end
+                        if (mChild==mEnd.next)
+                        {
+                            mEnd=mChild.previous;
+                        }
                     }else
                     {
                         //上一个不是被展开的
                         //如果旧的被展开则直接插入新的
-                        if (mChild.previous.o.mSize!=0)
+                        if (mChild.previous!=null&&mExpands.get(mChild.previous.o.mIndex)!=null)
                         {
                             mChild.replaceThisPrevious(new LinkedNode<>(new ExpandableItem(mDepth+1,this)));
+
+                            //如果替换的上一个刚好是end，同时更新end
+                            if (mChild==mEnd.next)
+                            {
+                                mEnd=mChild.previous;
+                            }
                         }
 
                         {
