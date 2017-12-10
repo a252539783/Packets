@@ -52,6 +52,9 @@ public abstract class Filter<T> implements List<T>{
         if (mFiltered[mCurrentKey]==null)
         {
             mFiltered[mCurrentKey]=new ArrayList<>();
+        }else
+        {
+            mFiltered[mCurrentKey].clear();
         }
         mCachedIndex[mCurrentKey]=0;
 
