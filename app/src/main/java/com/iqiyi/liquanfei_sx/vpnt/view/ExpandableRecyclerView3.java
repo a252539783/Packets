@@ -142,7 +142,7 @@ public class ExpandableRecyclerView3 extends RecyclerView implements View.OnClic
         if ((expandSize=mRoot.expand(li.mHolder.getAdapterPosition(),mAdapter.getItemCount(p)))==-1)
         {
             mAdapter.onExpand(p);
-            mInnerAdapter.notifyItemRangeInserted(mRoot.getRealPosition(0,p)+1,mAdapter.getItemCount(p));
+            mInnerAdapter.notifyItemRangeInserted(mRoot.getRealPosition(0,p),mAdapter.getItemCount(p));
         }else
         {
             mInnerAdapter.notifyItemRangeRemoved(mRoot.getRealPosition(0,p)+1,expandSize);

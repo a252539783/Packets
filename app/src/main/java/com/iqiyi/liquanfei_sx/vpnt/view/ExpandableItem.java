@@ -82,11 +82,12 @@ public class ExpandableItem {
         int res=position[depth];
         for (Map.Entry<Integer,LinkedNode<ExpandableItem>> entry:mExpands.entrySet())
         {
-            res+=entry.getValue().o.mSize;
+            if (entry.getKey()<position[depth])
+                res+=entry.getValue().o.mSize;
         }
 
         ExpandableItem ei=findExpand(position[depth]);
-        return ei==null?res:res+ei.getRealPosition(depth+1,position);
+        return ei==null?res:res+ei.getRealPosition(depth+1,position)+1;
     }
 
     /**
