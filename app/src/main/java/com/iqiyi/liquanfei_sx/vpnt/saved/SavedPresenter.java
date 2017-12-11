@@ -47,21 +47,21 @@ public class SavedPresenter extends CommonPresenter implements LocalPackets.OnSa
 
     @Override
     protected void onPause() {
-        LocalPackets.get().removeSavedListener(this);
-
-        if (mAdapter!=null)
-            mAdapter.removeListeners();
+//        LocalPackets.get().removeSavedListener(this);
+//
+//        if (mAdapter!=null)
+//            mAdapter.removeListeners();
     }
 
     @Override
     protected void onResume() {
         if (mAdapter!=null) {
             ((RecyclerView.Adapter)mAdapter).notifyDataSetChanged();
-            LocalPackets.get().addSavedChangeListener(this);
-            LocalPackets.mgr().addRequest(PersistRequest.newReadSavedRequest());
-            if (mIsBound) {
-                mAdapter.setListeners();
-            }
+//            LocalPackets.get().addSavedChangeListener(this);
+//            LocalPackets.mgr().addRequest(PersistRequest.newReadSavedRequest());
+//            if (mIsBound) {
+//                mAdapter.setListeners();
+//            }
         }
     }
 

@@ -40,21 +40,20 @@ public class HistoryPresenter extends CommonPresenter implements LocalPackets.On
 
     @Override
     protected void onPause() {
-        LocalPackets.get().removeHistoryListener(this);
-
-        if (mAdapter!=null)
-            mAdapter.removeListeners();
+//        LocalPackets.get().removeHistoryListener(this);
+//
+//        if (mAdapter!=null)
+//            mAdapter.removeListeners();
     }
 
     @Override
     protected void onResume() {
         if (mAdapter!=null) {
             ((RecyclerView.Adapter)mAdapter).notifyDataSetChanged();
-            LocalPackets.get().addHistoryChangeListener(this);
-            LocalPackets.get().addHistoryChangeListener(this);
-            if (mIsBound) {
-                mAdapter.setListeners();
-            }
+//            LocalPackets.get().addHistoryChangeListener(this);
+//            if (mIsBound) {
+//                mAdapter.setListeners();
+//            }
         }
     }
 
