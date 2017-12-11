@@ -261,22 +261,13 @@ public class ExpandableItem {
     void fresh(int size)
     {
         mExpands.clear();
-        if (mEnd!=null&&mEnd.o.mIndex>=size)
-        {
-            int d=mEnd.o.mIndex-size+1;
-            LinkedNode<ExpandableItem> ei=mStart;
-            ei.o.mIndex-=d;
-            ei=ei.next;
-            while(ei!=mStart&&ei!=null)
-            {
-                ei.o.mIndex-=d;
-                ei=ei.next;
-            }
-            mChildPosition-=d;
-        }
+        mChildPosition=0;
+        mChildCount=0;
+        mChild=mStart=mEnd=null;
 
-        if (mParent!=null&&size-mSize!=0)
-            mParent.sizeChange(size-mSize);
+        if (mParent!=null&&size-mSize!=0) {
+            mParent.sizeChange(size - mSize);
+        }
         mSize=size;
     }
 
