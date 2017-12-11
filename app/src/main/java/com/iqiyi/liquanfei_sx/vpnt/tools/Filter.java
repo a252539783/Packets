@@ -184,7 +184,7 @@ public abstract class Filter<T> implements List<T>{
                 }
             }else
             {
-                if (mFiltered[i].remove(o))
+                if (mFiltered[i]!=null&&mFiltered[i].remove(o))
                 {
                     mCachedIndex[i]--;
                 }
@@ -223,7 +223,8 @@ public abstract class Filter<T> implements List<T>{
     public void clear() {
         for (int i=0;i<mFiltered.length;i++)
         {
-            mFiltered[i].clear();
+            if (mFiltered[i]!=null)
+                mFiltered[i].clear();
             mCachedIndex[i]=0;
         }
     }
@@ -267,7 +268,7 @@ public abstract class Filter<T> implements List<T>{
 
     public int size(int key)
     {
-        return mFiltered[key].size();
+        return mFiltered[key]==null?0:mFiltered[key].size();
     }
 
     @Override
