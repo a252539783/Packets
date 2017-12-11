@@ -71,11 +71,7 @@ public class EditPresenter extends CommonPresenter implements Toolbar.OnMenuItem
             case R.id.menu_b_save:
                     if (mPacket!=null)
                     {
-                        if (!LocalPackets.get().containSaved(mList.info().info.applicationInfo.uid))
-                        {
-                            LocalPackets.get().newSaved(mList.info().info.applicationInfo.uid);
-                        }
-
+                        LocalPackets.get().newSaved(mList.info().info.applicationInfo.uid);
                         LocalPackets.mgr().addRequest(PersistRequest.newWriteSavedRequest("",System.nanoTime(),mList,mPacket));
                     }
                 break;

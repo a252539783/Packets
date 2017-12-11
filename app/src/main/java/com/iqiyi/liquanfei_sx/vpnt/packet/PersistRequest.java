@@ -393,8 +393,6 @@ public abstract class PersistRequest {
                     }
 
                     LocalPackets.get().initSavedList(file.list(), nums);
-                } else {
-                    LocalPackets.get().initHistory(null);
                 }
             } else {
                 int sindex = LocalPackets.get().indexOfSaved(mUid);

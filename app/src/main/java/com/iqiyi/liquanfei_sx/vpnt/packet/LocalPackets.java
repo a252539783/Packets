@@ -95,24 +95,19 @@ public class LocalPackets {
 
     public boolean containSaved(int uid)
     {
-        for (int i=0;i<mSavedPackets.size();i++)
-        {
-            if (mSavedPackets.get(i).mUid==uid)
-                return true;
-        }
-
-        return false;
+        return indexOfSaved(uid)!=-1;
     }
 
     public SavedInfo getSavedInfo(int uid)
     {
-        for (int i=0;i<mSavedPackets.size();i++)
+        int i=indexOfSaved(uid);
+        if (i==-1)
         {
-            if (mSavedPackets.get(i).mUid==uid)
-                return mSavedPackets.get(i);
+            return null;
+        }else
+        {
+            return mSavedPackets.get(i);
         }
-
-        return null;
     }
 
     public int indexOfSaved(int uid)
@@ -240,9 +235,14 @@ public class LocalPackets {
         if (AppPortList.get()==null)
             AppPortList.init();
 
-        mSavedPackets.add(new SavedInfo(uid,0));
-        mgr().addRequest(PersistRequest.newCreateSavedRequest(uid));
-        callSavedChange(0);
+        if (!containSaved(uid)) {
+            mSavedPackets.add(new SavedInfo(uid, 0));
+            mgr().addRequest(PersistRequest.newCreateSavedRequest(uid));
+            callSavedChange(0);
+        }else
+        {
+            getSavedInfo(uid).mNum++;
+        }
     }
 
     void initSavedPacket(int uid,long time,TCPPacket packet)
@@ -266,7 +266,7 @@ public class LocalPackets {
     void initSavedPacketUnchecked(int list,long time,TCPPacket packet)
     {
         SavedInfo si=mSavedPackets.get(list);
-        si.mPackets.add(new SavedItem(time,new PacketList(packet,0,time,si.mUid),""));
+        si.add(new SavedItem(time,new PacketList(packet,0,time,si.mUid),""));
         callSavedItemChange(list,si.mPackets.size()-1);
     }
 
@@ -280,10 +280,14 @@ public class LocalPackets {
             for (int i=0;i<files.length;i++)
             {
                 int uid=Integer.parseInt(files[i]);
-                if (indexOfSaved(uid)!=-1)
-                    continue;
-                mSavedPackets.add(new SavedInfo(uid,nums[i]));
-                callSavedChange(mSavedPackets.size()-1);
+                SavedInfo si;
+                if ((si=getSavedInfo(uid))!=null)
+                {
+                    si.mNum=nums[i];
+                }else {
+                    mSavedPackets.add(new SavedInfo(uid, nums[i]));
+                    callSavedChange(mSavedPackets.size() - 1);
+                }
             }
         }
     }
@@ -706,7 +710,7 @@ public class LocalPackets {
                     LocalPackets.get().filterLoadHistory(((PersistRequest.LoadRequest)request).mTimeIndex);
                 else if (request instanceof PersistRequest.LoadSavedRequest)
                     LocalPackets.get().filterSaved(((PersistRequest.LoadSavedRequest)request).mUid);
-            }else
+            }
             {
                 mThread.mWriteQueue.add(request);
                 synchronized (this) {
@@ -783,6 +787,12 @@ public class LocalPackets {
             mNum=num;
             mInfo=AppPortList.get().getAppByUid(uid);
             mPackets=new SavedFilter(50,new ArrayList<SavedItem>());
+        }
+
+        void add(SavedItem si)
+        {
+            mPackets.add(si);
+            //mNum++;
         }
     }
 
