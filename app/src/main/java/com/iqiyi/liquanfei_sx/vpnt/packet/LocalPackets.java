@@ -93,6 +93,16 @@ public class LocalPackets {
         mSavedPackets.setKey(key,null,false);
     }
 
+    public void clearSaved()
+    {
+        mSavedPackets.clear();
+    }
+
+    public void clearHistory()
+    {
+        mAllPackets.clear();
+    }
+
     public boolean containSaved(int uid)
     {
         return indexOfSaved(uid)!=-1;

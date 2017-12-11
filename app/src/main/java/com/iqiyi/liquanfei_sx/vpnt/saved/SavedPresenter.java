@@ -2,6 +2,7 @@ package com.iqiyi.liquanfei_sx.vpnt.saved;
 
 import android.os.Handler;
 import android.os.Message;
+import android.support.v4.widget.SwipeRefreshLayout;
 import android.support.v7.widget.RecyclerView;
 import android.view.View;
 
@@ -10,7 +11,6 @@ import com.iqiyi.liquanfei_sx.vpnt.IAdapter;
 import com.iqiyi.liquanfei_sx.vpnt.R;
 import com.iqiyi.liquanfei_sx.vpnt.packet.LocalPackets;
 import com.iqiyi.liquanfei_sx.vpnt.packet.PersistRequest;
-import com.iqiyi.liquanfei_sx.vpnt.view.ExpandableRecyclerView2;
 import com.iqiyi.liquanfei_sx.vpnt.view.ExpandableRecyclerView3;
 
 import java.lang.ref.WeakReference;
@@ -19,9 +19,10 @@ import java.lang.ref.WeakReference;
  * Created by Administrator on 2017/11/15.
  */
 
-public class SavedPresenter extends CommonPresenter implements LocalPackets.OnSavedChangeListener {
+public class SavedPresenter extends CommonPresenter implements LocalPackets.OnSavedChangeListener,SwipeRefreshLayout.OnRefreshListener{
 
     private ExpandableRecyclerView3 mHistories;
+    private SwipeRefreshLayout mFreshLayout;
     private IAdapter mAdapter;
 
     private boolean mIsBound=false;
@@ -30,7 +31,9 @@ public class SavedPresenter extends CommonPresenter implements LocalPackets.OnSa
 
     @Override
     protected void onViewBind(View v) {
-        mHistories=(ExpandableRecyclerView3)v.findViewById(R.id.erv_history);
+        mHistories=(ExpandableRecyclerView3)v.findViewById(R.id.erv_packets);
+        mFreshLayout=(SwipeRefreshLayout)v.findViewById(R.id.fresh_packets);
+        mFreshLayout.setOnRefreshListener(this);
         mAdapter=new SavedAdapter2(v.getContext());
 
         LocalPackets.get().addSavedChangeListener(this);
@@ -42,6 +45,13 @@ public class SavedPresenter extends CommonPresenter implements LocalPackets.OnSa
     public void notifyFilterChanged()
     {
         mAdapter.onFilterChanged();
+        LocalPackets.mgr().addRequest(PersistRequest.newReadSavedRequest());
+    }
+
+    public void notifyFresh()
+    {
+        LocalPackets.get().clearSaved();
+        ((SavedAdapter2)mAdapter).notifyFresh(0);
         LocalPackets.mgr().addRequest(PersistRequest.newReadSavedRequest());
     }
 
@@ -74,6 +84,10 @@ public class SavedPresenter extends CommonPresenter implements LocalPackets.OnSa
         {
             ((SavedAdapter2)mAdapter).notifyFresh(0);
         }
+        if (mFreshLayout.isRefreshing())
+        {
+            mFreshLayout.setRefreshing(false);
+        }
     }
 
     @Override
@@ -85,6 +99,15 @@ public class SavedPresenter extends CommonPresenter implements LocalPackets.OnSa
         {
             ((ExpandableRecyclerView3.Adapter)mAdapter).notifyItemAdd(index);
         }
+        if (mFreshLayout.isRefreshing())
+        {
+            mFreshLayout.setRefreshing(false);
+        }
+    }
+
+    @Override
+    public void onRefresh() {
+        notifyFresh();
     }
 
     private static class H extends Handler
