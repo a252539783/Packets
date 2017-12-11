@@ -60,7 +60,7 @@
             android:layout_height="40dp"
             app:tabBackground="@color/colorPrimary"
             app:tabSelectedTextColor="@android:color/white"
-            app:tabTextColor="@android:color/darker_gray"
+            app:tabTextColor="#80ffffff"
             app:tabIndicatorColor="@android:color/white"
             app:tabTextAppearance="@style/TextAppearance.AppCompat.Small"
             android:id="@+id/tab_main">

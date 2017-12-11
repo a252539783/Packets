@@ -1,7 +1,11 @@
 package com.iqiyi.liquanfei_sx.vpnt.view;
 
 import android.content.Context;
+import android.graphics.Canvas;
+import android.graphics.Color;
+import android.graphics.Paint;
 import android.graphics.Rect;
+import android.graphics.drawable.Drawable;
 import android.support.annotation.Nullable;
 import android.support.v7.widget.LinearLayoutManager;
 import android.support.v7.widget.RecyclerView;
@@ -102,14 +106,7 @@ public class ExpandableRecyclerView3 extends RecyclerView implements View.OnClic
 
         mInnerAdapter=new MAdapter();
 
-        //TODO a item decoration
-        addItemDecoration(new ItemDecoration() {
-            @Override
-            public void getItemOffsets(Rect outRect, View view, RecyclerView parent, RecyclerView.State state) {
-                outRect.set(0, 0, 0, 1);
-            }
-        });
-        //mRealPosition.put(null,0);
+        addItemDecoration(new MDecoration());
         super.setAdapter(mInnerAdapter);
     }
 
@@ -333,6 +330,45 @@ public class ExpandableRecyclerView3 extends RecyclerView implements View.OnClic
         {
             mRoot.freshExpandChildren(depth);
             mInnerAdapter.notifyDataSetChanged();
+        }
+    }
+
+    private class MDecoration extends ItemDecoration
+    {
+        private Drawable mDivider;
+        private Paint mPaint;
+
+        private int mOffset=0;
+
+        MDecoration()
+        {
+            mDivider=getContext().obtainStyledAttributes(new int[]{android.R.attr.listDivider}).getDrawable(0);
+            mPaint=new Paint();
+            mPaint.setColor(Color.parseColor("#dedede"));
+            if (mDivider!=null)
+                mOffset=mDivider.getIntrinsicHeight();
+        }
+
+        @Override
+        public void getItemOffsets(Rect outRect, View view, RecyclerView parent, State state) {
+            outRect.set(0, 0, 0, mOffset);
+        }
+
+        @Override
+        public void onDraw(Canvas c, RecyclerView parent, State state) {
+            super.onDraw(c, parent, state);
+
+            int l = parent.getPaddingLeft();
+            int r = parent.getWidth() - parent.getPaddingRight();
+            final int childCount = parent.getChildCount();
+            for (int i = 0; i < childCount-1; i++){
+                final View child = parent.getChildAt(i);
+
+                final RecyclerView.LayoutParams params = (RecyclerView.LayoutParams)child.getLayoutParams();
+                final int t = child.getBottom() + params.bottomMargin;
+                final int b = t + mDivider.getIntrinsicHeight();
+                c.drawRect(l, t, r, b,mPaint);
+            }
         }
     }
 }

@@ -1,6 +1,6 @@
 package com.iqiyi.liquanfei_sx.vpnt;
 
-import android.database.DataSetObserver;
+import android.graphics.Color;
 import android.view.LayoutInflater;
 import android.view.View;
 import android.view.ViewGroup;
@@ -48,6 +48,7 @@ public class FilterSpinnerAdapter extends BaseAdapter implements SpinnerAdapter 
             }
 
             convertView=mInflater.inflate(R.layout.item_packet,parent,false);
+            convertView.setBackgroundColor(Color.TRANSPARENT);
             ((TextView)convertView).setText(mKeys[position]);
         }
 
