@@ -2,6 +2,7 @@ package com.iqiyi.liquanfei_sx.vpnt;
 
 import android.content.Intent;
 import android.os.Bundle;
+import android.view.Menu;
 
 public class MainActivity extends CommonActivity{
 
@@ -32,5 +33,11 @@ public class MainActivity extends CommonActivity{
     @Override
     public int getLayoutId() {
         return R.layout.content_main;
+    }
+
+    @Override
+    public boolean onCreateOptionsMenu(Menu menu) {
+        getMenuInflater().inflate(R.menu.main_activity,menu);
+        return true;
     }
 }

@@ -10,6 +10,7 @@ import android.support.v4.view.PagerAdapter;
 import android.support.v4.view.ViewPager;
 import android.support.v7.app.AppCompatActivity;
 import android.support.v7.widget.AppCompatSpinner;
+import android.support.v7.widget.Toolbar;
 import android.text.Editable;
 import android.text.TextWatcher;
 import android.util.Log;
@@ -35,6 +36,7 @@ public class MainPresenter extends CommonPresenter implements View.OnClickListen
     private FloatingActionButton mButton_start;
     private AppCompatSpinner mSpinner;
     private EditText mEditFilter;
+    private Toolbar mToolbar;
 
     private boolean mPaused=false;
 
@@ -52,6 +54,9 @@ public class MainPresenter extends CommonPresenter implements View.OnClickListen
         mButton_start=(FloatingActionButton)v.findViewById(R.id.fab_start);
         mSpinner=(AppCompatSpinner)v.findViewById(R.id.main_spinner);
         mEditFilter=(EditText) v.findViewById(R.id.edit_filter);
+        mToolbar=(Toolbar)v.findViewById(R.id.tool_bar_main);
+
+        mActivity.setSupportActionBar(mToolbar);
         mSpinner.setAdapter(new FilterSpinnerAdapter(new String[]{"按应用","按包名","按目的ip","按目的端口","按源端口","按目的ip+目的端口","按目的ip+源端口"}));
         mSpinner.setOnItemSelectedListener(this);
         mEditFilter.addTextChangedListener(this);

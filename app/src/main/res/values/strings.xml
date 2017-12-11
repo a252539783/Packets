@@ -3,6 +3,11 @@
 
     <string name="save">保存</string>
 
+    <string name="open_floating">开启悬浮窗</string>
+    <string name="close_floating">关闭悬浮窗</string>
+
     <string name="hint_inputkey">过滤关键字</string>
     <string name="select_inputkey">过滤类型</string>
+
+    <string name="exit_entirely">彻底退出</string>
 </resources>
