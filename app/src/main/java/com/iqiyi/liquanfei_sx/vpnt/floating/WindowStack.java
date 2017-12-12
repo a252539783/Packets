@@ -32,6 +32,9 @@ public class WindowStack {
     private WindowManager.LayoutParams params;
     private LayoutInflater mInflater;
 
+    private boolean mShown=false;
+    private boolean mHideWhenForeground=false;
+
     private float mWindowX=0,mWindowY=0;
     private Point mMaxSize=new Point();
     private int mMaxX,mMaxY;
@@ -46,13 +49,16 @@ public class WindowStack {
     {
         mRoot=new FrameLayout(c);
         mRoot.setLayoutParams(new ViewGroup.LayoutParams(ViewGroup.LayoutParams.MATCH_PARENT, ViewGroup.LayoutParams.MATCH_PARENT));
+        mRoot.setVisibility(View.GONE);
 
         mInflater=LayoutInflater.from(c);
         mWm=(WindowManager) c.getSystemService(Context.WINDOW_SERVICE);
         mWm.getDefaultDisplay().getSize(mMaxSize);
+        FloatingWindow.sScreenHeight=mMaxSize.y;
+        FloatingWindow.sScreenWidth=mMaxSize.x;
 
         params=new WindowManager.LayoutParams();
-        params.flags= WindowManager.LayoutParams.FLAG_NOT_FOCUSABLE;
+        params.flags= WindowManager.LayoutParams.FLAG_NOT_FOCUSABLE|WindowManager.LayoutParams.FLAG_NOT_TOUCH_MODAL|WindowManager.LayoutParams.FLAG_SECURE;
         params.type=WindowManager.LayoutParams.TYPE_PHONE;
         params.width = WindowManager.LayoutParams.WRAP_CONTENT;
         params.height = WindowManager.LayoutParams.WRAP_CONTENT;
@@ -77,6 +83,7 @@ public class WindowStack {
             return false;
 
         fw.setWindowStack(this);
+        fw.onCreate();
         startWindowUnChecked(fw);
 
         return true;
@@ -88,13 +95,14 @@ public class WindowStack {
         if (previous!=null)
         {
             previous.onPause();
+            if (previous.getView()!=null)
+                mRoot.removeViewInLayout(previous.getView());
         }
 
         mWindows.push(fw);
-        mRoot.removeAllViews();
+        mRoot.addView(fw.onCreateView(mInflater,mRoot));
         fw.getWindowSize(mSize);
         setWindowSize(mSize[0],mSize[1]);
-        mRoot.addView(fw.onCreateView(mInflater,mRoot));
 
         fw.onResume();
     }
@@ -102,16 +110,24 @@ public class WindowStack {
     void backWindow()
     {
         FloatingWindow current=mWindows.pop();
-        current.onPause();
-        current.onDestroy();
+        if (current!=null)
+        {
+            current.onPause();
+            current.onDestroy();
 
-        mRoot.removeAllViews();
+            mRoot.removeViewInLayout(current.getView());
+        }
+
+
         FloatingWindow fw= mWindows.peek();
-        fw.getWindowSize(mSize);
-        setWindowSize(mSize[0],mSize[1]);
-        mRoot.addView(fw.getView());
+        if (fw!=null)
+        {
+            fw.getWindowSize(mSize);
+            setWindowSize(mSize[0],mSize[1]);
+            mRoot.addView(fw.getView());
 
-        fw.onResume();
+            fw.onResume();
+        }
     }
 
     void setWindowPosition(int x,int y)
@@ -163,6 +179,13 @@ public class WindowStack {
         return res;
     }
 
+    void notifyWidowSizeChange()
+    {
+        FloatingWindow fw= mWindows.peek();
+        fw.getWindowSize(mSize);
+        setWindowSize(mSize[0],mSize[1]);
+    }
+
     void setWindowSize(int w,int h)
     {
         mMaxX=mMaxSize.x-w;
@@ -172,9 +195,39 @@ public class WindowStack {
         mWm.updateViewLayout(mRoot,params);
     }
 
-    void hide()
+    public boolean hideWhenForeground()
     {
-        mRoot.setVisibility(View.GONE);
+        return mHideWhenForeground;
+    }
+
+    public void setHideWhenForeground(boolean hide)
+    {
+        mHideWhenForeground=hide;
+    }
+
+    public boolean isShown()
+    {
+        return mShown;
+    }
+
+    public void hide()
+    {
+        if (mShown)
+        {
+            mShown=false;
+            mRoot.setVisibility(View.GONE);
+            mWindows.peek().onPause();
+        }
+    }
+
+    public void show()
+    {
+        if (!mShown)
+        {
+            mShown=true;
+            mRoot.setVisibility(View.VISIBLE);
+            mWindows.peek().onResume();
+        }
     }
 
     int horizon()
@@ -193,6 +246,11 @@ public class WindowStack {
     public void destroy()
     {
         mWm.removeView(mRoot);
+
+        for(FloatingWindow fw:mWindows)
+        {
+            fw.onDestroy();
+        }
         instances.remove(this);
     }
 

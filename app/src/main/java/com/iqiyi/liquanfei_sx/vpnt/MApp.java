@@ -1,6 +1,9 @@
 package com.iqiyi.liquanfei_sx.vpnt;
 
+import android.app.Activity;
 import android.app.Application;
+import android.content.res.Resources;
+import android.os.Bundle;
 import android.os.Handler;
 import android.support.v4.view.ViewPager;
 import android.util.SparseArray;
@@ -15,6 +18,10 @@ import com.iqiyi.liquanfei_sx.vpnt.saved.SavedFragment2;
 import com.iqiyi.liquanfei_sx.vpnt.tools.DisplayHelper;
 import com.iqiyi.liquanfei_sx.vpnt.tools.WeakLinkedList;
 import com.squareup.leakcanary.LeakCanary;
+
+import java.util.ArrayList;
+import java.util.List;
+import java.util.ListIterator;
 
 /**
  * Created by liquanfei_sx on 2017/8/14.
@@ -31,9 +38,15 @@ public class MApp extends Application {
     private static MApp mInstance;
     private Handler mH=new Handler();
 
+    private Resources.Theme mTheme=null;
+
+    private List<WindowStack> mWindowStacks=new ArrayList<>();
+
     private ViewPager mPacketContent=null;
 
     private MainPagerAdapter2 mAdapter;
+
+    private ActivityLifecycleCallbacks mActivityCallbacks=new MActivityLifeCallbacks();
 
     @Override
     public void onCreate() {
@@ -66,12 +79,10 @@ public class MApp extends Application {
         });
         mSharedSource[RESOURCE_PACKET_PAGER]=mPacketContent;
 
-        WindowStack.init(this, DefaultWindow.class);
-    }
+        mWindowStacks.add(WindowStack.init(this, DefaultWindow.class));
+        mWindowStacks.get(0).setHideWhenForeground(true);
 
-    public View packetContent()
-    {
-        return mPacketContent;
+        registerActivityLifecycleCallbacks(mActivityCallbacks);
     }
 
     public static MApp get()
@@ -84,11 +95,23 @@ public class MApp extends Application {
         mH.post(r);
     }
 
+    public void removeDispatchListener(int requestCode,OnDispatchResourceListener l)
+    {
+        ListIterator<OnDispatchResourceListener> it=mListeners.get(requestCode).listIterator();
+        while(it.hasNext())
+        {
+            if (it.next()==l)
+            {
+                it.remove();
+            }
+        }
+    }
+
     public void getResource(int requestCode,OnDispatchResourceListener l)
     {
-        WeakLinkedList listeners=mListeners.get(requestCode);
+        WeakLinkedList<OnDispatchResourceListener> listeners=mListeners.get(requestCode);
         if (listeners==null) {
-            listeners = new WeakLinkedList();
+            listeners = new WeakLinkedList<>();
             mListeners.put(requestCode,listeners);
         }
 
@@ -109,7 +132,7 @@ public class MApp extends Application {
     public void releaseResource(int requestCode,Object obj)
     {
         WeakLinkedList<OnDispatchResourceListener> ls=mListeners.get(requestCode);
-        if (ls!=null&&ls.size()==0)
+        if (ls!=null&&ls.size()!=0)
         {
             ls.poll().onDispatch(requestCode,obj);
             mResourceOccupied[requestCode]=true;
@@ -117,6 +140,16 @@ public class MApp extends Application {
         {
             mResourceOccupied[requestCode]=false;
         }
+    }
+
+    @Override
+    public Resources.Theme getTheme() {
+        if (mTheme!=null)
+        {
+            return mTheme;
+        }
+
+        return super.getTheme();
     }
 
     public interface OnDispatchResourceListener
@@ -127,5 +160,75 @@ public class MApp extends Application {
     public interface OnRequestResourceListener
     {
         void onRequest(int resourceCode);
+    }
+
+    private class MActivityLifeCallbacks implements ActivityLifecycleCallbacks
+    {
+        int mForegroundNum=0;
+
+        @Override
+        public void onActivityCreated(Activity activity, Bundle savedInstanceState) {
+
+        }
+
+        @Override
+        public void onActivityStarted(Activity activity) {
+            mForegroundNum++;
+
+            for (int i=0;i<mWindowStacks.size();i++)
+            {
+                WindowStack ws=mWindowStacks.get(i);
+                if (ws.hideWhenForeground())
+                {
+                    ws.hide();
+                }
+            }
+
+            if (mTheme==null)
+            {
+                mTheme=activity.getTheme();
+            }
+        }
+
+        @Override
+        public void onActivityResumed(Activity activity) {
+
+        }
+
+        @Override
+        public void onActivityPaused(Activity activity) {
+
+        }
+
+        @Override
+        public void onActivityStopped(Activity activity) {
+            mForegroundNum--;
+
+            if (mForegroundNum<0) {
+                mForegroundNum = 0;
+            }
+
+            if (mForegroundNum==0)
+            {
+                for (int i=0;i<mWindowStacks.size();i++)
+                {
+                    WindowStack ws=mWindowStacks.get(i);
+                    if (ws.hideWhenForeground())
+                    {
+                        ws.show();
+                    }
+                }
+            }
+        }
+
+        @Override
+        public void onActivitySaveInstanceState(Activity activity, Bundle outState) {
+
+        }
+
+        @Override
+        public void onActivityDestroyed(Activity activity) {
+
+        }
     }
 }
