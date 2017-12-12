@@ -361,7 +361,7 @@ public class ExpandableRecyclerView3 extends RecyclerView implements View.OnClic
             int l = parent.getPaddingLeft();
             int r = parent.getWidth() - parent.getPaddingRight();
             final int childCount = parent.getChildCount();
-            for (int i = 0; i < childCount-1; i++){
+            for (int i = 0; i < childCount; i++){
                 final View child = parent.getChildAt(i);
 
                 final RecyclerView.LayoutParams params = (RecyclerView.LayoutParams)child.getLayoutParams();
