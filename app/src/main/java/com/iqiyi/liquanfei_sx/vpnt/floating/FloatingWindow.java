@@ -12,6 +12,7 @@ import com.iqiyi.liquanfei_sx.vpnt.FakeFragment;
  */
 
 public abstract class FloatingWindow extends FakeFragment implements View.OnTouchListener{
+    static int sScreenWidth=0,sScreenHeight=0;
 
     private WindowStack mStack;
 
@@ -23,7 +24,6 @@ public abstract class FloatingWindow extends FakeFragment implements View.OnTouc
     private float gravity=2.3f;
 
     private boolean mTouched=false;
-    private boolean mTouchMoved=false;
 
     private Runnable mAutoMoveRunnable=new Runnable() {
         @Override
@@ -75,6 +75,21 @@ public abstract class FloatingWindow extends FakeFragment implements View.OnTouc
         }
     };
 
+    public static int screenWidth()
+    {
+        return sScreenWidth;
+    }
+
+    public static int screenHeight()
+    {
+        return sScreenHeight;
+    }
+
+    public final void notifyWindowSizeChange()
+    {
+        mStack.notifyWidowSizeChange();
+    }
+
     void setWindowStack(WindowStack stack)
     {
         mStack=stack;
@@ -93,14 +108,13 @@ public abstract class FloatingWindow extends FakeFragment implements View.OnTouc
     @Override
     public boolean onTouch(View v, MotionEvent e) {
         mTouched=true;
+        v.onTouchEvent(e);      //处理onClick等
         switch (e.getActionMasked())
         {
             case MotionEvent.ACTION_DOWN:
-                mTouchMoved=false;
                 break;
             case MotionEvent.ACTION_MOVE:
                 if (canMove()) {
-                    mTouchMoved=true;
                     mStack.moveWindow(e.getRawX() - mLastX, e.getRawY() - mLastY);
                     mVelocityX = (mVelocityX + (e.getRawX() - mLastX) * 10 / (SystemClock.uptimeMillis() - mLastTouchTime)) / 2;
                     mVelocityY = (mVelocityY + (e.getRawY() - mLastY) * 10 / (SystemClock.uptimeMillis() - mLastTouchTime)) / 2;
@@ -108,12 +122,8 @@ public abstract class FloatingWindow extends FakeFragment implements View.OnTouc
                 break;
             case MotionEvent.ACTION_UP:
             case MotionEvent.ACTION_CANCEL:
-                mTouched=false;
-                if (!mTouchMoved)
-                {
-                    v.performClick();
-                }
                 moveToSide();
+                mTouched=false;
                 break;
         }
         mLastX=e.getRawX();
