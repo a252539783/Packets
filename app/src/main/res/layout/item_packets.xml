@@ -6,7 +6,6 @@
     android:paddingTop="16dp"
     android:paddingLeft="24dp"
     android:paddingRight="16dp"
-    android:background="@android:color/white"
     android:layout_height="72dp">
 
     <ImageView
