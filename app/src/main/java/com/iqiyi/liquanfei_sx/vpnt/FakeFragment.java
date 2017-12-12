@@ -26,6 +26,12 @@ public abstract class FakeFragment {
         return mView;
     }
 
+    public void onCreate()
+    {
+        if (getPresenter()!=null)
+            getPresenter().onCreate();
+    }
+
     public void onResume() {
         if (getPresenter()!=null)
             getPresenter().onResume();
