@@ -24,14 +24,11 @@ import com.iqiyi.liquanfei_sx.vpnt.packet.ServerService;
 import com.iqiyi.liquanfei_sx.vpnt.tools.Filter;
 import com.iqiyi.liquanfei_sx.vpnt.view.ViewStub;
 
-import java.util.ArrayList;
 
-
-public class MainPresenter extends CommonPresenter implements View.OnClickListener,AdapterView.OnItemSelectedListener,TextWatcher{
+public class MainPresenter extends CommonPresenter implements View.OnClickListener,AdapterView.OnItemSelectedListener,TextWatcher,MApp.OnDispatchResourceListener{
 
     private ViewPager mViewPager;
     private ViewStub mStub;
-    private PagerAdapter mPagerAdapter;
     private TabLayout mTab;
     private FloatingActionButton mButton_start;
     private AppCompatSpinner mSpinner;
@@ -94,9 +91,7 @@ public class MainPresenter extends CommonPresenter implements View.OnClickListen
     @Override
     protected void onResume() {
         super.onResume();
-            mViewPager=(ViewPager) mStub.load(MApp.get().packetContent());
-            mTab.setupWithViewPager(mViewPager);
-            mButton_start.setVisibility(View.VISIBLE);
+        MApp.get().getResource(MApp.RESOURCE_PACKET_PAGER,this);
     }
 
     @Override
@@ -104,6 +99,7 @@ public class MainPresenter extends CommonPresenter implements View.OnClickListen
         super.onPause();
         mButton_start.setVisibility(View.GONE);
         ViewStub.replace(mViewPager,mStub);
+        MApp.get().releaseResource(MApp.RESOURCE_PACKET_PAGER,mViewPager);
     }
 
     @Override
@@ -130,5 +126,12 @@ public class MainPresenter extends CommonPresenter implements View.OnClickListen
     @Override
     public void afterTextChanged(Editable s) {
 
+    }
+
+    @Override
+    public void onDispatch(int resourceCode, Object resource) {
+        mViewPager=(ViewPager) mStub.load((ViewPager)resource);
+        mTab.setupWithViewPager(mViewPager);
+        mButton_start.setVisibility(View.VISIBLE);
     }
 }
