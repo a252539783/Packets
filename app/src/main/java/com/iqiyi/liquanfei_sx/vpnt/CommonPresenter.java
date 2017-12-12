@@ -19,6 +19,8 @@ public abstract class CommonPresenter {
     {
     }
 
+    protected void onCreate(){};
+
     protected void onDead(){};
 
     protected void onPause(){};
