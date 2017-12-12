@@ -28,7 +28,7 @@ public class ClientService extends VpnService{
     private int port=4444;
     private MB mb=new MB();
     private ServerService server=null;
-    private boolean mRunning=false;
+    private volatile boolean mRunning=false;
 
     private ServiceConnection mConn=new ServiceConnection(){
 

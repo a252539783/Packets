@@ -27,8 +27,8 @@ public abstract class Filter<T> implements List<T>{
 
     private int[] mCachedIndex;
 
-    private boolean mLoading=false;
-    private boolean mLoadStopped=true;
+    private volatile boolean mLoading=false;
+    private volatile boolean mLoadStopped=true;
 
     private int mCurrentKey =0;
 

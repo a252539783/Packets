@@ -159,7 +159,7 @@ public class ServerService extends Service {
         HashMap<String,TCPStatus> mSocketsByIp;
         private ExecutorService mThreadPool;
 
-        boolean mPause = true;
+        volatile boolean mPause = true;
 
         TransmitThread() {
             mSockets = new SparseArray<>();
@@ -305,7 +305,7 @@ public class ServerService extends Service {
 
     private class WriteThread extends Thread {
         Queue<Packet> mReadyWrite = new ConcurrentLinkedQueue<>();
-        boolean mPause = true;
+        volatile boolean mPause = true;
 
         @Override
         public void run() {
@@ -548,7 +548,7 @@ public class ServerService extends Service {
     private class ReadThread extends Thread {
 
         ByteBuffer mBuffer = ByteBuffer.allocate(4096);
-        private boolean mPause=false;
+        private volatile boolean mPause=false;
 
         @Override
         public void run() {
