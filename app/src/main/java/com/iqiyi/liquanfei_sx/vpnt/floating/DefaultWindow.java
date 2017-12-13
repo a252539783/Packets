@@ -1,16 +1,10 @@
 package com.iqiyi.liquanfei_sx.vpnt.floating;
 
-import android.content.ComponentName;
-import android.content.Context;
-import android.content.Intent;
-import android.content.ServiceConnection;
-import android.os.IBinder;
-import android.util.Log;
 import android.view.View;
 
 import com.iqiyi.liquanfei_sx.vpnt.CommonPresenter;
 import com.iqiyi.liquanfei_sx.vpnt.R;
-import com.iqiyi.liquanfei_sx.vpnt.packet.ClientService;
+import com.iqiyi.liquanfei_sx.vpnt.floating.packets.MainPacketsWindow;
 import com.iqiyi.liquanfei_sx.vpnt.packet.TCPPacket;
 
 /**
@@ -23,7 +17,7 @@ public class DefaultWindow  extends FloatingWindow{
     private DefaultWindowPresenter mP=null;
 
     @Override
-    public void getWindowSize(int[] size) {
+    public void getDefaultWindowSize(int[] size) {
         size[0]=100;
         size[1]=100;
     }
@@ -46,35 +40,19 @@ public class DefaultWindow  extends FloatingWindow{
         return mP;
     }
 
-    private class DefaultWindowPresenter extends CommonPresenter implements View.OnClickListener
+    private class DefaultWindowPresenter extends FloatingPresenter implements View.OnClickListener
     {
-        private ClientService mClient=null;
 
         @Override
         protected void onViewBind(View v) {
             v.setOnTouchListener(DefaultWindow.this);
             v.setOnClickListener(this);
-
-            v.getContext().bindService(new Intent(v.getContext(), ClientService.class), new ServiceConnection() {
-                @Override
-                public void onServiceConnected(ComponentName name, IBinder service) {
-                    mClient=((ClientService.MB)service).get();
-                }
-
-                @Override
-                public void onServiceDisconnected(ComponentName name) {
-                    mClient=null;
-                }
-            },Context.BIND_AUTO_CREATE);
+            disableBorder();
         }
 
         @Override
         public void onClick(View v) {
-            Log.e("xx","clicked");
-            if (mClient!=null&&test!=null)
-            {
-                mClient.inject(test);
-            }
+            startWindow(MainPacketsWindow.class);
         }
     }
 
