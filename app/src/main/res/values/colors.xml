@@ -3,4 +3,7 @@
     <color name="colorPrimary">#3498DB</color>
     <color name="colorPrimaryDark">#2D85C0</color>
     <color name="colorAccent">#00BCD4</color>
+
+    <color name="bg_float_main">#99ffffff</color>
+    <color name="border_float_container">#4e007e8e</color>
 </resources>
