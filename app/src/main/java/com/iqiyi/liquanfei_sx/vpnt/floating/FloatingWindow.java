@@ -1,9 +1,13 @@
 package com.iqiyi.liquanfei_sx.vpnt.floating;
 
 import android.os.SystemClock;
+import android.support.annotation.Nullable;
 import android.util.Log;
+import android.view.LayoutInflater;
 import android.view.MotionEvent;
 import android.view.View;
+import android.view.ViewGroup;
+import android.widget.FrameLayout;
 
 import com.iqiyi.liquanfei_sx.vpnt.FakeFragment;
 
@@ -13,10 +17,14 @@ import com.iqiyi.liquanfei_sx.vpnt.FakeFragment;
 
 public abstract class FloatingWindow extends FakeFragment implements View.OnTouchListener{
     static int sScreenWidth=0,sScreenHeight=0;
+    static int sMinWidth=100,sMinHeight=100;
+
+    public static int sWindowBorderWidth=30;
 
     private WindowStack mStack;
 
     float mWindowWidth=-1,mWindowHeight=-1;
+    float mWindowX=0,mWindowY=0;
 
     private float mLastX,mLastY;
     private long mLastTouchTime=0;
@@ -30,6 +38,8 @@ public abstract class FloatingWindow extends FakeFragment implements View.OnTouc
     private Runnable mAutoMoveRunnable=new Runnable() {
         @Override
         public void run() {
+
+            Log.e("xx","auto moved...");
 
             if (autoMove())
             {
@@ -52,17 +62,60 @@ public abstract class FloatingWindow extends FakeFragment implements View.OnTouc
                 if ((res&WindowStack.CRASH_X)!=0)
                 {
                     mVelocityX=-mVelocityX;
-                    mVelocityX-=mVelocityX>0?5*mFriction:-5*mFriction;
+                    if (mVelocityX>0)
+                    {
+                        if (mVelocityX<5*mFriction)
+                            mVelocityX=0;
+                        else{
+                            mVelocityX-=5*mFriction;
+                        }
+                    }else if (mVelocityX<0)
+                    {
+                        if (-mVelocityX<5*mFriction)
+                        {
+                            mVelocityX=0;
+                        }else
+                        {
+                            mVelocityX+=5*mFriction;
+                        }
+                    }
                 }
 
                 if ((res&WindowStack.CRASH_Y)!=0)
                 {
                     mVelocityY=-mVelocityY;
-                    mVelocityY-=mVelocityY>0?5*mFriction:-5*mFriction;
+                    if (mVelocityY>0)
+                    {
+                        if (mVelocityY<5*mFriction)
+                            mVelocityY=0;
+                        else{
+                            mVelocityY-=5*mFriction;
+                        }
+                    }else if (mVelocityY<0)
+                    {
+                        if (-mVelocityY<5*mFriction)
+                        {
+                            mVelocityY=0;
+                        }else
+                        {
+                            mVelocityY+=5*mFriction;
+                        }
+                    }
                 }
 
-                mVelocityX-=mVelocityX>0?mFriction:-mFriction;
-                mVelocityY-=mVelocityY>0?mFriction:-mFriction;
+                if (Math.abs(mVelocityX)<mFriction)
+                {
+                    mVelocityX=0;
+                }else {
+                    mVelocityX-=mVelocityX>0?mFriction:-mFriction;
+                }
+
+                if (Math.abs(mVelocityY)<mFriction)
+                {
+                    mVelocityY=0;
+                }else {
+                    mVelocityY-=mVelocityY>0?mFriction:-mFriction;
+                }
 
                 if (mVelocityX<0.8f&&mVelocityX>-0.8f)
                     mVelocityX=0;
@@ -124,7 +177,6 @@ public abstract class FloatingWindow extends FakeFragment implements View.OnTouc
                 break;
             case MotionEvent.ACTION_MOVE:
                 if (canMove()&&(mLastX>0||mLastY>0)) {
-
                     mStack.moveWindow(e.getRawX() - mLastX, e.getRawY() - mLastY);
                     mVelocityX = (mVelocityX + (e.getRawX() - mLastX) * 10 / (SystemClock.uptimeMillis() - mLastTouchTime)) / 2;
                     mVelocityY = (mVelocityY + (e.getRawY() - mLastY) * 10 / (SystemClock.uptimeMillis() - mLastTouchTime)) / 2;
@@ -159,6 +211,18 @@ public abstract class FloatingWindow extends FakeFragment implements View.OnTouc
         }
     }
 
+    @Override
+    public View onCreateView(LayoutInflater inflater, @Nullable ViewGroup container) {
+        View v=super.onCreateView(inflater, container);
+
+        FrameLayout.LayoutParams lp;
+        if ((lp=(FrameLayout.LayoutParams) v.getLayoutParams())!=null && !(this instanceof BgWindow))
+        {
+            lp.setMargins(sWindowBorderWidth,sWindowBorderWidth,sWindowBorderWidth,sWindowBorderWidth);
+        }
+        return v;
+    }
+
     public void getWindowSize(int []size)
     {
         if (mWindowWidth==-1)
@@ -177,6 +241,12 @@ public abstract class FloatingWindow extends FakeFragment implements View.OnTouc
     {
         mWindowWidth=w;
         mWindowHeight=h;
+    }
+
+    void setWindowPosition(float x,float y)
+    {
+        mWindowX=x;
+        mWindowY=y;
     }
 
     public abstract boolean autoMove();
