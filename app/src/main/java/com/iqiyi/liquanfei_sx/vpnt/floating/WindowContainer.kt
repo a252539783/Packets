@@ -12,7 +12,7 @@ import android.widget.FrameLayout
  * Created by Administrator on 2017/12/12.
  */
 
-class WindowContainer(context: Context,val mStack: WindowStack) : FrameLayout(context) {
+open class WindowContainer(context: Context,val mStack: WindowStack) : FrameLayout(context) {
 
     var mEnableBorder = false
 
@@ -37,10 +37,12 @@ class WindowContainer(context: Context,val mStack: WindowStack) : FrameLayout(co
         mEnableBorder = enable
     }
 
-    private val LEFT=0x1
-    private val RIGHT=0x2;
-    private val TOP=0x4;
-    private val BOTTOM=0x8;
+    companion object {
+        val LEFT=0x1
+        val RIGHT=0x2;
+        val TOP=0x4;
+        val BOTTOM=0x8;
+    }
 
     override fun onTouchEvent(e: MotionEvent?): Boolean {
         super.onTouchEvent(e)
@@ -53,24 +55,20 @@ class WindowContainer(context: Context,val mStack: WindowStack) : FrameLayout(co
                     if (e.x>=0&&e.x<mBorderWidth)
                     {
                         mResizePosition=mResizePosition or LEFT;
-                        Log.e("xx","resize left");
                         mResizing=true;
                     }else if (e.x>width-mBorderWidth&&e.x<=width)
                     {
                         mResizePosition =mResizePosition or RIGHT;
-                        Log.e("xx","resize right");
                         mResizing=true;
                     }
 
                     if (e.y>=0&&e.y<mBorderWidth)
                     {
                         mResizePosition = mResizePosition or TOP
-                        Log.e("xx","resize top");
                         mResizing=true;
                     }else if (e.y>height-mBorderWidth&&e.y<=height)
                     {
                         mResizePosition=mResizePosition or BOTTOM
-                        Log.e("xx","resize down");
                         mResizing=true;
                     }
                 }
@@ -105,14 +103,12 @@ class WindowContainer(context: Context,val mStack: WindowStack) : FrameLayout(co
                             }
                         }
 
-                        mStack.resizeWindow(dx,dy);
-
-
-                        mStack.moveWindow(movex,movey);
+                        mStack.resizeWindow(dx,dy,movex,movey);
                     }
                 }
                 MotionEvent.ACTION_UP, MotionEvent.ACTION_CANCEL -> {
                     mResizing=false;
+                    mStack.endResize(mResizePosition);
                     mResizePosition=0;
                 }
             }
@@ -122,20 +118,5 @@ class WindowContainer(context: Context,val mStack: WindowStack) : FrameLayout(co
         }
 
         return true;
-    }
-
-    override fun draw(canvas: Canvas?) {
-        super.draw(canvas)
-    }
-
-    override fun onDraw(canvas: Canvas) {
-        super.onDraw(canvas)
-
-        if (mEnableBorder) {
-            canvas?.drawRect(0f, 0f, width.toFloat(), mBorderWidth.toFloat(), mPaint)
-            canvas?.drawRect(width-mBorderWidth.toFloat(),0f,width.toFloat(),height.toFloat(),mPaint);
-            canvas?.drawRect(0f,height-mBorderWidth.toFloat(),width.toFloat(),height.toFloat(),mPaint);
-            canvas?.drawRect(0f,0f,mBorderWidth.toFloat(),height.toFloat(),mPaint);
-        }
     }
 }
