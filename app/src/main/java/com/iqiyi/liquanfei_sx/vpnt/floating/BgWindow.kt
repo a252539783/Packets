@@ -46,4 +46,8 @@ class BgWindow:FloatingWindow() {
     {
         mView?.postDraw(runnable, duration);
     }
+
+    override fun showBorder(): Boolean {
+        return false;
+    }
 }

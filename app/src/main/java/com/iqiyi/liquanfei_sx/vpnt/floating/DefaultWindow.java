@@ -60,4 +60,9 @@ public class DefaultWindow  extends FloatingWindow{
     public boolean autoMove() {
         return true;
     }
+
+    @Override
+    public boolean showBorder() {
+        return false;
+    }
 }

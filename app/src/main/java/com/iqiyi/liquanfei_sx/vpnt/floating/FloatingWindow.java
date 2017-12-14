@@ -38,6 +38,8 @@ public abstract class FloatingWindow extends FakeFragment implements View.OnTouc
     private Runnable mAutoMoveRunnable=new Runnable() {
         @Override
         public void run() {
+            if (showBorder())
+            mStack.enableBorder(false,sWindowBorderWidth);
 
             if (autoMove())
             {
@@ -122,6 +124,10 @@ public abstract class FloatingWindow extends FakeFragment implements View.OnTouc
                     mVelocityY=0;
 
                 moveToSide();
+            }else
+            {
+                if (showBorder())
+                mStack.enableBorder(true,sWindowBorderWidth);
             }
 
 
@@ -166,6 +172,7 @@ public abstract class FloatingWindow extends FakeFragment implements View.OnTouc
     @Override
     public boolean onTouch(View v, MotionEvent e) {
         mTouched=true;
+        if (showBorder())
         mStack.enableBorder(false,sWindowBorderWidth);
         //v.onTouchEvent(e);      //处理onClick等
         switch (e.getActionMasked())
@@ -193,6 +200,8 @@ public abstract class FloatingWindow extends FakeFragment implements View.OnTouc
                 moveToSide();
                 mLastX=mLastY=-1;
                 mTouched=false;
+                if (mVelocityY==0&&mVelocityX==0&&showBorder())
+                    mStack.enableBorder(true,sWindowBorderWidth);
                 break;
         }
         mLastTouchTime= SystemClock.uptimeMillis();
@@ -258,4 +267,6 @@ public abstract class FloatingWindow extends FakeFragment implements View.OnTouc
     public abstract void getDefaultWindowSize(int[] size);
 
     public abstract boolean canMove();
+
+    public abstract boolean showBorder();
 }
