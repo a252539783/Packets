@@ -79,7 +79,7 @@ public class MApp extends Application {
         });
         mSharedSource[RESOURCE_PACKET_PAGER]=mPacketContent;
 
-        mWindowStacks.add(WindowStack.init(this, DefaultWindow.class));
+        mWindowStacks.add(WindowStack.newWindow(this, DefaultWindow.class));
         mWindowStacks.get(0).setHideWhenForeground(true);
 
         registerActivityLifecycleCallbacks(mActivityCallbacks);
@@ -120,6 +120,7 @@ public class MApp extends Application {
             listeners.add(l);
         }else
         {
+            mResourceOccupied[requestCode]=true;
             l.onDispatch(requestCode,mSharedSource[requestCode]);
         }
     }
@@ -177,9 +178,14 @@ public class MApp extends Application {
 
             for (int i=0;i<mWindowStacks.size();i++)
             {
-                WindowStack ws=mWindowStacks.get(i);
+                final WindowStack ws=mWindowStacks.get(i);
                 if (ws.hideWhenForeground())
                 {
+//                    ws.post(new Runnable() {
+//                        @Override
+//                        public void run() {
+//                        }
+//                    });
                     ws.hide();
                 }
             }
@@ -212,9 +218,14 @@ public class MApp extends Application {
             {
                 for (int i=0;i<mWindowStacks.size();i++)
                 {
-                    WindowStack ws=mWindowStacks.get(i);
+                    final WindowStack ws=mWindowStacks.get(i);
                     if (ws.hideWhenForeground())
                     {
+//                        ws.post(new Runnable() {
+//                            @Override
+//                            public void run() {
+//                            }
+//                        });
                         ws.show();
                     }
                 }
