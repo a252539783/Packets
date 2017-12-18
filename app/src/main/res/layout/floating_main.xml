@@ -1,0 +1,37 @@
+<?xml version="1.0" encoding="utf-8"?>
+<LinearLayout
+    xmlns:android="http://schemas.android.com/apk/res/android"
+    xmlns:app="http://schemas.android.com/apk/res-auto"
+    android:layout_width="match_parent"
+    android:orientation="vertical"
+    android:background="@color/bg_float_main"
+    android:layout_height="match_parent">
+
+    <com.iqiyi.liquanfei_sx.vpnt.view.WindowMovedTitle
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:id="@+id/toolbar_float_main">
+
+        <ImageView
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            app:srcCompat="@android:drawable/ic_menu_close_clear_cancel" />
+
+    </com.iqiyi.liquanfei_sx.vpnt.view.WindowMovedTitle>
+
+    <android.support.design.widget.TabLayout
+        android:layout_width="match_parent"
+        app:tabSelectedTextColor="@android:color/black"
+        app:tabTextColor="#80000000"
+        app:tabTextAppearance="@style/TextAppearance.AppCompat.Small"
+        android:id="@+id/tab_float_main"
+        android:layout_height="32dp">
+
+    </android.support.design.widget.TabLayout>
+
+    <com.iqiyi.liquanfei_sx.vpnt.view.ViewStub
+        android:layout_width="match_parent"
+        android:layout_height="match_parent"
+        android:id="@+id/pager_float_main"/>
+
+</LinearLayout>
