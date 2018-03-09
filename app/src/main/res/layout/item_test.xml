@@ -14,7 +14,7 @@
 
     </android.support.v7.widget.Toolbar>
 
-    <com.iqiyi.liquanfei_sx.vpnt.view.FixedWidthTextView
+    <com.lqf.packets.view.FixedWidthTextView
         android:layout_width="match_parent"
         android:layout_height="match_parent"
         android:id="@+id/text_test"/>

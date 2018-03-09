@@ -7,7 +7,7 @@
     android:background="@color/bg_float_main"
     android:layout_height="match_parent">
 
-    <com.iqiyi.liquanfei_sx.vpnt.view.WindowMovedTitle
+    <com.lqf.packets.view.WindowMovedTitle
         android:layout_width="match_parent"
         android:layout_height="wrap_content"
         android:id="@+id/toolbar_float_main">
@@ -17,7 +17,7 @@
             android:layout_height="wrap_content"
             app:srcCompat="@android:drawable/ic_menu_close_clear_cancel" />
 
-    </com.iqiyi.liquanfei_sx.vpnt.view.WindowMovedTitle>
+    </com.lqf.packets.view.WindowMovedTitle>
 
     <android.support.design.widget.TabLayout
         android:layout_width="match_parent"
@@ -29,7 +29,7 @@
 
     </android.support.design.widget.TabLayout>
 
-    <com.iqiyi.liquanfei_sx.vpnt.view.ViewStub
+    <com.lqf.packets.view.ViewStub
         android:layout_width="match_parent"
         android:layout_height="match_parent"
         android:id="@+id/pager_float_main"/>

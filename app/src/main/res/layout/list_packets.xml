@@ -4,10 +4,10 @@
     android:layout_height="match_parent"
     android:id="@+id/fresh_packets"
     >
-    <com.iqiyi.liquanfei_sx.vpnt.view.ExpandableRecyclerView3
+    <com.lqf.packets.view.ExpandableRecyclerView3
         android:layout_width="match_parent"
         android:layout_height="match_parent"
         android:id="@+id/erv_packets">
 
-    </com.iqiyi.liquanfei_sx.vpnt.view.ExpandableRecyclerView3>
+    </com.lqf.packets.view.ExpandableRecyclerView3>
 </android.support.v4.widget.SwipeRefreshLayout>

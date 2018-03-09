@@ -5,7 +5,7 @@
     android:layout_width="match_parent"
     android:layout_height="match_parent"
     android:id="@+id/drawer_main"
-    tools:context="com.iqiyi.liquanfei_sx.vpnt.MainActivity">
+    tools:context="com.lqf.packets.vpnt.com.lqf.packets.MainActivity">
 
     <include
         layout="@layout/content_main"/>

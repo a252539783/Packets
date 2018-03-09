@@ -5,7 +5,7 @@ android {
     compileSdkVersion 25
     buildToolsVersion '26.0.2'
     defaultConfig {
-        applicationId "com.iqiyi.liquanfei_sx.vpnt"
+        applicationId "com.lqf.packets"
         minSdkVersion 15
         targetSdkVersion 23
         versionCode 1
