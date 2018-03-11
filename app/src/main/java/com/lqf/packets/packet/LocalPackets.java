@@ -283,20 +283,19 @@ public class LocalPackets {
         if (AppPortList.get()==null)
             AppPortList.init();
 
-        if (files!=null)
-        {
-            for (int i=0;i<files.length;i++)
-            {
+        if (files != null && files.length > 0) {
+            for (int i = 0; i<files.length; i++) {
                 int uid=Integer.parseInt(files[i]);
                 SavedInfo si;
-                if ((si=getSavedInfo(uid))!=null)
-                {
+                if ((si=getSavedInfo(uid))!=null) {
                     si.mNum=nums[i];
                 }else {
                     mSavedPackets.add(new SavedInfo(uid, nums[i]));
                     callSavedChange(mSavedPackets.size() - 1);
                 }
             }
+        } else {
+            callSavedChange(-1);
         }
     }
 
@@ -305,22 +304,22 @@ public class LocalPackets {
         if (AppPortList.get()==null)
             AppPortList.init();
 
-        if (files!=null)
-        {
+        if (files != null && files.length > 0) {
             long []times=new long[files.length];
-            for (int i=0;i<files.length;i++)
+            for (int i = 0; i<files.length; i++)
                 times[i]=Long.parseLong(files[i]);
             Arrays.sort(times);
 
             if (mAllPackets.size()!=0&&mAllPackets.get(0).mTime==times[0]) {
-                //callHistoryChange(0);
                 return;
             }
 
-            for (int i=0;i<times.length;i++) {
+            for (int i = 0; i<times.length; i++) {
                 mAllPackets.add(i,new CaptureInfo(times[i]));
                 callHistoryChange(i);
             }
+        } else {
+            callHistoryChange(-1);
         }
     }
 
@@ -968,7 +967,7 @@ public class LocalPackets {
     private class OnSavedChangeRunnable implements Runnable
     {
         private WeakReference mL;
-        private int mIndex;
+        private int mIndex = -1;
 
         OnSavedChangeRunnable(WeakReference l)
         {
