@@ -11,7 +11,7 @@ import com.lqf.packets.packet.LocalPackets;
 import com.lqf.packets.packet.PacketList;
 import com.lqf.packets.packet.PersistRequest;
 import com.lqf.packets.packet.TCPPacket;
-import com.lqf.packets.text.AddedInput;
+import com.lqf.packets.text.TextEditor;
 import com.lqf.packets.text.FileInfo;
 import com.lqf.packets.view.FixedWidthTextView;
 
@@ -36,7 +36,7 @@ public class EditPresenter extends CommonPresenter implements Toolbar.OnMenuItem
     EditPresenter(EditActivity activity)
     {
         this.mActivity=activity;
-        AddedInput.CacheThread.init();
+        TextEditor.CacheThread.init();
     }
 
     @Override

@@ -12,10 +12,10 @@ import java.util.concurrent.ConcurrentLinkedQueue;
 
 /**
  * Created by Administrator on 2017/11/1.
- * 表示一个文件中的所有更改
+ * 处理文本内容
  */
 
-public class AddedInput {
+public class TextEditor {
     private byte[] mSource=null;
     private String mSSource=null;
 
@@ -37,7 +37,7 @@ public class AddedInput {
 
     private int mCharCount=0;
 
-    public AddedInput(byte[] src){
+    public TextEditor(byte[] src) {
         mSource=src;
         mSegmentCount=src.length/ mSegmentLength +(src.length% mSegmentLength !=0?1:0);
         int count=mSegmentCount<=mCacheSize?mSegmentCount:mCacheSize;
@@ -57,7 +57,7 @@ public class AddedInput {
         mThread.mSrc=src;
     }
 
-    public AddedInput(FileInfo file)
+    public TextEditor(FileInfo file)
     {
         mSegmentCount=file.length/ mSegmentLength +(file.length% mSegmentLength !=0?1:0);
         int count=mSegmentCount<=mCacheSize?mSegmentCount:mCacheSize;

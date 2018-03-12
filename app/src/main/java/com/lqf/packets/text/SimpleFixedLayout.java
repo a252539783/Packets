@@ -31,7 +31,7 @@ public class SimpleFixedLayout extends Layout{
 
     private FileInfo mFile=null;
 
-    private AddedInput mInputs=null;
+    private TextEditor mInputs = null;
 
     private boolean mSelecting=false,mStartSelected=false;
 
@@ -104,7 +104,7 @@ public class SimpleFixedLayout extends Layout{
         sInit(paint);
         init(paint);
 
-        mInputs=new AddedInput(src);
+        mInputs = new TextEditor(src);
     }
 
     public SimpleFixedLayout(FileInfo file, TextPaint paint, int width, Alignment align, float spacingMult, float spacingAdd)
@@ -115,7 +115,7 @@ public class SimpleFixedLayout extends Layout{
         sInit(paint);
         init(paint);
 
-        mInputs=new AddedInput(file);
+        mInputs = new TextEditor(file);
     }
 
     public int getOneHeight()

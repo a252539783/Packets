@@ -33,7 +33,7 @@ public class InputHistory {
     {
         private HistoryManager mManager=new HistoryManager();
 
-        private SparseArray<AddedInput> mAllHistory = new SparseArray<>();
+        private SparseArray<TextEditor> mAllHistory = new SparseArray<>();
         private int mLastIndex=-1;
 
         private HistoryManager()
@@ -48,7 +48,7 @@ public class InputHistory {
             mLastIndex=index;
             if (mAllHistory.get(mLastIndex)==null)
             {
-                //mAllHistory.put(mLastIndex,new AddedInput());
+                //mAllHistory.put(mLastIndex,new TextEditor());
             }
         }
     }
