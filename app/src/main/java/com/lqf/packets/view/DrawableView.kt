@@ -26,6 +26,18 @@ class DrawableView(context: Context,attributes: AttributeSet?=null,style:Int=0):
         return mDrawId;
     }
 
+    fun removeDraw(id: Int): Int {
+        val it = mDrawList.listIterator();
+        while (it.hasNext()) {
+            if (it.next().mId == id) {
+                it.remove();
+                break;
+            }
+        }
+
+        return mDrawList.size;
+    }
+
     override fun onDraw(canvas: Canvas?) {
         super.onDraw(canvas)
         if (canvas==null)

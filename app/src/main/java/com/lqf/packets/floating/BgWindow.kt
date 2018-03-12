@@ -42,9 +42,21 @@ class BgWindow:FloatingWindow() {
         return false;
     }
 
-    fun postDraw(runnable:DrawableView.DrawRunnable,duration:Long=-1)
-    {
-        mView?.postDraw(runnable, duration);
+    fun postDraw(runnable: DrawableView.DrawRunnable, duration: Long = -1): Int {
+        val v = mView ?: return -1;
+        if (!windowStack.isShown) {
+            windowStack.show();
+        }
+        return v.postDraw(runnable, duration);
+    }
+
+    fun removeDraw(id: Int): Int {
+        val v = mView ?: return -1;
+        val size = v.removeDraw(id);
+        if (windowStack.isShown && size == 0) {
+            windowStack.hide()
+        }
+        return v.removeDraw(id);
     }
 
     override fun showBorder(): Boolean {

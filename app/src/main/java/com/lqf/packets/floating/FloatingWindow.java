@@ -128,8 +128,6 @@ public abstract class FloatingWindow extends FakeFragment implements View.OnTouc
                 if (showBorder())
                 mStack.enableBorder(true,sWindowBorderWidth);
             }
-
-
         }
     };
 
@@ -146,6 +144,10 @@ public abstract class FloatingWindow extends FakeFragment implements View.OnTouc
     void setWindowStack(WindowStack stack)
     {
         mStack=stack;
+    }
+
+    WindowStack getWindowStack() {
+        return mStack;
     }
 
     public void startWindow(Class windowCls)

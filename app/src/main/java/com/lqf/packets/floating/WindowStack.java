@@ -22,8 +22,7 @@ import java.util.List;
  */
 
 public class WindowStack{
-
-    private static WindowStack sBgWindow=null;
+    private static BgWindow sBgWindow = null;
 
     private static List<WindowStack> instances=new LinkedList<>();
 
@@ -46,6 +45,7 @@ public class WindowStack{
     private int mMaxX,mMaxY;
 
     private DrawableHelper.BorderDrawable mBorderDrawable= DrawableHelper.INSTANCE.newBorderDrawable(Color.GRAY);
+    private int mBorderDrawableId = -1;
 
     private LinkedList<FloatingWindow> mWindows =new LinkedList<>();
 
@@ -97,9 +97,9 @@ public class WindowStack{
 
         mWm.addView(mRoot,params);
 
-        if (sBgWindow!=null && sBgWindow!=this)
+        if (sBgWindow != null && sBgWindow != getCurrentWindow())
         {
-            ((BgWindow)sBgWindow.getCurrentWindow()).postDraw(mBorderDrawable,-1);
+            //mBorderDrawableId = sBgWindow.postDraw(mBorderDrawable,-1);
         }
     }
 
@@ -129,14 +129,32 @@ public class WindowStack{
         mRoot.invalidate();
         mBorderDrawable.setEnable(enable);
         mBorderDrawable.setBorder(width);
-        freshBg();
+        freshBg(enable && width != 0);
     }
 
-    private void freshBg()
+    private void freshBg(boolean show)
     {
-        if (sBgWindow!=null&&sBgWindow!=this)
+        if (sBgWindow != null && sBgWindow != getCurrentWindow())
         {
-            sBgWindow.getCurrentWindow().getView().invalidate();
+            if (show) {
+                if (mBorderDrawableId == -1) {
+                    mBorderDrawableId = sBgWindow.postDraw(mBorderDrawable, -1);
+                }
+                sBgWindow.getView().invalidate();
+            } else {
+                if (mBorderDrawableId != -1) {
+                    sBgWindow.removeDraw(mBorderDrawableId);
+                    mBorderDrawableId = -1;
+                }
+                sBgWindow.getView().invalidate();
+            }
+        }
+    }
+
+    private void freshBg() {
+        if (sBgWindow != null && sBgWindow != getCurrentWindow()) {
+            if (mBorderDrawableId != -1)
+                sBgWindow.getView().invalidate();
         }
     }
 
@@ -339,6 +357,7 @@ public class WindowStack{
             mShown=false;
             mRoot.setVisibility(View.GONE);
             mWindows.peek().onPause();
+            freshBg(false);
         }
     }
 
@@ -349,6 +368,7 @@ public class WindowStack{
             mShown=true;
             mRoot.setVisibility(View.VISIBLE);
             mWindows.peek().onResume();
+            freshBg(true);
         }
     }
 
@@ -389,10 +409,11 @@ public class WindowStack{
     {
         if (sBgWindow==null)
         {
-            sBgWindow=new WindowStack(c);
-            sBgWindow.init(c,false);
-            sBgWindow.startWindow(BgWindow.class);
-            sBgWindow.show();
+            WindowStack ws = new WindowStack(c);
+            ws.init(c, false);
+            ws.startWindow(BgWindow.class);
+            ws.show();
+            sBgWindow = (BgWindow) ws.getCurrentWindow();
         }
     }
 
