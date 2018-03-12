@@ -240,7 +240,7 @@ public class ServerService extends Service {
 
             TCPStatus status = mSocketsByIp.get(tcp.getDestIp()+tcp.getPort());
             if (status != null) {
-                SendEntry se = new SendEntry(tcp,true);
+                SendEntry se = new SendEntry(tcp, true);//TODO 这个packet并不在列表中连续，要更新属性？
                 status.mReadySend.add(se);
                 mThreadPool.execute(new ACKRunnable(se, status));
             }
@@ -450,7 +450,7 @@ public class ServerService extends Service {
                 return;
             }
 
-            LocalPackets.get().addPacket(mPacketList.mIndex,se.packet,true);
+            LocalPackets.get().addPacket(mPacketList.mIndex, se.packet, !se.mInject);//注入的包并非是来自于本地
             if (mListenerInfo.mOnPacketAddListener != null) {
                 //mListenerInfo.mOnPacketAddListener.onPacketAdd(mPosition, mPacketList.size() - 1);
             }
