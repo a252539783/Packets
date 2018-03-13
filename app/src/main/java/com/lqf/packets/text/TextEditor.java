@@ -350,7 +350,7 @@ public class TextEditor {
                      */
                     if (e.index!=e.item.mIndex)
                         continue;
-                    int l=mSrc.length-e.index;
+                    int l = mSrc.length - e.index * mSegmentLength;
                     System.arraycopy(mSrc,e.item.mIndex*mSegmentLength,e.item.mResult,0,l<mSegmentLength?l:mSegmentLength);
                 }
             }
