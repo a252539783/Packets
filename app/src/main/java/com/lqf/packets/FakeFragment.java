@@ -49,5 +49,5 @@ public abstract class FakeFragment {
 
     public abstract int getLayout();
 
-    public abstract CommonPresenter getPresenter();
+    public abstract CommonPresenter<? extends FakeFragment> getPresenter();
 }

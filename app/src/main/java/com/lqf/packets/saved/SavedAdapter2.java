@@ -11,6 +11,7 @@ import android.widget.TextView;
 import com.lqf.packets.IAdapter;
 import com.lqf.packets.R;
 import com.lqf.packets.floating.DefaultWindow;
+import com.lqf.packets.floating.TestWindow;
 import com.lqf.packets.packet.LocalPackets;
 import com.lqf.packets.packet.PersistRequest;
 import com.lqf.packets.packet.TCPPacket;
@@ -156,7 +157,7 @@ public class SavedAdapter2 extends ExpandableRecyclerView3.Adapter implements IA
 
     @Override
     public void onClick(View v) {
-        DefaultWindow.test= (TCPPacket) v.getTag();
+        TestWindow.test = (TCPPacket) v.getTag();    //TODO test
     }
 
     static class H1 extends RecyclerView.ViewHolder

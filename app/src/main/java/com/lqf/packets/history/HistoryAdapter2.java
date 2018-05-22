@@ -209,7 +209,7 @@ public class HistoryAdapter2 extends ExpandableRecyclerView3.Adapter implements 
         {
             h.text.setTextColor(Color.BLUE);
         }
-        h.text.setText(new String(packet.getRawData(),packet.mOffset,packet.getDataLength()));//packet.getIpInfo().getHeader());//+new String(packet.getRawData(),packet.mOffset,packet.getDataLength()));
+        h.text.setText(new String(packet.getRawData(), packet.mOffset + packet.mHeaderLength, packet.getDataLength()));//packet.getIpInfo().getHeader());//+new String(packet.getRawData(),packet.mOffset,packet.getDataLength()));
         h.itemView.setTag(new EditPacketInfo(historyIndex,listIndex,index));
         h.itemView.setOnClickListener(this);
     }

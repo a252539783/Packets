@@ -12,8 +12,6 @@ import com.lqf.packets.packet.TCPPacket;
  */
 
 public class DefaultWindow  extends FloatingWindow{
-
-    public static TCPPacket test=null;
     private DefaultWindowPresenter mP=null;
 
     @Override

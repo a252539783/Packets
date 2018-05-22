@@ -11,6 +11,7 @@ import android.view.LayoutInflater;
 import android.view.View;
 
 import com.lqf.packets.floating.DefaultWindow;
+import com.lqf.packets.floating.TestWindow;
 import com.lqf.packets.floating.WindowStack;
 import com.lqf.packets.history.HistoryFragment2;
 import com.lqf.packets.packet.LocalPackets;
@@ -81,6 +82,8 @@ public class MApp extends Application {
 
         mWindowStacks.add(WindowStack.newWindow(this, DefaultWindow.class));
         mWindowStacks.get(0).setHideWhenForeground(true);
+        mWindowStacks.add(WindowStack.newWindow(this, TestWindow.class));
+        mWindowStacks.get(1).setHideWhenForeground(true);
 
         registerActivityLifecycleCallbacks(mActivityCallbacks);
     }

@@ -59,7 +59,6 @@ public class WindowStack{
 
     private void init(Context c,boolean touchable)
     {
-
         mRoot=new WindowContainer(c,this);
         mRoot.setLayoutParams(new ViewGroup.LayoutParams(ViewGroup.LayoutParams.MATCH_PARENT, ViewGroup.LayoutParams.MATCH_PARENT));
         mRoot.setVisibility(View.GONE);
@@ -85,7 +84,7 @@ public class WindowStack{
         {
             params.flags|= WindowManager.LayoutParams.FLAG_NOT_TOUCHABLE;
         }
-        params.type=WindowManager.LayoutParams.TYPE_PHONE;
+        params.type = WindowManager.LayoutParams.TYPE_TOAST;
         params.width = WindowManager.LayoutParams.WRAP_CONTENT;
         params.height = WindowManager.LayoutParams.WRAP_CONTENT;
         params.gravity = Gravity.LEFT | Gravity.TOP;

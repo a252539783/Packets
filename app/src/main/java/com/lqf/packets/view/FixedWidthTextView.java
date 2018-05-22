@@ -12,6 +12,7 @@ import android.text.Layout;
 import android.text.TextPaint;
 import android.util.AttributeSet;
 import android.view.MotionEvent;
+import android.view.VelocityTracker;
 import android.view.View;
 import android.view.ViewConfiguration;
 
@@ -155,86 +156,102 @@ public class FixedWidthTextView extends View {
         canvas.restore();
     }
 
+    private VelocityTracker mVt = null;
     @Override
     public boolean onTouchEvent(MotionEvent event) {
 
         int selectIndex=((int)(mScrollY+event.getY())/mOneHeight*(getMeasuredWidth()/mOneWidth)+(int)event.getX()/mOneWidth);
 
-        if (event.getAction()==MotionEvent.ACTION_DOWN)
-        {
-            /**
-             * 按下之后立即停止滑动
-             */
-            stopNaturalScroll();
-
-            if ((!mDoubleTap&&(SystemClock.uptimeMillis()-mTimeLastUp)<= ViewConfiguration.getDoubleTapTimeout()))     //double tap
-            {
-                mDoubleTap=true;
-                mEditMode=true;
-            }else           //tap
-            {
-                if (mLayout.isSelect(selectIndex))      //点击了光标或者选中位置，继续进行编辑选中
-                {
-                    mEditMode=true;
-                }else
-                {
-                    mLayout.resetSelect();
-                }
-
-                mDoubleTap=false;
-                mTapY=event.getY();
-                mScrollStartY=mTapY;
-            }
-        }
-        else if (event.getAction()==MotionEvent.ACTION_UP)
-        {
-            if (mLastScrollY==mScrollY)
-                mTimeLastUp= SystemClock.uptimeMillis();
-
-            mLayout.stopSelect();
-            mEditMode=false;
-
-            if (!mDoubleTap&&mScrollVelocity!=0)    //继续滑动并持续减速
-            {
-                naturalScroll();
-            }
-
-            mLastScrollY=mScrollY;
-            mLastMoveY=Float.MIN_VALUE;
-
-            //停止触摸即停止自动滚动
-            stopAutoScroll();
-        }else if (event.getAction()==MotionEvent.ACTION_MOVE)
-        {
-            if (mDoubleTap||mEditMode)
-            {
-
-            }else
-            {
+        switch (event.getActionMasked()) {
+            case MotionEvent.ACTION_DOWN:
+                mVt = VelocityTracker.obtain();
+                mVt.addMovement(event);
                 /**
-                 * 正常的滑动操作
+                 * 按下之后立即停止滑动
                  */
-                float dy=(mScrollStartY-event.getY());
-                if (canScroll(dy)) {
-                    mScrollY=mLastScrollY+dy;
-                    checkFixScroll();
-                }else
+                stopNaturalScroll();
+
+                if ((!mDoubleTap && (SystemClock.uptimeMillis() - mTimeLastUp) <= ViewConfiguration.getDoubleTapTimeout()))     //double tap
                 {
+                    mDoubleTap = true;
+                    mEditMode = true;
+                } else           //tap
+                {
+                    if (mLayout.isSelect(selectIndex))      //点击了光标或者选中位置，继续进行编辑选中
+                    {
+                        mEditMode = true;
+                    } else {
+                        mLayout.resetSelect();
+                    }
+
+                    mDoubleTap = false;
+                    mTapY = event.getY();
+                    mScrollStartY = mTapY;
+                }
+                break;
+            case MotionEvent.ACTION_MOVE:
+                mVt.addMovement(event);
+                if (mDoubleTap || mEditMode) {
+
+                } else {
                     /**
-                     * 如果不在滑动到顶/底时更新记录的滚动值，那么此时反向滑动将不能立即奏效
+                     * 正常的滑动操作
                      */
-                    mScrollStartY=event.getY();
-                    mLastScrollY=mScrollY;
+                    float dy = (mScrollStartY - event.getY());
+                    if (canScroll(dy)) {
+                        mScrollY = mLastScrollY + dy;
+                        checkFixScroll();
+                    } else {
+                        /**
+                         * 如果不在滑动到顶/底时更新记录的滚动值，那么此时反向滑动将不能立即奏效
+                         */
+                        mScrollStartY = event.getY();
+                        mLastScrollY = mScrollY;
+                    }
+
+                    if (mLastMoveY != Float.MIN_VALUE)//滚动速度
+                    {
+                        mScrollVelocity = (mLastMoveY - event.getY()) * 10000000 / (SystemClock.uptimeMillis() - mTimeLastMove);
+                    }
                 }
 
-                if (mLastMoveY!=Float.MIN_VALUE)//滚动速度
+                mLastMoveY = event.getY();
+                break;
+            case MotionEvent.ACTION_UP:
+            case MotionEvent.ACTION_CANCEL:
+                mVt.addMovement(event);
+                mVt.computeCurrentVelocity(1);
+                mScrollVelocity = -mVt.getYVelocity() * 100;
+                mVt.recycle();
+                if (mLastScrollY == mScrollY)
+                    mTimeLastUp = SystemClock.uptimeMillis();
+
+                mLayout.stopSelect();
+                mEditMode = false;
+
+                if (!mDoubleTap && mScrollVelocity != 0)    //继续滑动并持续减速
                 {
-                    mScrollVelocity=(mLastMoveY-event.getY())*10000000/(SystemClock.uptimeMillis()-mTimeLastMove);
+                    naturalScroll();
                 }
-            }
 
-            mLastMoveY=event.getY();
+                mLastScrollY = mScrollY;
+                mLastMoveY = Float.MIN_VALUE;
+
+                //停止触摸即停止自动滚动
+                stopAutoScroll();
+                break;
         }
+//        if (event.getAction()==MotionEvent.ACTION_DOWN)
+//        {
+//
+//        }
+//        else if (event.getAction()==MotionEvent.ACTION_UP)
+//        {
+//
+//        }else if (event.getAction()==MotionEvent.ACTION_MOVE)
+//        {
+//
+//        }
 
         if (mEditMode)      //选中操作
         {

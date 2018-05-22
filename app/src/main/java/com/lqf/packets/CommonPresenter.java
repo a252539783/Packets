@@ -6,13 +6,13 @@ import android.view.View;
  * Created by Administrator on 2017/11/6.
  */
 
-public abstract class CommonPresenter {
+public abstract class CommonPresenter<V> {
 
-    CommonFragment mFragment=null;
+    private V mView = null;
 
-    public void setFragment(CommonFragment frag)
+    public void setView(V v)
     {
-        mFragment=frag;
+        mView = v;
     }
 
     protected void onViewBind(View v)
@@ -26,4 +26,8 @@ public abstract class CommonPresenter {
     protected void onPause(){};
 
     protected void onResume(){};
+
+    public V getView() {
+        return mView;
+    }
 }

@@ -11,18 +11,19 @@ import com.lqf.packets.view.DrawableView
  */
 class BgWindow:FloatingWindow() {
     private var mView:DrawableView?=null;
+    private val mPresenter: CommonPresenter<BgWindow> = object : CommonPresenter<BgWindow>() {
+        override fun onViewBind(v: View?) {
+            super.onViewBind(v)
+            mView = v as DrawableView;
+        }
+    }
 
     override fun getLayout(): Int {
         return R.layout.background_window;
     }
 
-    override fun getPresenter(): CommonPresenter {
-        return object: CommonPresenter(){
-            override fun onViewBind(v: View?) {
-                super.onViewBind(v)
-                mView=v as DrawableView;
-            }
-        }
+    override fun getPresenter(): CommonPresenter<BgWindow> {
+        return mPresenter;
     }
 
     override fun autoMove(): Boolean {
