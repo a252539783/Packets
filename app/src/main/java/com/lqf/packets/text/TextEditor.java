@@ -19,27 +19,42 @@ public class TextEditor {
     private byte[] mSource=null;
     private String mSSource=null;
 
+    //单独线程来进行缓存
     private static CacheThread mThread=null;
 
+    //文本按页进行划分，每页大小即mSegmentLength
     private static int mSegmentLength =1000;
+
+    //实际缓存到内存中的页数量.
+    // 因为如果要打开的文件过大，那么就不可能一次性将文件所有内容加载进内存，这里保证任何时候只有mCacheSize个页加载.
     private static int mCacheSize=4;
+
+    //保证mCurrent距离mRoot大于mStartLength，距离mEnd大于mEndLength，否则会出现mCurrent在获取时还未加载的情况
+    //但实际上这样也无法保证加载能够及时，如果获取获取频率太高跨度过大仍然会出现问题，当前策略只能保证非极端情况的完好
+    //极端情况下还是需要主动通知界面更新的方式才能保证获取的正确性
     private static int mEndLength=1;
     private static int mStartLength=1;
 
+    //目标文本总共有多少页
     private int mSegmentCount=0;
 
+    //mRoot为已加载的第一页，mEnd为已加载的最后一页
     private InputItem mRoot,mEnd;
-    private int mStartIndex=0,mEndIndex;
-    private int[] mCurrentIndex=new int[2];
-    private InputItem mStart,mCurrent;
+    private int mStartIndex = 0, mEndIndex;    //mRoot和mEnd的Index，其实没多大用，可以有替代
+    private int[] mCurrentIndex = new int[2]; //目前没用
+
+    //当前指向的页.当要获取文本时，移动mCurrent到目标文本所在页上，然后进行文本获取
+    private InputItem mCurrent;
 
     private SparseArray<InputItem> mAllModified;
 
-    private int mCharCount=0;
+    private int mCharCount = 0;   //字符总数
 
     public TextEditor(byte[] src) {
         mSource=src;
         mSegmentCount=src.length/ mSegmentLength +(src.length% mSegmentLength !=0?1:0);
+
+        //第一次要加载的页数。由于是直接给了byte源，所以就不需要缓存了，直接用就行
         int count=mSegmentCount<=mCacheSize?mSegmentCount:mCacheSize;
         InputItem item=mRoot=new InputItem(src,0,src.length<= mSegmentLength ?src.length: mSegmentLength,0);
         for (int i=1; i<count; i++)
@@ -60,6 +75,8 @@ public class TextEditor {
     public TextEditor(FileInfo file)
     {
         mSegmentCount=file.length/ mSegmentLength +(file.length% mSegmentLength !=0?1:0);
+
+        //第一次要加载的页数。
         int count=mSegmentCount<=mCacheSize?mSegmentCount:mCacheSize;
         InputItem item=mRoot=new InputItem(0,file.length<= mSegmentLength ?file.length: mSegmentLength,0);
         for (int i=1; i<count; i++)
@@ -78,7 +95,7 @@ public class TextEditor {
         mThread.mFile=file;
 
         item=mRoot;
-        for (int i=0;i<count;i++)
+        for (int i = 0; i < count; i++)       //初始加载
         {
             mThread.cache(mRoot,mEnd,item);
             item=item.mNext;
@@ -94,20 +111,20 @@ public class TextEditor {
         return mCharCount;
     }
 
-    private void select(int id,int offset)
-    {
+    //移动mCurrent,直到mCurrent对应页包含offset位置
+    private void select(int id, int offset) {
         mCurrentIndex[id]=offset;
 
         if (id==0) {
-            if (offset >= mCurrent.mOffset) {
-                while (mCurrent.mOffset + mCurrent.mLength <= offset) {
+            if (offset >= mCurrent.mOffset) { //目标位置在当前页之后
+                while (mCurrent.mOffset + mCurrent.mLength <= offset) { //移动直到当前页覆盖目标
 
-                    mCurrent = mCurrent.mNext;
-                    if (mEndIndex!=mSegmentCount-1&&mEnd.mIndex-mCurrent.mIndex<mEndLength)
-                    {
+                    mCurrent = mCurrent.mNext;  //向后移一步
+                    if (mEndIndex!=mSegmentCount-1&&mEnd.mIndex-mCurrent.mIndex<mEndLength) {
                         mEndIndex++;
-                        if (!mRoot.mModified)
-                        {
+                        //mCurrent移动后，让mRoot和mEnd也随着移动一步，
+                        if (!mRoot.mModified) {
+                            //在mRoot没有被修改时，直接将mEnd更新为mRoot，mRoot后移，更新相关数据即可，避免了创建和销毁无用的对象
                             mRoot.mPrevious=mEnd;
                             mRoot.mIndex=mEnd.mIndex+1;
                             mRoot.mOffset=mEnd.mOffset+mEnd.mLength;
@@ -120,8 +137,9 @@ public class TextEditor {
 
                             mEnd.mPrepared=false;
 
-                        }else
-                        {
+                        }else {
+                            //一旦mRoot发生修改，自然不能直接使用，所以需要再次创建，并保存mRoot
+                            //TODO 不过这部分逻辑暂时还不可用
                             mEnd.mNext=new InputItem(mEnd.mOffset+mEnd.mLength,mSegmentLength,mEnd.mIndex+1);
                             mEnd.mNext.mPrevious=mEnd;
                             mEnd=mEnd.mNext;
@@ -130,17 +148,17 @@ public class TextEditor {
                             mEnd.mNext=null;
                         }
 
+                        //mRoot和mEnd改变，mEnd指向了一个新的页，缓存它
+                        //由于在mCurrent移动时也移动了mEnd，所以此时可以保证mCurrent不是mEnd，mCurrent现在应该是个已经加载过的页（除非获取速度极快）
                         mThread.cache(mRoot,mEnd,mEnd);
                     }
                 }
-            } else if (offset < mCurrent.mOffset) {
-                while (mCurrent.mOffset> offset) {
+            } else if (offset < mCurrent.mOffset) { //目标位置在当前页之前
+                while (mCurrent.mOffset > offset) { //移动直到当前页覆盖目标，剩下逻辑基本同上
                     mCurrent = mCurrent.mPrevious;
 
-                    if (mRoot.mOffset!=0&&mCurrent.mIndex-mRoot.mIndex<mStartLength)
-                    {
-                        if (!mEnd.mModified)
-                        {
+                    if (mRoot.mOffset!=0&&mCurrent.mIndex-mRoot.mIndex<mStartLength) {
+                        if (!mEnd.mModified) {
                             mEnd.mNext=mRoot;
                             mEnd.mIndex=mRoot.mIndex-1;
                             mEnd.mLength=mSegmentLength;
@@ -153,8 +171,7 @@ public class TextEditor {
 
                             mRoot.mPrepared=false;
 
-                        }else
-                        {
+                        }else {
                             mRoot.mPrevious=new InputItem(mRoot.mOffset-mSegmentLength,mSegmentLength,mRoot.mIndex-1);
                             mRoot.mPrevious.mNext=mRoot;
                             mRoot=mRoot.mPrevious;
@@ -170,8 +187,13 @@ public class TextEditor {
         }
     }
 
-    public int getByte(int index)
-    {
+    /**
+     * 获取一个字节（不是字符）
+     *
+     * @param index
+     * @return
+     */
+    public int getByte(int index) {
         /*if  (index>=mCurrent.mOffset)
         {
             while (true)
@@ -197,16 +219,16 @@ public class TextEditor {
 
         private InputItem mNext,mPrevious;
 
-        int mIndex=0;
+        int mIndex = 0;   //页编号
 
-        int mOffset =0;
-        int mOverride=0;
-        int mLength=0;
-        byte [] mResult;
+        int mOffset = 0;     //相对于源的偏移
+        int mOverride = 0;    //暂时没用，预留之后可能的修改操作
+        int mLength = 0;      //当前页大小.虽然加载页大小已经固定，但是对于最后一页以及修改过的页，大小还是未知的
+        byte[] mResult;    //当前页实际内容
 
-        boolean mModified=false;
+        boolean mModified = false;        //是否被修改过，目前没有修改文本的相关逻辑，所以暂时不管它
 
-        private boolean mPrepared=false;
+        private boolean mPrepared = false;    //暂时没用，也忘了之前想用来干啥了....
 
         List<InputHistory> mHistory=new LinkedList<>();
 
@@ -216,7 +238,8 @@ public class TextEditor {
             mLength=length;
             mOverride=length;
             mResult =new byte[length];
-            mIndex=index;
+            mIndex= index;
+            //为了保证不改动源，复制一份
             System.arraycopy(src,offset, mResult,0,length);
             mPrepared=true;
         }
@@ -253,8 +276,13 @@ public class TextEditor {
             Looper.loop();
         }
 
-        public void cache(InputItem start,InputItem end,InputItem cache)
-        {
+        /**
+         * 缓存一个页面
+         * @param start
+         * @param end
+         * @param cache 要缓存的页面，缓存结果会放入该页，该页必须提前给定index值
+         */
+        public void cache(InputItem start, InputItem end, InputItem cache) {
             while (mH==null);
             mH.mStart=start;
             mH.mEnd=end;
@@ -282,7 +310,7 @@ public class TextEditor {
             private class Entry
             {
                 InputItem item;
-                int index;
+                int index;  //用于判断item的index是否在实际加载前有了改动
 
                 Entry(int index,InputItem it)
                 {
@@ -292,9 +320,9 @@ public class TextEditor {
             }
 
             static final int CACHE=0;
-            static final int SAVE=2;
+            static final int SAVE = 2;
 
-            private InputItem mStart,mEnd,mCache;
+            private InputItem mStart, mEnd, mCache;   //暂时没用
 
             private ConcurrentLinkedQueue<Entry> mCaches=new ConcurrentLinkedQueue<>();
 
@@ -302,18 +330,17 @@ public class TextEditor {
             public void handleMessage(Message msg) {
                 super.handleMessage(msg);
 
-                if (msg.what==CACHE)
-                {
+                if (msg.what==CACHE) {
                     if (mFile!=null)
                         doFileCacheUnchecked();
-                    else if (mSrc!=null)
+                    else if (mSrc != null)    //即使已经给了byte源，但是为了保证安全还是需要进行复制缓存
                         doByteCacheUnchecked();
                 }
             }
 
+            //队列缓冲
             private void add(InputItem it)
             {
-
                 mH.mCaches.add(new H.Entry(it.mIndex,it));
             }
 
