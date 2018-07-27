@@ -26,10 +26,10 @@ import com.lqf.packets.text.SimpleFixedLayout;
 public class FixedWidthTextView extends View {
 
     private int mOneWidth,mOneHeight;
+
     private SimpleFixedLayout mLayout;
     private CharSequence mText;
     private TextPaint mPaint;
-
     private float mLastScrollY=0,mScrollY=0,mMaxScrollY;
     private float mScrollStartY=0;
     private float mScrollVelocity=0;
